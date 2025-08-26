@@ -1,14 +1,24 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+// Verificar token JWT
 const auth = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const authHeader = req.header('Authorization');
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Acceso denegado. Token no proporcionado.'
+      });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
     
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'Token de acceso requerido'
+        message: 'Acceso denegado. Token no válido.'
       });
     }
 
@@ -25,38 +35,72 @@ const auth = async (req, res, next) => {
     if (!user.isActive) {
       return res.status(401).json({
         success: false,
-        message: 'Cuenta desactivada'
+        message: 'Cuenta desactivada. Contacta al administrador.'
       });
     }
 
     req.user = user;
     next();
   } catch (error) {
-    res.status(401).json({
+    console.error('Error en autenticación:', error.message);
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Token inválido'
+      });
+    }
+    
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Token expirado'
+      });
+    }
+
+    res.status(500).json({
       success: false,
-      message: 'Token inválido'
+      message: 'Error en el servidor de autenticación'
     });
   }
 };
 
+// Verificar si es administrador
 const adminAuth = (req, res, next) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({
       success: false,
-      message: 'Acceso denegado. Se requieren privilegios de administrador'
+      message: 'Acceso denegado. Se requieren privilegios de administrador.'
     });
   }
   next();
 };
 
+// Verificar si es barbero o admin
 const barberAuth = (req, res, next) => {
   if (req.user.role !== 'barber' && req.user.role !== 'admin') {
     return res.status(403).json({
       success: false,
-      message: 'Acceso denegado. Se requieren privilegios de barbero'
+      message: 'Acceso denegado. Se requieren privilegios de barbero.'
     });
   }
   next();
 };
 
-module.exports = { auth, adminAuth, barberAuth };
+// Verificar si es el mismo usuario o admin
+const sameUserOrAdmin = (req, res, next) => {
+  if (req.user.role !== 'admin' && req.user._id.toString() !== req.params.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'Acceso denegado. Solo puedes acceder a tu propia información.'
+    });
+  }
+  next();
+};
+
+module.exports = {
+  auth,
+  adminAuth,
+  barberAuth,
+  sameUserOrAdmin
+};

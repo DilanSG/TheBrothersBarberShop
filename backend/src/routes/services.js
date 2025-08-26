@@ -1,22 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const serviceController = require('../controllers/serviceController');
-const auth = require('../middlewares/auth');
-const { validateService, validateServiceId } = require('../middlewares/serviceValidation');
+const {
+  getServices,
+  getService,
+  createService,
+  updateService,
+  deleteService
+} = require('../controllers/serviceController');
+const { auth, adminAuth } = require('../middleware/auth');
+const { validateService, validateIdParam } = require('../middleware/validation');
 
-// Obtener servicios (público)
-router.get('/', serviceController.getServices);
+// Rutas públicas
+router.get('/', getServices);
+router.get('/:id', validateIdParam, getService);
 
-// Las siguientes rutas requieren autenticación
-router.use(auth);
-
-// Crear servicio (solo admin)
-router.post('/', validateService, serviceController.createService);
-
-// Actualizar servicio (solo admin)
-router.put('/:id', validateServiceId, validateService, serviceController.updateService);
-
-// Eliminar servicio (solo admin)
-router.delete('/:id', validateServiceId, serviceController.deleteService);
+// Rutas protegidas - Admin only
+router.post('/', auth, adminAuth, validateService, createService);
+router.put('/:id', auth, adminAuth, validateIdParam, validateService, updateService);
+router.delete('/:id', auth, adminAuth, validateIdParam, deleteService);
 
 module.exports = router;
