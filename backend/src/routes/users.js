@@ -1,39 +1,31 @@
-const express = require('express');
+import express from 'express';
+import {
+  getUsers,
+  getUserById,
+  updateUser,
+  deleteUser
+} from '../controllers/userController.js';
+import { register, login } from '../controllers/authController.js';
+import { protect } from '../middleware/auth.js';
+// Si tienes middlewares de validación para usuarios, impórtalos aquí
+// import { validateUserUpdate, validateIdParam } from '../middleware/validation.js';
+
 const router = express.Router();
-const userController = require('../controllers/userController.js');
-const auth = require('../middlewares/auth');
-const {
-    validateUserRegistration,
-    validateUserLogin,
-    checkValidationResults,
-    loginLimiter
-} = require('../middlewares/security');
 
-// Registrar nuevo usuario
-router.post('/register', 
-    validateUserRegistration,
-    checkValidationResults,
-    userController.register
-);
-
-// Login de usuario
-router.post('/login',
-    loginLimiter,
-    validateUserLogin,
-    checkValidationResults, 
-    userController.login
-);
+// Registro y login de usuario (para frontend)
+router.post('/register', register);
+router.post('/login', login);
 
 // Obtener todos los usuarios (solo admin)
-router.get('/', auth, userController.getUsers);
+router.get('/', protect, getUsers);
 
 // Obtener un usuario por ID
-router.get('/:id', auth, userController.getUserById);
+router.get('/:id', protect, getUserById);
 
 // Actualizar usuario
-router.put('/:id', auth, userController.updateUser);
+router.put('/:id', protect, updateUser);
 
 // Eliminar usuario
-router.delete('/:id', auth, userController.deleteUser);
+router.delete('/:id', protect, deleteUser);
 
-module.exports = router;
+export default router;

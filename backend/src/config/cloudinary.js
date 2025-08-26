@@ -1,6 +1,6 @@
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const multer = require('multer');
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import multer from 'multer';
 
 // Configurar Cloudinary
 cloudinary.config({
@@ -36,7 +36,7 @@ const upload = multer({
 });
 
 // Función para eliminar imagen de Cloudinary
-const deleteImage = async (publicId) => {
+export const deleteImage = async (publicId) => {
   try {
     const result = await cloudinary.uploader.destroy(publicId);
     return result;
@@ -47,7 +47,7 @@ const deleteImage = async (publicId) => {
 };
 
 // Función para subir imagen
-const uploadImage = async (filePath, folder = 'the_brothers_barbershop') => {
+export const uploadImage = async (filePath, folder = 'the_brothers_barbershop') => {
   try {
     const result = await cloudinary.uploader.upload(filePath, {
       folder: folder,
@@ -59,9 +59,4 @@ const uploadImage = async (filePath, folder = 'the_brothers_barbershop') => {
   }
 };
 
-module.exports = {
-  cloudinary,
-  upload,
-  deleteImage,
-  uploadImage,
-};
+export { cloudinary, upload };

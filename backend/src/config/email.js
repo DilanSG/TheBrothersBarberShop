@@ -1,8 +1,8 @@
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
 // Crear transporter para enviar emails
 const createTransporter = () => {
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     service: process.env.EMAIL_SERVICE || 'Gmail',
     auth: {
       user: process.env.EMAIL_USER,
@@ -12,7 +12,7 @@ const createTransporter = () => {
 };
 
 // Plantillas de email
-const emailTemplates = {
+export const emailTemplates = {
   welcome: (name) => ({
     subject: '¡Bienvenido a The Brothers Barber Shop!',
     html: `
@@ -81,7 +81,7 @@ const emailTemplates = {
 };
 
 // Función para enviar email
-const sendEmail = async (to, templateName, templateData) => {
+export const sendEmail = async (to, templateName, templateData) => {
   try {
     const transporter = createTransporter();
     const template = emailTemplates[templateName](...templateData);
@@ -100,9 +100,4 @@ const sendEmail = async (to, templateName, templateData) => {
     console.error('❌ Error enviando email:', error);
     throw error;
   }
-};
-
-module.exports = {
-  sendEmail,
-  emailTemplates,
 };

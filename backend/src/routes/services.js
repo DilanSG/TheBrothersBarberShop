@@ -1,22 +1,23 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   getServices,
   getService,
   createService,
   updateService,
   deleteService
-} = require('../controllers/serviceController');
-const { auth, adminAuth } = require('../middleware/auth');
-const { validateService, validateIdParam } = require('../middleware/validation');
+} from '../controllers/serviceController.js';
+import { protect, adminAuth } from '../middleware/auth.js';
+import { validateService, validateIdParam } from '../middleware/validation.js';
+
+const router = express.Router();
 
 // Rutas públicas
 router.get('/', getServices);
 router.get('/:id', validateIdParam, getService);
 
-// Rutas protegidas - Admin only
-router.post('/', auth, adminAuth, validateService, createService);
-router.put('/:id', auth, adminAuth, validateIdParam, validateService, updateService);
-router.delete('/:id', auth, adminAuth, validateIdParam, deleteService);
+// Rutas protegidas - Solo admin
+router.post('/', protect, adminAuth, validateService, createService);
+router.put('/:id', protect, adminAuth, validateIdParam, validateService, updateService);
+router.delete('/:id', protect, adminAuth, validateIdParam, deleteService);
 
-module.exports = router;
+export default router;

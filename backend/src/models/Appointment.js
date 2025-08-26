@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const appointmentSchema = new mongoose.Schema({
   user: {
@@ -80,4 +80,4 @@ appointmentSchema.pre('save', function(next) {
   }
 });
 
-module.exports = mongoose.model('Appointment', appointmentSchema);
+export default mongoose.model('Appointment', appointmentSchema);

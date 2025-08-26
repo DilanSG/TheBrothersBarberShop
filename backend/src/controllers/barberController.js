@@ -1,36 +1,63 @@
-const { asyncHandler } = require('../middleware');
-const Barber = require('../models/Barber');
-const User = require('../models/User');
-const Appointment = require('../models/Appointment');
-const { AppError } = require('../middleware/errorHandler');
-const { deleteFromCloudinary } = require('../middleware/upload');
+// @desc    Editar perfil y horarios del barbero
+// @route   PUT /api/barbers/:id/profile
+// @access  Privado/Admin o el mismo barbero
+import { validateBarberProfile } from '../middleware/validation.js';
+export const editBarberProfile = asyncHandler(async (req, res) => {
+  const barber = await Barber.findById(req.params.id);
+  if (!barber) {
+    throw new AppError('Barbero no encontrado', 404);
+  }
+  if (req.user.role !== 'admin' && barber.user.toString() !== req.user._id.toString()) {
+    throw new AppError('No tienes permisos para editar este perfil', 403);
+  }
+  const updates = { ...req.body };
+  if (updates.schedule) {
+    barber.schedule = updates.schedule;
+  }
+  if (updates.specialty) barber.specialty = updates.specialty;
+  if (updates.experience !== undefined) barber.experience = updates.experience;
+  if (updates.description) barber.description = updates.description;
+  await barber.save();
+  await barber.populate('user', 'name email phone');
+  res.json({
+    success: true,
+    message: 'Perfil de barbero actualizado',
+    data: barber
+  });
+});
+import { asyncHandler } from '../middleware/index.js';
+import Barber from '../models/Barber.js';
+import User from '../models/User.js';
+import Appointment from '../models/Appointment.js';
+import { AppError } from '../middleware/errorHandler.js';
+import { deleteFromCloudinary } from '../utils/helpers.js'; // Mejor práctica: helpers, no middleware
 
 // @desc    Obtener todos los barberos
 // @route   GET /api/barbers
 // @access  Público
-const getBarbers = asyncHandler(async (req, res) => {
+export const getBarbers = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, active, specialty } = req.query;
-  
+
   const filter = {};
   if (active !== undefined) filter.isActive = active === 'true';
   if (specialty) filter.specialty = new RegExp(specialty, 'i');
-  
+
   const barbers = await Barber.find(filter)
     .populate('user', 'name email phone')
     .populate('services', 'name price duration')
-    .limit(limit * 1)
-    .skip((page - 1) * limit)
+    .limit(Number(limit))
+    .skip((Number(page) - 1) * Number(limit))
     .sort({ 'rating.average': -1, 'rating.count': -1 });
-  
+
   const total = await Barber.countDocuments(filter);
-  
+
   res.json({
     success: true,
     count: barbers.length,
     total,
     pagination: {
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page: Number(page),
+      limit: Number(limit),
       pages: Math.ceil(total / limit)
     },
     data: barbers
@@ -40,15 +67,15 @@ const getBarbers = asyncHandler(async (req, res) => {
 // @desc    Obtener un barbero por ID
 // @route   GET /api/barbers/:id
 // @access  Público
-const getBarber = asyncHandler(async (req, res) => {
+export const getBarber = asyncHandler(async (req, res) => {
   const barber = await Barber.findById(req.params.id)
     .populate('user', 'name email phone')
     .populate('services', 'name price duration category');
-  
+
   if (!barber) {
     throw new AppError('Barbero no encontrado', 404);
   }
-  
+
   res.json({
     success: true,
     data: barber
@@ -58,68 +85,63 @@ const getBarber = asyncHandler(async (req, res) => {
 // @desc    Obtener disponibilidad de un barbero
 // @route   GET /api/barbers/:id/availability
 // @access  Público
-const getBarberAvailability = asyncHandler(async (req, res) => {
+export const getBarberAvailability = asyncHandler(async (req, res) => {
   const { date } = req.query;
   const barberId = req.params.id;
-  
+
   if (!date) {
     throw new AppError('La fecha es requerida', 400);
   }
-  
+
   const targetDate = new Date(date);
   if (isNaN(targetDate.getTime())) {
     throw new AppError('Fecha inválida', 400);
   }
-  
-  // Obtener el barbero
+
   const barber = await Barber.findById(barberId);
   if (!barber || !barber.isActive) {
     throw new AppError('Barbero no encontrado o no disponible', 404);
   }
-  
-  // Obtener citas del barbero para esa fecha
+
   const startOfDay = new Date(targetDate);
   startOfDay.setHours(0, 0, 0, 0);
-  
+
   const endOfDay = new Date(targetDate);
   endOfDay.setHours(23, 59, 59, 999);
-  
+
   const appointments = await Appointment.find({
     barber: barberId,
     date: { $gte: startOfDay, $lte: endOfDay },
     status: { $in: ['pending', 'confirmed'] }
   }).sort({ date: 1 });
-  
-  // Generar horarios disponibles (9:00 AM - 7:00 PM)
+
   const availableSlots = [];
   const startHour = 9;
   const endHour = 19;
   const slotDuration = 30; // minutos
-  
+
   for (let hour = startHour; hour < endHour; hour++) {
     for (let minute = 0; minute < 60; minute += slotDuration) {
       const slotTime = new Date(targetDate);
       slotTime.setHours(hour, minute, 0, 0);
-      
-      // Verificar si el horario está en el pasado
+
       if (slotTime <= new Date()) {
         continue;
       }
-      
-      // Verificar si el horario está ocupado
+
       const isOccupied = appointments.some(appointment => {
         const appointmentTime = new Date(appointment.date);
         const appointmentEnd = new Date(appointmentTime.getTime() + appointment.duration * 60000);
-        
+
         return slotTime >= appointmentTime && slotTime < appointmentEnd;
       });
-      
+
       if (!isOccupied) {
         availableSlots.push(slotTime.toISOString());
       }
     }
   }
-  
+
   res.json({
     success: true,
     data: {
@@ -137,22 +159,19 @@ const getBarberAvailability = asyncHandler(async (req, res) => {
 // @desc    Crear un nuevo barbero
 // @route   POST /api/barbers
 // @access  Privado/Admin
-const createBarber = asyncHandler(async (req, res) => {
+export const createBarber = asyncHandler(async (req, res) => {
   const { userId, specialty, experience, description, services, schedule } = req.body;
-  
-  // Verificar que el usuario existe
+
   const user = await User.findById(userId);
   if (!user) {
     throw new AppError('Usuario no encontrado', 404);
   }
-  
-  // Verificar que el usuario no sea ya un barbero
+
   const existingBarber = await Barber.findOne({ user: userId });
   if (existingBarber) {
     throw new AppError('Este usuario ya es un barbero', 400);
   }
-  
-  // Crear el barbero
+
   const barberData = {
     user: userId,
     specialty,
@@ -169,25 +188,23 @@ const createBarber = asyncHandler(async (req, res) => {
       sunday: { start: '09:00', end: '19:00', available: false }
     }
   };
-  
-  // Agregar foto si se subió
+
   if (req.image) {
     barberData.photo = {
       public_id: req.image.public_id,
       url: req.image.url
     };
   }
-  
+
   const barber = new Barber(barberData);
   await barber.save();
-  
-  // Actualizar el rol del usuario a barbero
+
   user.role = 'barber';
   await user.save();
-  
+
   await barber.populate('user', 'name email phone');
   await barber.populate('services', 'name price');
-  
+
   res.status(201).json({
     success: true,
     message: 'Barbero creado exitosamente',
@@ -198,41 +215,38 @@ const createBarber = asyncHandler(async (req, res) => {
 // @desc    Actualizar un barbero
 // @route   PUT /api/barbers/:id
 // @access  Privado/Admin o el mismo barbero
-const updateBarber = asyncHandler(async (req, res) => {
+export const updateBarber = asyncHandler(async (req, res) => {
   const barber = await Barber.findById(req.params.id);
-  
+
   if (!barber) {
     throw new AppError('Barbero no encontrado', 404);
   }
-  
-  // Verificar permisos (admin o el mismo barbero)
+
   if (req.user.role !== 'admin' && barber.user.toString() !== req.user._id.toString()) {
     throw new AppError('No tienes permisos para actualizar este barbero', 403);
   }
-  
+
   const updates = { ...req.body };
-  
-  // Actualizar foto si se subió una nueva
+
   if (req.image) {
-    // Eliminar foto anterior si existe
     if (barber.photo && barber.photo.public_id) {
       await deleteFromCloudinary(barber.photo.public_id);
     }
-    
+
     updates.photo = {
       public_id: req.image.public_id,
       url: req.image.url
     };
   }
-  
+
   const updatedBarber = await Barber.findByIdAndUpdate(
     req.params.id,
     updates,
     { new: true, runValidators: true }
   )
-  .populate('user', 'name email phone')
-  .populate('services', 'name price duration');
-  
+    .populate('user', 'name email phone')
+    .populate('services', 'name price duration');
+
   res.json({
     success: true,
     message: 'Barbero actualizado exitosamente',
@@ -243,36 +257,30 @@ const updateBarber = asyncHandler(async (req, res) => {
 // @desc    Eliminar/desactivar un barbero
 // @route   DELETE /api/barbers/:id
 // @access  Privado/Admin
-const deleteBarber = asyncHandler(async (req, res) => {
+export const deleteBarber = asyncHandler(async (req, res) => {
   const barber = await Barber.findById(req.params.id);
-  
+
   if (!barber) {
     throw new AppError('Barbero no encontrado', 404);
   }
-  
-  // Verificar si el barbero tiene citas futuras
+
   const futureAppointments = await Appointment.countDocuments({
     barber: req.params.id,
     date: { $gte: new Date() },
     status: { $in: ['pending', 'confirmed'] }
   });
-  
+
   if (futureAppointments > 0) {
     throw new AppError('No se puede desactivar el barbero porque tiene citas futuras programadas', 400);
   }
-  
-  // Eliminar foto de Cloudinary si existe
+
   if (barber.photo && barber.photo.public_id) {
     await deleteFromCloudinary(barber.photo.public_id);
   }
-  
-  // Desactivar el barbero (no eliminar para mantener historial)
+
   barber.isActive = false;
   await barber.save();
-  
-  // Opcional: cambiar el rol del usuario de vuelta a 'user'
-  // await User.findByIdAndUpdate(barber.user, { role: 'user' });
-  
+
   res.json({
     success: true,
     message: 'Barbero desactivado exitosamente',
@@ -283,25 +291,23 @@ const deleteBarber = asyncHandler(async (req, res) => {
 // @desc    Obtener estadísticas de un barbero
 // @route   GET /api/barbers/:id/stats
 // @access  Privado/Admin o el mismo barbero
-const getBarberStats = asyncHandler(async (req, res) => {
+export const getBarberStats = asyncHandler(async (req, res) => {
   const barberId = req.params.id;
-  
+
   const barber = await Barber.findById(barberId);
   if (!barber) {
     throw new AppError('Barbero no encontrado', 404);
   }
-  
-  // Verificar permisos
+
   if (req.user.role !== 'admin' && barber.user.toString() !== req.user._id.toString()) {
     throw new AppError('No tienes permisos para ver estas estadísticas', 403);
   }
-  
-  // Estadísticas de citas
+
   const today = new Date();
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const startOfWeek = new Date(today);
   startOfWeek.setDate(today.getDate() - today.getDay());
-  
+
   const stats = await Appointment.aggregate([
     {
       $match: {
@@ -336,8 +342,7 @@ const getBarberStats = asyncHandler(async (req, res) => {
       }
     }
   ]);
-  
-  // Citas por servicio
+
   const appointmentsByService = await Appointment.aggregate([
     {
       $match: {
@@ -374,7 +379,7 @@ const getBarberStats = asyncHandler(async (req, res) => {
       $sort: { count: -1 }
     }
   ]);
-  
+
   const result = {
     totalAppointments: stats[0]?.totalAppointments || 0,
     totalRevenue: stats[0]?.totalRevenue || 0,
@@ -383,19 +388,9 @@ const getBarberStats = asyncHandler(async (req, res) => {
     thisWeek: stats[0]?.thisWeek || 0,
     appointmentsByService
   };
-  
+
   res.json({
     success: true,
     data: result
   });
 });
-
-module.exports = {
-  getBarbers,
-  getBarber,
-  getBarberAvailability,
-  createBarber,
-  updateBarber,
-  deleteBarber,
-  getBarberStats
-};

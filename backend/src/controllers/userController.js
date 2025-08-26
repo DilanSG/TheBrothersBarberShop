@@ -1,151 +1,79 @@
-const User = require('../models/User.js');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { validationResult } = require('express-validator');
+import User from '../models/User.js';
+import { asyncHandler } from '../middleware/index.js';
+import { AppError } from '../middleware/errorHandler.js';
 
 // Obtener todos los usuarios (solo admin)
-exports.getUsers = async (req, res) => {
-    try {
-        // Verificar si el usuario es administrador
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({
-                error: 'Acceso denegado. Se requieren privilegios de administrador'
-            });
-        }
+export const getUsers = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'admin') {
+    throw new AppError('Acceso denegado. Se requieren privilegios de administrador', 403);
+  }
 
-        const users = await User.find().select('-password');
-        res.json(users);
-    } catch (error) {
-        console.error('Error al obtener usuarios:', error);
-        res.status(500).json({
-            error: 'Error interno del servidor'
-        });
-    }
-};
+  const users = await User.find().select('-password');
+  res.json({ success: true, data: users });
+});
 
 // Obtener un usuario por ID
-exports.getUserById = async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id).select('-password');
-        
-        if (!user) {
-            return res.status(404).json({
-                error: 'Usuario no encontrado'
-            });
-        }
+export const getUserById = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id).select('-password');
 
-        // Verificar si el usuario solicita sus propios datos o es admin
-        if (req.user.id !== req.params.id && req.user.role !== 'admin') {
-            return res.status(403).json({
-                error: 'Acceso denegado'
-            });
-        }
+  if (!user) {
+    throw new AppError('Usuario no encontrado', 404);
+  }
 
-        res.json(user);
-    } catch (error) {
-        console.error('Error al obtener usuario:', error);
-        if (error.name === 'CastError') {
-            return res.status(400).json({
-                error: 'ID de usuario inválido'
-            });
-        }
-        res.status(500).json({
-            error: 'Error interno del servidor'
-        });
-    }
-};
+  // Verificar si el usuario solicita sus propios datos o es admin
+  if (req.user.id !== req.params.id && req.user.role !== 'admin') {
+    throw new AppError('Acceso denegado', 403);
+  }
+
+  res.json({ success: true, data: user });
+});
 
 // Actualizar usuario
-exports.updateUser = async (req, res) => {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({
-                error: 'Datos de entrada inválidos',
-                details: errors.array()
-            });
-        }
+export const updateUser = asyncHandler(async (req, res) => {
+  const { username, email, phone } = req.body;
 
-        const { name, email } = req.body;
-        
-        // Verificar si el usuario actualiza sus propios datos o es admin
-        if (req.user.id !== req.params.id && req.user.role !== 'admin') {
-            return res.status(403).json({
-                error: 'Acceso denegado'
-            });
-        }
+  // Verificar si el usuario actualiza sus propios datos o es admin
+  if (req.user.id !== req.params.id && req.user.role !== 'admin') {
+    throw new AppError('Acceso denegado', 403);
+  }
 
-        const user = await User.findByIdAndUpdate(
-            req.params.id,
-            { name, email },
-            { new: true, runValidators: true }
-        ).select('-password');
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { username, email, phone },
+    { new: true, runValidators: true }
+  ).select('-password');
 
-        if (!user) {
-            return res.status(404).json({
-                error: 'Usuario no encontrado'
-            });
-        }
+  if (!user) {
+    throw new AppError('Usuario no encontrado', 404);
+  }
 
-        res.json({
-            message: 'Usuario actualizado correctamente',
-            user
-        });
-    } catch (error) {
-        console.error('Error al actualizar usuario:', error);
-        if (error.name === 'CastError') {
-            return res.status(400).json({
-                error: 'ID de usuario inválido'
-            });
-        }
-        if (error.code === 11000) {
-            return res.status(400).json({
-                error: 'El email ya está en uso'
-            });
-        }
-        res.status(500).json({
-            error: 'Error interno del servidor'
-        });
-    }
-};
+  res.json({
+    success: true,
+    message: 'Usuario actualizado correctamente',
+    data: user
+  });
+});
 
 // Eliminar usuario
-exports.deleteUser = async (req, res) => {
-    try {
-        // Verificar si el usuario se está eliminando a sí mismo o es admin
-        if (req.user.id !== req.params.id && req.user.role !== 'admin') {
-            return res.status(403).json({
-                error: 'Acceso denegado'
-            });
-        }
+export const deleteUser = asyncHandler(async (req, res) => {
+  // Verificar si el usuario se está eliminando a sí mismo o es admin
+  if (req.user.id !== req.params.id && req.user.role !== 'admin') {
+    throw new AppError('Acceso denegado', 403);
+  }
 
-        // Prevenir que un usuario se elimine a sí mismo
-        if (req.user.id === req.params.id) {
-            return res.status(403).json({
-                error: 'No puedes eliminar tu propia cuenta'
-            });
-        }
+  // Prevenir que un usuario se elimine a sí mismo
+  if (req.user.id === req.params.id) {
+    throw new AppError('No puedes eliminar tu propia cuenta', 403);
+  }
 
-        const user = await User.findByIdAndDelete(req.params.id);
-        
-        if (!user) {
-            return res.status(404).json({
-                error: 'Usuario no encontrado'
-            });
-        }
+  const user = await User.findByIdAndDelete(req.params.id);
 
-        res.json({
-            message: 'Usuario eliminado correctamente'
-        });
-    } catch (error) {
-        console.error('Error al eliminar usuario:', error);
-        if (error.name === 'CastError') {
-            return res.status(400).json({
-                error: 'ID de usuario inválido'
-            });
-        }
-        res.status(500).json({
-            error: 'Error interno del servidor'
-        });
-    }
-};
+  if (!user) {
+    throw new AppError('Usuario no encontrado', 404);
+  }
+
+  res.json({
+    success: true,
+    message: 'Usuario eliminado correctamente'
+  });
+});

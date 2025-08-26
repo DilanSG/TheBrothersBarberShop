@@ -1,13 +1,13 @@
 // Archivo principal de configuración que exporta todas las configuraciones
-const database = require('./database');
-const cloudinary = require('./cloudinary');
-const email = require('./email');
-const cors = require('./cors');
-const rateLimit = require('./rateLimit');
-const jwt = require('./jwt');
+import * as database from './database.js';
+import * as cloudinary from './cloudinary.js';
+import * as email from './email.js';
+import * as cors from './cors.js';
+import * as rateLimit from './rateLimit.js';
+import * as jwt from './jwt.js';
 
 // Validar variables de entorno requeridas
-const validateEnv = () => {
+export const validateEnv = () => {
   const requiredEnvVars = [
     'JWT_SECRET',
     'MONGODB_URI',
@@ -27,7 +27,7 @@ const validateEnv = () => {
 };
 
 // Configuración global
-const config = {
+export const config = {
   // Configuración de la aplicación
   app: {
     port: process.env.PORT || 5000,
@@ -74,13 +74,11 @@ const config = {
   },
 };
 
-module.exports = {
+export {
   database,
   cloudinary,
   email,
   cors,
   rateLimit,
   jwt,
-  config,
-  validateEnv,
 };
