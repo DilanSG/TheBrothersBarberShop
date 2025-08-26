@@ -1,7 +1,7 @@
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 
 // Generar token JWT
-const generateToken = (payload, expiresIn = '7d') => {
+export const generateToken = (payload, expiresIn = '7d') => {
   return jwt.sign(payload, process.env.JWT_SECRET, {
     expiresIn: expiresIn,
     issuer: 'the-brothers-barbershop-api',
@@ -10,7 +10,7 @@ const generateToken = (payload, expiresIn = '7d') => {
 };
 
 // Verificar token JWT
-const verifyToken = (token) => {
+export const verifyToken = (token) => {
   try {
     return jwt.verify(token, process.env.JWT_SECRET, {
       issuer: 'the-brothers-barbershop-api',
@@ -22,12 +22,12 @@ const verifyToken = (token) => {
 };
 
 // Decodificar token sin verificar (útil para obtener info)
-const decodeToken = (token) => {
+export const decodeToken = (token) => {
   return jwt.decode(token);
 };
 
 // Generar token de refresco
-const generateRefreshToken = (payload) => {
+export const generateRefreshToken = (payload) => {
   return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
     expiresIn: '30d',
     issuer: 'the-brothers-barbershop-api',
@@ -36,7 +36,7 @@ const generateRefreshToken = (payload) => {
 };
 
 // Verificar token de refresco
-const verifyRefreshToken = (token) => {
+export const verifyRefreshToken = (token) => {
   try {
     return jwt.verify(token, process.env.JWT_REFRESH_SECRET, {
       issuer: 'the-brothers-barbershop-api',
@@ -45,12 +45,4 @@ const verifyRefreshToken = (token) => {
   } catch (error) {
     throw new Error('Token de refresco inválido o expirado');
   }
-};
-
-module.exports = {
-  generateToken,
-  verifyToken,
-  decodeToken,
-  generateRefreshToken,
-  verifyRefreshToken,
 };

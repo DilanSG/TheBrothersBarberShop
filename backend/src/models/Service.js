@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const serviceSchema = new mongoose.Schema({
   name: {
@@ -27,13 +27,13 @@ const serviceSchema = new mongoose.Schema({
   category: {
     type: String,
     required: [true, 'La categoría del servicio es requerida'],
-    enum: {
-      values: ['corte', 'barba', 'combo', 'tinte', 'tratamiento'],
-      message: 'Categoría no válida'
-    }
-  },
-  isActive: {
-    type: Boolean,
+    name: {
+      type: String,
+      required: [true, 'El nombre del servicio es requerido'],
+      trim: true,
+      maxlength: [100, 'El nombre no puede exceder los 100 caracteres'],
+      unique: true
+    },
     default: true
   },
   image: {
@@ -45,8 +45,7 @@ const serviceSchema = new mongoose.Schema({
 });
 
 // Índices para mejor performance
-serviceSchema.index({ name: 1 });
 serviceSchema.index({ category: 1 });
 serviceSchema.index({ isActive: 1 });
 
-module.exports = mongoose.model('Service', serviceSchema);
+export default mongoose.model('Service', serviceSchema);

@@ -1,70 +1,61 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const cors = require('cors');
-require('dotenv').config();
+import express from 'express';
+import helmet from 'helmet';
+import { generalLimiter, authLimiter } from './config/rateLimit.js';
+import { corsMiddleware } from './config/cors.js';
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
+import { requestLogger, errorLogger } from './utils/logger.js';
+
+import authRoutes from './routes/auth.js';
+import userRoutes from './routes/users.js';
+import serviceRoutes from './routes/services.js';
+import barberRoutes from './routes/barbers.js';
+import appointmentRoutes from './routes/appointment.js';
+import inventoryRoutes from './routes/inventory.js';
+
+const swaggerDocument = YAML.load('./docs/swagger.yaml');
 
 const app = express();
 
-// Middleware de seguridad
+// Seguridad y CORS
 app.use(helmet());
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
-    : 'http://localhost:3000',
-  credentials: true
-}));
+app.use(corsMiddleware);
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // límite de 100 peticiones por ventana
-  message: {
-    success: false,
-    message: 'Demasiadas peticiones, intenta nuevamente en 15 minutos'
-  }
-});
-app.use(limiter);
+// Rate limiting global
+app.use(generalLimiter);
 
-// Rate limiting más estricto para auth
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5, // límite de 5 intentos de login
-  message: {
-    success: false,
-    message: 'Demasiados intentos de login, intenta nuevamente en 15 minutos'
-  }
-});
+// Rate limiting para login
 app.use('/api/auth/login', authLimiter);
 
-// Conexión a MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('Conectado a MongoDB'))
-.catch(err => console.error('Error conectando a MongoDB:', err));
+// Logger de requests
+app.use(requestLogger);
 
-// Middleware
+// Body parsers
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Rutas
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/services', require('./routes/services'));
-app.use('/api/barbers', require('./routes/barbers'));
-app.use('/api/appointments', require('./routes/appointments'));
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/services', serviceRoutes);
+app.use('/api/barbers', barberRoutes);
+app.use('/api/appointments', appointmentRoutes);
+app.use('/api/inventory', inventoryRoutes);
+
+// Documentación API
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Ruta de salud
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    success: true, 
+  res.json({
+    success: true,
     message: 'The Brothers Barber Shop API está funcionando',
     timestamp: new Date().toISOString()
   });
 });
+
+// Logger de errores
+app.use(errorLogger);
 
 // Manejo de rutas no encontradas
 app.use('*', (req, res) => {
@@ -75,46 +66,7 @@ app.use('*', (req, res) => {
 });
 
 // Middleware de manejo de errores
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  
-  // Error de validación de Mongoose
-  if (err.name === 'ValidationError') {
-    const errors = Object.values(err.errors).map(e => e.message);
-    return res.status(400).json({
-      success: false,
-      message: 'Error de validación',
-      errors
-    });
-  }
-  
-  // Error de duplicado
-  if (err.code === 11000) {
-    const field = Object.keys(err.keyValue)[0];
-    return res.status(400).json({
-      success: false,
-      message: `${field} ya está en uso`
-    });
-  }
-  
-  // Error JWT
-  if (err.name === 'JsonWebTokenError') {
-    return res.status(401).json({
-      success: false,
-      message: 'Token inválido'
-    });
-  }
-  
-  // Error por defecto
-  res.status(500).json({
-    success: false,
-    message: 'Error interno del servidor'
-  });
-});
+import { errorHandler } from './middleware/errorHandler.js';
+app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Servidor ejecutándose en puerto ${PORT}`);
-});
-
-module.exports = app;
+export default app;

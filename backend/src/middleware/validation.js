@@ -1,8 +1,8 @@
-const { body, param, query, validationResult } = require('express-validator');
-const { User, Service, Barber, Appointment } = require('../models');
+
+import { body, param, query, validationResult } from 'express-validator';
 
 // Manejar errores de validación
-const handleValidationErrors = (req, res, next) => {
+export const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
@@ -14,8 +14,49 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
+// Validaciones para edición de perfil de usuario
+export const validateUserProfile = [
+  body('name')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('El nombre debe tener entre 2 y 50 caracteres')
+    .escape(),
+  body('email')
+    .optional()
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Debe proporcionar un email válido'),
+  body('phone')
+    .optional()
+    .isMobilePhone()
+    .withMessage('Número de teléfono inválido'),
+  handleValidationErrors
+];
+
+// Validaciones para edición de perfil de barbero
+export const validateBarberProfile = [
+  body('specialty')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('La especialidad debe tener entre 2 y 100 caracteres')
+    .escape(),
+  body('experience')
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage('La experiencia debe ser un número positivo'),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('La descripción no puede exceder los 500 caracteres')
+    .escape(),
+  handleValidationErrors
+];
+
 // Validaciones para usuarios
-const validateUser = [
+export const validateUser = [
   body('name')
     .trim()
     .isLength({ min: 2, max: 50 })
@@ -50,7 +91,7 @@ const validateUser = [
 ];
 
 // Validaciones para servicios
-const validateService = [
+export const validateService = [
   body('name')
     .trim()
     .isLength({ min: 2, max: 100 })
@@ -74,7 +115,7 @@ const validateService = [
 ];
 
 // Validaciones para barberos
-const validateBarber = [
+export const validateBarber = [
   body('specialty')
     .trim()
     .isLength({ min: 2, max: 100 })
@@ -108,7 +149,7 @@ const validateBarber = [
 ];
 
 // Validaciones para citas
-const validateAppointment = [
+export const validateAppointment = [
   body('barberId')
     .isMongoId()
     .withMessage('ID de barbero inválido')
@@ -163,7 +204,7 @@ const validateAppointment = [
 ];
 
 // Validaciones para reseñas
-const validateReview = [
+export const validateReview = [
   body('rating')
     .isInt({ min: 1, max: 5 })
     .withMessage('El rating debe estar entre 1 y 5'),
@@ -193,7 +234,7 @@ const validateReview = [
 ];
 
 // Validaciones para parámetros de ID
-const validateIdParam = [
+export const validateIdParam = [
   param('id')
     .isMongoId()
     .withMessage('ID inválido'),
@@ -201,7 +242,7 @@ const validateIdParam = [
 ];
 
 // Validaciones para queries de paginación
-const validatePagination = [
+export const validatePagination = [
   query('page')
     .optional()
     .isInt({ min: 1 })
@@ -213,13 +254,23 @@ const validatePagination = [
   handleValidationErrors
 ];
 
-module.exports = {
-  validateUser,
-  validateService,
-  validateBarber,
-  validateAppointment,
-  validateReview,
-  validateIdParam,
-  validatePagination,
-  handleValidationErrors
+// Middleware para verificar conflicto de citas (dummy, personaliza según tu lógica)
+export const checkAppointmentConflict = (req, res, next) => {
+  // Aquí podrías consultar la base de datos para ver si hay conflicto de horario
+  // Por ahora, simplemente pasa al siguiente middleware
+  next();
 };
+
+// Middleware para verificar propiedad de la cita (dummy, personaliza según tu lógica)
+export const checkAppointmentOwnership = (req, res, next) => {
+  // Aquí podrías consultar la base de datos para ver si el usuario es dueño de la cita
+  // Por ahora, simplemente pasa al siguiente middleware
+  next();
+};
+
+// Middleware para validación de creación de cita (puedes usar validateAppointment)
+export const validateAppointmentCreation = validateAppointment;
+
+// Middleware para validación de actualización de cita (puedes personalizar)
+export const validateAppointmentUpdate = validateAppointment;
+

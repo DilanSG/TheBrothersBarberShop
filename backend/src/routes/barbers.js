@@ -1,6 +1,5 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   getBarbers,
   getBarber,
   getBarberAvailability,
@@ -8,23 +7,25 @@ const {
   updateBarber,
   deleteBarber,
   getBarberStats
-} = require('../controllers/barberController');
-const {
-  auth,
+} from '../controllers/barberController.js';
+import {
+  protect,
   adminAuth,
   barberAuth,
   sameUserOrAdmin
-} = require('../middleware/auth');
-const {
+} from '../middleware/auth.js';
+import {
   validateBarber,
   validateIdParam,
   validatePagination
-} = require('../middleware/validation');
-const {
+} from '../middleware/validation.js';
+import {
   upload,
   uploadToCloudinary,
   validateImage
-} = require('../middleware/upload');
+} from '../middleware/upload.js';
+
+const router = express.Router();
 
 // Rutas públicas
 router.get('/', validatePagination, getBarbers);
@@ -32,7 +33,7 @@ router.get('/:id', validateIdParam, getBarber);
 router.get('/:id/availability', validateIdParam, getBarberAvailability);
 
 // Rutas protegidas
-router.use(auth);
+router.use(protect);
 
 // Estadísticas (admin o el mismo barbero)
 router.get('/:id/stats', validateIdParam, sameUserOrAdmin, getBarberStats);
@@ -63,4 +64,4 @@ router.put(
 // Eliminar barbero (solo admin)
 router.delete('/:id', validateIdParam, adminAuth, deleteBarber);
 
-module.exports = router;
+export default router;

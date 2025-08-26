@@ -1,0 +1,43 @@
+{
+  "name": "the-brothers-barbershop-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Backend para The Brothers Barber Shop",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "dotenv -e .env -- node --watch src/index.js",
+    "start": "dotenv -e .env -- node src/index.js",
+    "seed": "dotenv -e .env -- node src/scripts/seed.js",
+    "test": "jest",
+    "lint": "eslint src --ext .js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.2",
+    "cloudinary": "^2.4.0",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.11",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.0.0",
+    "express-validator": "^7.2.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.5.0",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "multer-storage-cloudinary": "^4.0.0",
+    "nodemailer": "^6.9.13",
+    "swagger-ui-express": "^4.6.3",
+    "winston": "^3.17.0",
+    "yamljs": "^0.3.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
+  }
+}

@@ -1,10 +1,11 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const barberSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'El usuario del barbero es requerido']
+    required: [true, 'El usuario del barbero es requerido'],
+    unique: true
   },
   specialty: {
     type: String,
@@ -59,7 +60,6 @@ const barberSchema = new mongoose.Schema({
 });
 
 // Índices
-barberSchema.index({ user: 1 }, { unique: true });
 barberSchema.index({ isActive: 1 });
 barberSchema.index({ specialty: 1 });
 barberSchema.index({ 'rating.average': -1 });
@@ -71,4 +71,4 @@ barberSchema.virtual('experienceFormatted').get(function() {
   return `${this.experience} años de experiencia`;
 });
 
-module.exports = mongoose.model('Barber', barberSchema);
+export default mongoose.model('Barber', barberSchema);

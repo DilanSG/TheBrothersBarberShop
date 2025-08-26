@@ -1,7 +1,8 @@
-const multer = require('multer');
-const path = require('path');
-const { cloudinary, upload: cloudinaryUpload } = require('../config/cloudinary');
-const { AppError } = require('./errorHandler');
+import multer from 'multer';
+import path from 'path';
+import { cloudinary } from '../config/cloudinary.js';
+import { AppError } from './errorHandler.js';
+import fs from 'fs';
 
 // Configuración de multer para subida temporal
 const storage = multer.diskStorage({
@@ -24,7 +25,7 @@ const fileFilter = (req, file, cb) => {
 };
 
 // Multer para subida temporal
-const upload = multer({
+export const upload = multer({
   storage: storage,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB
@@ -33,7 +34,7 @@ const upload = multer({
 });
 
 // Middleware para subir imagen a Cloudinary
-const uploadToCloudinary = async (req, res, next) => {
+export const uploadToCloudinary = async (req, res, next) => {
   try {
     if (!req.file) {
       return next();
@@ -59,7 +60,6 @@ const uploadToCloudinary = async (req, res, next) => {
     };
 
     // Eliminar archivo temporal
-    const fs = require('fs');
     fs.unlinkSync(req.file.path);
 
     next();
@@ -69,10 +69,9 @@ const uploadToCloudinary = async (req, res, next) => {
 };
 
 // Middleware para eliminar imagen de Cloudinary
-const deleteFromCloudinary = async (publicId) => {
+export const deleteFromCloudinary = async (publicId) => {
   try {
     if (!publicId) return;
-    
     const result = await cloudinary.uploader.destroy(publicId);
     return result;
   } catch (error) {
@@ -82,7 +81,7 @@ const deleteFromCloudinary = async (publicId) => {
 };
 
 // Middleware para validar tipo de archivo
-const validateImage = (req, res, next) => {
+export const validateImage = (req, res, next) => {
   if (!req.file) {
     return next(new AppError('Por favor sube una imagen', 400));
   }
@@ -93,11 +92,4 @@ const validateImage = (req, res, next) => {
   }
 
   next();
-};
-
-module.exports = {
-  upload,
-  uploadToCloudinary,
-  deleteFromCloudinary,
-  validateImage
 };

@@ -1,32 +1,37 @@
-const express = require('express');
+import express from 'express';
+import {
+  getAppointments,
+  createAppointment,
+  updateAppointment,
+  deleteAppointment,
+  cancelAppointmentWithReason
+} from '../controllers/appointmentController.js';
+import { protect } from '../middleware/auth.js';
+import { validateAppointmentCreation, validateAppointmentUpdate, checkAppointmentConflict, checkAppointmentOwnership } from '../middleware/validation.js';
+
 const router = express.Router();
-const appointmentController = require('../controllers/appointmentController');
-const auth = require('../middlewares/auth');
-const {
-    validateAppointmentCreation,
-    validateAppointmentUpdate,
-    checkAppointmentConflict,
-    checkAppointmentOwnership
-} = require('../middlewares/appointmentValidation');
+
+// Cancelar cita por barbero con motivo
+router.post('/:id/cancel', cancelAppointmentWithReason);
 
 // Todas las rutas requieren autenticación
-router.use(auth);
+router.use(protect);
 
 // Obtener citas
-router.get('/', appointmentController.getAppointments);
+router.get('/', getAppointments);
 
 // Crear cita
-router.post('/',
-    validateAppointmentCreation,
-    checkAppointmentConflict,
-    appointmentController.createAppointment
+router.post(
+  '/',
+  validateAppointmentCreation,
+  checkAppointmentConflict,
+  createAppointment
 );
 
 // Obtener/actualizar/eliminar cita específica
 router.route('/:id')
-    .all(checkAppointmentOwnership)
-    .get(appointmentController.getAppointmentById)
-    .put(validateAppointmentUpdate, appointmentController.updateAppointment)
-    .delete(appointmentController.deleteAppointment);
+  .all(checkAppointmentOwnership)
+  .put(validateAppointmentUpdate, updateAppointment)
+  .delete(deleteAppointment);
 
-module.exports = router;
+export default router;

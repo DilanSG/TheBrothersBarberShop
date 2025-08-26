@@ -1,42 +1,40 @@
 // Clases de error personalizadas
-class AppError extends Error {
-  constructor(message, statusCode) {
+export class AppError extends Error {
+  constructor(message, statusCode = 400) {
     super(message);
     this.statusCode = statusCode;
-    this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
-    this.isOperational = true;
-
+    this.name = 'AppError';
     Error.captureStackTrace(this, this.constructor);
   }
 }
 
-class ValidationError extends AppError {
+export class ValidationError extends AppError {
   constructor(errors) {
     super('Errores de validación', 400);
     this.errors = errors;
   }
 }
 
-class NotFoundError extends AppError {
+export class NotFoundError extends AppError {
   constructor(resource) {
     super(`${resource || 'Recurso'} no encontrado`, 404);
   }
 }
 
-class UnauthorizedError extends AppError {
+export class UnauthorizedError extends AppError {
   constructor(message = 'No autorizado') {
     super(message, 401);
   }
 }
 
-class ForbiddenError extends AppError {
+export class ForbiddenError extends AppError {
   constructor(message = 'Acceso prohibido') {
     super(message, 403);
   }
 }
 
 // Middleware de manejo de errores
-const errorHandler = (err, req, res, next) => {
+export const errorHandler = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
 
@@ -91,22 +89,11 @@ const errorHandler = (err, req, res, next) => {
 };
 
 // Middleware para rutas no encontradas
-const notFound = (req, res, next) => {
+export const notFound = (req, res, next) => {
   next(new NotFoundError(`Ruta ${req.originalUrl} no encontrada`));
 };
 
 // Wrapper async para evitar try-catch
-const asyncHandler = (fn) => (req, res, next) => {
+export const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
-};
-
-module.exports = {
-  AppError,
-  ValidationError,
-  NotFoundError,
-  UnauthorizedError,
-  ForbiddenError,
-  errorHandler,
-  notFound,
-  asyncHandler
 };

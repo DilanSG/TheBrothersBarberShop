@@ -1,18 +1,15 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-
-    console.log(`✅ MongoDB Conectado: ${conn.connection.host}`);
+    await mongoose.connect(process.env.MONGODB_URI);
+    console.log('✅ MongoDB Conectado');
   } catch (error) {
     console.error('❌ Error conectando a MongoDB:', error.message);
     process.exit(1);
   }
 };
+
 
 // Manejar eventos de conexión
 mongoose.connection.on('connected', () => {
@@ -34,4 +31,4 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-module.exports = connectDB;
+export default connectDB;

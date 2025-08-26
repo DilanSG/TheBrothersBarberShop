@@ -1,0 +1,52 @@
+openapi: 3.0.0
+info:
+  title: The Brothers Barber Shop API
+  version: 1.0.0
+  description: API para gestión de barbería
+servers:
+  - url: http://localhost:5000/api
+paths:
+  /users:
+    get:
+      summary: Obtener todos los usuarios
+      responses:
+        '200':
+          description: Lista de usuarios
+  /api/docs:
+    get:
+      summary: Documentación API
+      responses:
+        '200':
+          description: Documentación de la API en formato Swagger UI
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          enum: [admin, user]
+      required:
+        - name
+        - email
+        - password
+        - role
+x-codegen:
+  language: javascript
+  file: ./src/docs/swagger.yaml
+  import:
+    - swagger-ui-express
+    - yamljs
+  middleware:
+    - path: /api/docs
+      handler: swaggerUi.serve
+    - path: /api/docs
+      handler: swaggerUi.setup(swaggerDocument)

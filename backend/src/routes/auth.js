@@ -1,16 +1,16 @@
-import { Router } from "express";
-import { register, login, profile } from "../controllers/auth.controller.js";
-import { authRequired } from "../middleware/auth.js";
+import express from 'express';
+import { register, login, profile } from '../controllers/authController.js';
+import { protect } from '../middleware/auth.js';
 
-const router = Router();
+const router = express.Router();
 
 // Registro
-router.post("/register", register);
+router.post('/register', register);
 
 // Login
-router.post("/login", login);
+router.post('/login', login);
 
 // Perfil (solo con token)
-router.get("/profile", authRequired, profile);
+router.get('/profile', protect, profile);
 
 export default router;
