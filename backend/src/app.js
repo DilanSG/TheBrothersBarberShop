@@ -12,6 +12,7 @@ import serviceRoutes from './routes/services.js';
 import barberRoutes from './routes/barbers.js';
 import appointmentRoutes from './routes/appointment.js';
 import inventoryRoutes from './routes/inventory.js';
+import debugRoutes from './routes/debug.js';
 
 const swaggerDocument = YAML.load('./docs/swagger.yaml');
 
@@ -38,14 +39,33 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/services', serviceRoutes);
+app.use('/api/barbers', barberRoutes);  // Registrar la ruta de barberos
 app.use('/api/barbers', barberRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/debug', debugRoutes);
 
 // Documentación API
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
+// Manejador de rutas no encontradas (404)
+app.use((req, res, next) => {
+  if (!res.headersSent) {
+    console.log(`❌ Ruta no encontrada: ${req.method} ${req.path}`);
+    res.status(404).json({
+      success: false,
+      message: `Ruta no encontrada: ${req.method} ${req.path}`
+    });
+  }
+});
+
 // Ruta de salud
+// Middleware para imprimir las rutas solicitadas
+app.use((req, res, next) => {
+  console.log(`📝 ${req.method} ${req.path}`);
+  next();
+});
+
 app.get('/api/health', (req, res) => {
   res.json({
     success: true,

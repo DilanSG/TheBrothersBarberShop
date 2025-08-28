@@ -1,11 +1,12 @@
 import express from 'express';
 import { register, login, profile } from '../controllers/authController.js';
 import { protect } from '../middleware/auth.js';
+import { validateRegister } from '../middleware/authValidation.js';
 
 const router = express.Router();
 
-// Registro
-router.post('/register', register);
+// Registro con validación
+router.post('/register', validateRegister, register);
 
 // Login
 router.post('/login', login);

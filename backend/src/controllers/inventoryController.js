@@ -10,19 +10,33 @@ export const getInventory = asyncHandler(async (req, res) => {
 
 // Crear producto
 export const createInventory = asyncHandler(async (req, res) => {
-  const { name, description, cantidad_inicial, cantidad_actual, unidad, tipo, entradas = 0, salidas = 0 } = req.body;
+  const { 
+    name, description, cantidad_inicial, cantidad_actual, 
+    unidad, tipo, entradas = 0, salidas = 0,
+    vitrina = '1', prioridad = 'normal'
+  } = req.body;
   const exists = await Inventory.findOne({ name });
   if (exists) throw new AppError('El producto ya existe', 400);
-  const item = await Inventory.create({ name, description, cantidad_inicial, cantidad_actual, unidad, tipo, entradas, salidas });
+  const item = await Inventory.create({ 
+    name, description, cantidad_inicial, cantidad_actual, 
+    unidad, tipo, entradas, salidas, vitrina, prioridad 
+  });
   res.status(201).json({ success: true, data: item });
 });
 
 // Editar producto
 export const updateInventory = asyncHandler(async (req, res) => {
-  const { name, description, cantidad_inicial, cantidad_actual, unidad, tipo, entradas = 0, salidas = 0 } = req.body;
+  const { 
+    name, description, cantidad_inicial, cantidad_actual, 
+    unidad, tipo, entradas = 0, salidas = 0,
+    vitrina = '1', prioridad = 'normal'
+  } = req.body;
   const item = await Inventory.findByIdAndUpdate(
     req.params.id,
-    { name, description, cantidad_inicial, cantidad_actual, unidad, tipo, entradas, salidas },
+    { 
+      name, description, cantidad_inicial, cantidad_actual, 
+      unidad, tipo, entradas, salidas, vitrina, prioridad 
+    },
     { new: true, runValidators: true }
   );
   if (!item) throw new AppError('Producto no encontrado', 404);

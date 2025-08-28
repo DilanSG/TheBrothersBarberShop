@@ -44,6 +44,15 @@ function InventoryForm({ form, onChange, onSubmit, editing, onCancel, error, suc
               <option value="producto_final">Producto final</option>
             </select>
           </div>
+          <div>
+            <label className="form-label">Vitrina</label>
+            <select name="vitrina" value={form.vitrina} onChange={onChange} className="form-input" required>
+              <option value="1">Vitrina 1</option>
+              <option value="2">Vitrina 2</option>
+              <option value="3">Vitrina 3</option>
+              <option value="4">Vitrina 4</option>
+            </select>
+          </div>
       </div>
       {error && <p className="form-error text-center">{error}</p>}
       {success && <p className="form-success text-center">{success}</p>}
