@@ -8,6 +8,7 @@ const allowedOrigins = [
   'http://localhost:5174',   // Vite frontend alternativo
   'http://127.0.0.1:5173',  // Vite frontend local IP
   'http://127.0.0.1:5174',  // Vite frontend local IP alternativo
+  'https://dilansg.github.io',  // GitHub Pages
   process.env.FRONTEND_URL,  // Producción frontend
 ].filter(Boolean);
 
