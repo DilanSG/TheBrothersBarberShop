@@ -8,6 +8,9 @@ export default defineConfig({
   build: {
     target: 'es2019',
     outDir: 'dist',
+    assetsDir: 'assets',
+    emptyOutDir: true,
+    copyPublicDir: true,
     rollupOptions: {
       output: {
         manualChunks: undefined
