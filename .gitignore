@@ -11,6 +11,11 @@ coverage
 build
 dist
 
+# Temporary files
+*.temp.*
+*.timestamp-*
+*.tmp
+
 # Misc
 .DS_Store
 .env.local
