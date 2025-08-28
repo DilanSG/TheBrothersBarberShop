@@ -78,12 +78,41 @@ export const barberAuth = (req, res, next) => {
 };
 
 // Verificar si es el mismo usuario o admin
-export const sameUserOrAdmin = (req, res, next) => {
-  if (req.user.role !== 'admin' && req.user._id.toString() !== req.params.id) {
+export const sameUserOrAdmin = async (req, res, next) => {
+  try {
+    // Si es admin, permitir acceso directo
+    if (req.user.role === 'admin') {
+      return next();
+    }
+
+    // Si la ruta incluye /profile, buscar el barbero y comparar con el usuario
+    if (req.path.includes('/profile')) {
+      const Barber = (await import('../models/Barber.js')).default;
+      const barber = await Barber.findById(req.params.id);
+      if (!barber) {
+        return res.status(404).json({
+          success: false,
+          message: 'Barbero no encontrado'
+        });
+      }
+      if (barber.user.toString() === req.user._id.toString()) {
+        return next();
+      }
+    }
+    // Para otras rutas, comparar directamente el ID del usuario
+    else if (req.user._id.toString() === req.params.id) {
+      return next();
+    }
+
     return res.status(403).json({
       success: false,
       message: 'Acceso denegado. Solo puedes acceder a tu propia información.'
     });
+  } catch (error) {
+    console.error('Error en middleware sameUserOrAdmin:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al verificar permisos'
+    });
   }
-  next();
 };

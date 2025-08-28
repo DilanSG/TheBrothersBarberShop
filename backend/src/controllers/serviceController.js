@@ -1,7 +1,7 @@
 import { asyncHandler } from '../middleware/index.js';
 import Service from '../models/Service.js';
 import { AppError } from '../middleware/errorHandler.js';
-
+    
 // @desc    Obtener todos los servicios
 // @route   GET /api/services
 // @access  Público
@@ -87,11 +87,7 @@ export const updateService = asyncHandler(async (req, res) => {
 // @route   DELETE /api/services/:id
 // @access  Privado/Admin
 export const deleteService = asyncHandler(async (req, res) => {
-  const service = await Service.findByIdAndUpdate(
-    req.params.id,
-    { isActive: false },
-    { new: true }
-  );
+  const service = await Service.findByIdAndDelete(req.params.id);
 
   if (!service) {
     throw new AppError('Servicio no encontrado', 404);
@@ -99,7 +95,7 @@ export const deleteService = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Servicio desactivado exitosamente',
+    message: 'Servicio eliminado exitosamente',
     data: service
   });
 });

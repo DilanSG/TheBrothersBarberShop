@@ -19,11 +19,11 @@ export const validateEnv = () => {
   const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
   if (missingVars.length > 0) {
-    console.error('❌ Variables de entorno faltantes:', missingVars.join(', '));
+    console.error('--Variables de entorno faltantes:', missingVars.join(', '), '--');
     throw new Error('Configuración incompleta. Por favor configura todas las variables de entorno requeridas.');
   }
 
-  console.log('✅ Todas las variables de entorno requeridas están configuradas');
+  console.log('--Todas las variables de entorno requeridas están configuradas--');
 };
 
 // Configuración global

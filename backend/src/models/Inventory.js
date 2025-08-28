@@ -44,6 +44,17 @@ const inventorySchema = new mongoose.Schema({
     enum: ['insumo', 'producto_final'],
     default: 'insumo'
   },
+  vitrina: {
+    type: String,
+    required: [true, 'La vitrina es requerida'],
+    enum: ['1', '2', '3', '4'],
+    default: '1'
+  },
+  prioridad: {
+    type: String,
+    enum: ['baja', 'normal', 'alta', 'urgente'],
+    default: 'normal'
+  },
   isActive: {
     type: Boolean,
     default: true

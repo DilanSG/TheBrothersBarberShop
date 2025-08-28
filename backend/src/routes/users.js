@@ -3,10 +3,12 @@ import {
   getUsers,
   getUserById,
   updateUser,
-  deleteUser
+  deleteUser,
+  changeUserRole
 } from '../controllers/userController.js';
 import { register, login } from '../controllers/authController.js';
 import { protect } from '../middleware/auth.js';
+import { upload, uploadToCloudinary } from '../middleware/upload.js';
 // Si tienes middlewares de validación para usuarios, impórtalos aquí
 // import { validateUserUpdate, validateIdParam } from '../middleware/validation.js';
 
@@ -23,9 +25,12 @@ router.get('/', protect, getUsers);
 router.get('/:id', protect, getUserById);
 
 // Actualizar usuario
-router.put('/:id', protect, updateUser);
+router.put('/:id', protect, upload.single('photo'), uploadToCloudinary, updateUser);
 
 // Eliminar usuario
 router.delete('/:id', protect, deleteUser);
+
+// Cambiar el rol de un usuario (solo admin)
+router.put('/:id/role', protect, changeUserRole);
 
 export default router;

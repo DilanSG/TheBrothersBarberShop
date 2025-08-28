@@ -15,43 +15,138 @@ const createAccessToken = (user) => {
 
 // Registro de usuario
 export const register = asyncHandler(async (req, res) => {
-  const { username, email, password, role } = req.body;
+  const { username, name, email, password, role = 'user' } = req.body;
 
+  // Verificar si el email ya está registrado
   const userExists = await User.findOne({ email });
-  if (userExists) throw new AppError("El email ya está registrado", 400);
+  if (userExists) {
+    throw new AppError("El email ya está registrado", 400);
+  }
 
+  // Verificar si el nombre de usuario ya existe
   const usernameExists = await User.findOne({ username });
-  if (usernameExists) throw new AppError("El nombre de usuario ya está registrado", 400);
+  if (usernameExists) {
+    throw new AppError("El nombre de usuario ya está registrado", 400);
+  }
 
-  const newUser = new User({ username, email, password, role });
-  await newUser.save();
+  try {
+    // Crear el nuevo usuario
+    const newUser = new User({
+      username,
+      name,
+      email,
+      password,
+      role
+    });
 
-  const token = createAccessToken(newUser);
+    await newUser.save();
 
-  res.status(201).json({
-    message: "Usuario registrado con éxito",
-    token,
-    user: { id: newUser._id, username: newUser.username, email: newUser.email, role: newUser.role },
-  });
+    // Si el usuario es un barbero, crear automáticamente su perfil de barbero
+    if (role === 'barber') {
+      const Barber = (await import('../models/Barber.js')).default;
+      const newBarber = new Barber({
+        user: newUser._id,
+        specialty: 'Barbero General', // Valor por defecto
+        experience: 0,
+        isActive: true,
+        description: `Barbero profesional ${name}`,
+        schedule: {
+          monday: { start: '09:00', end: '18:00', isAvailable: true },
+          tuesday: { start: '09:00', end: '18:00', isAvailable: true },
+          wednesday: { start: '09:00', end: '18:00', isAvailable: true },
+          thursday: { start: '09:00', end: '18:00', isAvailable: true },
+          friday: { start: '09:00', end: '18:00', isAvailable: true },
+          saturday: { start: '09:00', end: '14:00', isAvailable: true },
+          sunday: { start: '09:00', end: '14:00', isAvailable: false }
+        }
+      });
+      await newBarber.save();
+    }
+
+    // Generar token
+    const token = createAccessToken(newUser);
+
+    // Devolver respuesta sin incluir la contraseña
+    const userResponse = {
+      id: newUser._id,
+      username: newUser.username,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role
+    };
+
+    res.status(201).json({
+      success: true,
+      message: "Usuario registrado con éxito",
+      token,
+      user: userResponse
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      // Error de duplicado en MongoDB
+      const field = Object.keys(error.keyPattern)[0];
+      throw new AppError(`El ${field} ya está en uso`, 400);
+    }
+    throw error;
+  }
 });
 
 // Login
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email }).select('+password');
-  if (!user || !user.password) throw new AppError('Usuario o contraseña incorrectos', 401);
+  if (!email || !password) {
+    throw new AppError('Por favor proporcione email y contraseña', 400);
+  }
 
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) throw new AppError('Credenciales incorrectas', 401);
+  try {
+    // Buscar usuario por email incluyendo la contraseña
+    const user = await User.findOne({ email }).select('+password');
+    
+    if (!user) {
+      throw new AppError('Usuario no encontrado', 401);
+    }
 
-  const token = createAccessToken(user);
+    if (!user.isActive) {
+      throw new AppError('Esta cuenta está desactivada', 401);
+    }
 
-  res.json({
-    message: 'Login exitoso',
-    token,
-    user: { id: user._id, username: user.username, email: user.email, role: user.role },
-  });
+    // Verificar contraseña usando el método del modelo
+    const isMatch = await user.comparePassword(password);
+    
+    if (!isMatch) {
+      throw new AppError('Credenciales incorrectas', 401);
+    }
+
+    // Generar token
+    const token = createAccessToken(user);
+
+    // Obtener datos del usuario sin la contraseña
+    const userWithoutPassword = {
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      isActive: user.isActive,
+      photo: user.photo
+    };
+
+    // Enviar respuesta exitosa
+    res.json({
+      success: true,
+      message: 'Login exitoso',
+      token,
+      user: userWithoutPassword
+    });
+
+  } catch (error) {
+    console.error('Error en la autenticación:', error);
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw new AppError('Error en la autenticación', 401);
+  }
 });
 
 // Perfil del usuario autenticado
