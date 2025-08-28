@@ -1,13 +1,18 @@
-const { defineConfig } = require('vite')
-const react = require('@vitejs/plugin-react')
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
-module.exports = defineConfig({
+export default defineConfig({
   plugins: [react()],
   base: '/TheBrothersBarberShop/',
   build: {
     target: 'es2019',
-    outDir: 'dist'
+    outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
   },
   server: {
     port: 5173,
