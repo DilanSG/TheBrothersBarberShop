@@ -33,15 +33,12 @@ jobs:
           cd ..
           rm -rf docs
           cp -r frontend/dist docs
-          npm ci
-          npm run build
-          cp index.html dist/404.html
-          touch dist/.nojekyll
+          touch docs/.nojekyll
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: frontend/dist
+          folder: docs
           branch: gh-pages
           clean: true
           clean-exclude: |
