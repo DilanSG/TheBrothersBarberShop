@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { authService } from '../services/authService';
 import { barberService } from '../services/api';
+import ErrorLogger from '../utils/errorLogger';
 
 const AuthContext = createContext();
 
@@ -11,6 +12,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshTimer, setRefreshTimer] = useState(null);
+  const tokenValidationRef = useRef(null);
 
   // Función para actualizar el usuario
   const setUser = (newUser) => {
@@ -47,6 +49,11 @@ export function AuthProvider({ children }) {
           const data = await barberService.getBarberByUserId(user._id);
           setBarberProfile(data.data);
         } catch (error) {
+          ErrorLogger.logError(error, {
+            context: 'AuthContext_loadBarberProfile',
+            userId: user._id,
+            userRole: user.role
+          });
           console.error('Error al cargar perfil de barbero:', error);
           setError('Error al cargar perfil de barbero');
         }
@@ -57,13 +64,42 @@ export function AuthProvider({ children }) {
     loadBarberProfile();
   }, [user?._id, token]);
 
-  // Setup del refresh token
+  // Validación periódica del token
+  const validateToken = useCallback(async () => {
+    if (!token) return false;
+    
+    try {
+      const isValid = await authService.validateToken();
+      if (!isValid) {
+        ErrorLogger.logError(new Error('Token inválido detectado'), {
+          context: 'AuthContext_validateToken',
+          userId: user?._id
+        });
+        handleLogout();
+        return false;
+      }
+      return true;
+    } catch (error) {
+      ErrorLogger.logError(error, {
+        context: 'AuthContext_validateToken',
+        userId: user?._id
+      });
+      return false;
+    }
+  }, [token, user?._id]);
+
+  // Setup del refresh token mejorado
   useEffect(() => {
     if (token) {
       const cleanup = setupTokenRefresh();
+      
+      // Validar token cada 5 minutos
+      tokenValidationRef.current = setInterval(validateToken, 5 * 60 * 1000);
+      
       return () => {
         cleanup();
         if (refreshTimer) clearInterval(refreshTimer);
+        if (tokenValidationRef.current) clearInterval(tokenValidationRef.current);
       };
     }
   }, [token]);

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import BarberProfileEdit from './barber/BarberProfileEdit';
-import UserProfileEdit from './UserProfileEdit';
+import { UserProfileEdit } from '../components/user';
 
 const ProfileEdit = () => {
   const { user } = useAuth();

@@ -4,6 +4,25 @@ import { api, appointmentService } from '../../services/api';
 import { useNotification } from '../../contexts/NotificationContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+
+// Helper function para manejar fechas con timezone correctamente
+const formatAppointmentDate = (dateStr, formatStr) => {
+  if (dateStr.includes('T') && dateStr.includes('-05:00')) {
+    // Extraer la fecha y hora local sin conversión de timezone
+    const [datePart, timePart] = dateStr.split('T');
+    
+    if (formatStr.includes('HH:mm')) {
+      // Para mostrar hora
+      return timePart.split('.')[0].substring(0, 5); // Obtener solo HH:mm
+    } else {
+      // Para mostrar fecha
+      return format(new Date(datePart + 'T00:00:00'), formatStr, { locale: es });
+    }
+  }
+  // Fallback para formato anterior
+  return format(new Date(dateStr), formatStr, { locale: es });
+};
+
 import { 
   Calendar, 
   Clock, 
@@ -284,10 +303,10 @@ const AdminAppointment = () => {
               <span className="text-xs text-gray-400">Fecha</span>
             </div>
             <div className="text-white text-sm font-medium">
-              <div>{format(new Date(appointment.date), "d MMM", { locale: es })}</div>
+              <div>{formatAppointmentDate(appointment.date, "d MMM")}</div>
               <div className="flex items-center space-x-1 text-xs text-gray-400">
                 <Clock className="w-3 h-3" />
-                <span>{format(new Date(appointment.date), "HH:mm")}</span>
+                <span>{formatAppointmentDate(appointment.date, "HH:mm")}</span>
               </div>
             </div>
           </div>

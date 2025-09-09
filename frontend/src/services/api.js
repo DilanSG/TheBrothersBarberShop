@@ -1,3 +1,5 @@
+import ErrorLogger from '../utils/errorLogger.js';
+
 const API_URL = import.meta.env.VITE_API_URL;
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0';
 
@@ -182,6 +184,15 @@ const fetchWithRetry = async (url, options, retries = 3, backoff = 1000) => {
       await wait(backoff);
       return fetchWithRetry(url, options, retries - 1, backoff * 2);
     }
+    
+    // Log del error antes de lanzarlo
+    ErrorLogger.logError(error, {
+      url,
+      method: options.method,
+      retries,
+      operation: 'fetchWithRetry'
+    });
+    
     throw error;
   }
 };

@@ -10,11 +10,12 @@ export { default as PageContainer } from './layout/PageContainer';
 // Componentes de notificaciones
 export { default as NotificationContainer } from './notifications/NotificationContainer';
 
-// Componentes comunes
-export * from './common';
+// Componentes de inventario
+export { default as InventorySnapshot } from './inventory/InventorySnapshot';
+export { default as SavedInventoriesModal } from './inventory/SavedInventoriesModal';
 
-// Componentes de formularios
-export * from './forms';
+// Componentes de usuario
+export * from './user';
 
 // Componentes UI
 export * from './ui';
