@@ -8,6 +8,9 @@ import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
 import hpp from 'hpp';
+
+// TODO: Implementar validación de variables de entorno
+// import { validateEnvironment } from '../config/envValidator.js';
 import YAML from 'yamljs';
 import swaggerUi from 'swagger-ui-express';
 import mongoose from 'mongoose';
@@ -17,6 +20,9 @@ import { config, validateEnv } from './config/index.js';
 import { corsOptions } from './config/cors.js';
 import { cloudinaryConfig } from './config/cloudinary.js';
 import { setupSwagger } from './config/swagger.js';
+
+// TODO: Implementar validación de entorno
+// validateEnvironment();
 
 // Utilidades y middleware
 import { logger } from './utils/logger.js';
@@ -57,6 +63,36 @@ app.use(cors(corsOptions));
 // Compresión de respuestas
 app.use(compression());
 
+// Middleware de seguridad mejorado
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:", "*.cloudinary.com"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'", "https:", "data:"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false
+}));
+
+// Sanitización de datos
+app.use(mongoSanitize());
+app.use(xss());
+
+// Prevenir contaminación de parámetros HTTP
+app.use(hpp({
+  whitelist: ['sort', 'page', 'limit', 'fields']
+}));
+
+// TODO: Implementar monitoreo de performance
+// app.use(performanceMonitor);
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: config.rateLimit.windowMs,
@@ -92,6 +128,16 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Rutas de la API
 app.use(`/api/${config.app.apiVersion}`, routes);
+
+// Ruta raíz
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'The Brothers Barber Shop API is running!',
+    version: config.app.apiVersion,
+    timestamp: new Date().toISOString(),
+    status: 'healthy'
+  });
+});
 
 // Ruta de estado de salud
 app.get('/health', (req, res) => {

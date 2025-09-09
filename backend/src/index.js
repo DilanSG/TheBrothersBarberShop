@@ -4,16 +4,20 @@ import { connectDB } from './config/database.js';
 import { logger } from './utils/logger.js';
 import mongoose from 'mongoose';
 
-console.log('Starting server...');
+console.log('🚀 Starting server...');
+console.log('📍 Port:', process.env.PORT || 5000);
+console.log('🌍 Environment:', process.env.NODE_ENV || 'development');
 
 const startServer = async () => {
+  console.log('🚀 Iniciando servidor...');
+  console.log('📍 Puerto configurado:', config.app.port);
+  console.log('🌍 Entorno:', config.app.nodeEnv);
+  
   try {
-    // Conectar a la base de datos
-    await connectDB();
-    logger.info('✅ Conexión a la base de datos establecida');
-
-    // Iniciar el servidor
+    // Iniciar el servidor PRIMERO - esto es crítico para Render
     const server = app.listen(config.app.port, '0.0.0.0', () => {
+      console.log(`✅ Servidor iniciado exitosamente en puerto ${config.app.port}`);
+      console.log(`📡 Servidor escuchando en http://0.0.0.0:${config.app.port}`);
       logger.info(`
 🚀 Servidor iniciado en modo ${config.app.nodeEnv}
 📡 API escuchando en:
@@ -22,6 +26,15 @@ const startServer = async () => {
 📚 Documentación API: http://localhost:${config.app.port}/api/docs
       `);
     });
+
+    // Luego intentar conectar a la base de datos
+    try {
+      await connectDB();
+      logger.info('✅ Conexión a la base de datos establecida');
+    } catch (dbError) {
+      logger.error('❌ Error conectando a la base de datos:', dbError);
+      console.log('⚠️  Servidor iniciado sin conexión a MongoDB. Algunas funciones pueden no estar disponibles.');
+    }
 
     // Manejar señales de terminación
     const shutdown = async (signal) => {
@@ -51,6 +64,7 @@ const startServer = async () => {
     process.on('SIGINT', () => shutdown('SIGINT'));
 
   } catch (error) {
+    console.error('❌ Error crítico iniciando el servidor:', error);
     logger.error('❌ Error iniciando el servidor:', error);
     process.exit(1);
   }

@@ -4,10 +4,31 @@ import { PageContainer } from '../../components/layout/PageContainer';
 import { useAuth } from '../../contexts/AuthContext';
 import { api, appointmentService, serviceService, barberService } from '../../services/api';
 import { useNotification } from '../../contexts/NotificationContext';
-import { format, parse, isAfter, isBefore, startOfDay, isSameDay } from 'date-fns';
+import { format, parse, isAfter, isBefore, startOfDay, isSameDay, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { DayPicker } from 'react-day-picker';
+import 'react-day-picker/dist/style.css';
+import '../../styles/dayPicker.css';
 import GradientButton from '../../components/ui/GradientButton';
 import { Calendar, Clock, User, Scissors, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+
+// Helper function para manejar fechas con timezone correctamente
+const formatAppointmentDate = (dateStr, formatStr) => {
+  if (dateStr.includes('T') && dateStr.includes('-05:00')) {
+    // Extraer la fecha y hora local sin conversión de timezone
+    const [datePart, timePart] = dateStr.split('T');
+    
+    if (formatStr.includes('HH:mm')) {
+      // Para mostrar hora
+      return timePart.split('.')[0].substring(0, 5); // Obtener solo HH:mm
+    } else {
+      // Para mostrar fecha
+      return format(new Date(datePart + 'T00:00:00'), formatStr, { locale: es });
+    }
+  }
+  // Fallback para formato anterior
+  return format(new Date(dateStr), formatStr, { locale: es });
+};
 
 const UserAppointment = () => {
   const [searchParams] = useSearchParams();
@@ -20,6 +41,8 @@ const UserAppointment = () => {
   const [selectedService, setSelectedService] = useState('');
   const [selectedBarber, setSelectedBarber] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDateObj, setSelectedDateObj] = useState(null); // Para el DayPicker
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedTime, setSelectedTime] = useState('');
   const [services, setServices] = useState([]);
   const [barbers, setBarbers] = useState([]);
@@ -395,8 +418,27 @@ const UserAppointment = () => {
     }
   }, [appointments, activeTab]);
 
-  // Obtener fecha mínima (hoy)
-  const minDate = format(new Date(), 'yyyy-MM-dd');
+  // Obtener fecha mínima (hoy) y configuración para el DayPicker
+  const today = new Date();
+  const minDate = format(today, 'yyyy-MM-dd');
+  const maxDate = addDays(today, 30); // Permitir reservas hasta 30 días en el futuro
+  
+  // Función para manejar la selección de fecha del DayPicker
+  const handleDateSelect = (date) => {
+    if (date) {
+      setSelectedDateObj(date);
+      setSelectedDate(format(date, 'yyyy-MM-dd'));
+      setShowDatePicker(false);
+      console.log('📅 Fecha seleccionada:', format(date, 'yyyy-MM-dd'));
+    }
+  };
+
+  // Deshabilitar fechas pasadas y domingos (ejemplo)
+  const disabledDays = [
+    { before: today },
+    { after: maxDate },
+    { dayOfWeek: [0] } // Deshabilitar domingos (0 = domingo)
+  ];
 
   return (
     <PageContainer>
@@ -478,7 +520,7 @@ const UserAppointment = () => {
                 </select>
               </div>
 
-              {/* Date Selection */}
+              {/* Date Selection with DayPicker */}
               <div>
                 <label className="block text-sm font-medium mb-2">
                   <div className="flex items-center space-x-2">
@@ -486,17 +528,60 @@ const UserAppointment = () => {
                     <span className="bg-gradient-to-r from-green-300 to-green-100 bg-clip-text text-transparent">Fecha</span>
                   </div>
                 </label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => {
-                    console.log('Date selected:', e.target.value);
-                    setSelectedDate(e.target.value);
-                  }}
-                  min={minDate}
-                  className="w-full h-10 px-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white text-sm focus:outline-none focus:border-green-500/50 transition-all duration-200"
-                  required
-                />
+                
+                {/* Input que muestra la fecha seleccionada y abre el picker */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={selectedDate ? format(new Date(selectedDate), 'dd/MM/yyyy', { locale: es }) : ''}
+                    onClick={() => setShowDatePicker(!showDatePicker)}
+                    placeholder="Selecciona una fecha"
+                    className="w-full h-10 px-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white text-sm focus:outline-none focus:border-green-500/50 transition-all duration-200 cursor-pointer"
+                    readOnly
+                    required
+                  />
+                  
+                  {/* DayPicker Popup */}
+                  {showDatePicker && (
+                    <div className="absolute top-full left-0 mt-2 z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-xl p-4">
+                      <DayPicker
+                        mode="single"
+                        selected={selectedDateObj}
+                        onSelect={handleDateSelect}
+                        disabled={disabledDays}
+                        locale={es}
+                        className="rdp-custom"
+                        style={{
+                          '--rdp-cell-size': '35px',
+                          '--rdp-accent-color': '#10b981',
+                          '--rdp-background-color': '#1f2937',
+                          '--rdp-accent-color-dark': '#059669',
+                          '--rdp-background-color-dark': '#111827',
+                          '--rdp-outline': '2px solid var(--rdp-accent-color)',
+                          color: 'white'
+                        }}
+                        modifiersStyles={{
+                          selected: {
+                            backgroundColor: '#10b981',
+                            color: 'white'
+                          },
+                          today: {
+                            backgroundColor: '#374151',
+                            color: '#10b981',
+                            fontWeight: 'bold'
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowDatePicker(false)}
+                        className="mt-2 w-full px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                      >
+                        Cerrar
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Time Selection */}
@@ -656,14 +741,14 @@ const UserAppointment = () => {
                             <Calendar className="w-3 h-3 text-blue-400" />
                             <span className="text-gray-400">Fecha:</span>
                             <span className="bg-gradient-to-r from-blue-300 to-blue-100 bg-clip-text text-transparent font-medium">
-                              {format(new Date(appointment.date), "d 'de' MMM", { locale: es })}
+                              {formatAppointmentDate(appointment.date, "d 'de' MMM")}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Clock className="w-3 h-3 text-green-400" />
                             <span className="text-gray-400">Hora:</span>
                             <span className="bg-gradient-to-r from-green-300 to-green-100 bg-clip-text text-transparent font-medium">
-                              {format(new Date(appointment.date), "HH:mm")}
+                              {formatAppointmentDate(appointment.date, "HH:mm")}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
