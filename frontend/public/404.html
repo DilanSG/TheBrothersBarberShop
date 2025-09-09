@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>The Brothers Barber Shop</title>
+    <script>
+        // Función para manejar la redirección
+        (function() {
+            const { pathname } = window.location;
+            const redirectURL = pathname.includes('/TheBrothersBarberShop/') 
+                ? pathname 
+                : '/TheBrothersBarberShop' + pathname;
+            
+            // Mantener la URL original para el historial del navegador
+            const redirectWithHistory = () => {
+                window.history.replaceState(null, null, redirectURL);
+                window.location.reload();
+            };
+
+            redirectWithHistory();
+        })();
+    </script>
+</head>
+<body>
+    <div>Redirigiendo...</div>
+</body>
+</html>

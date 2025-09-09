@@ -2,14 +2,6 @@ import { body } from 'express-validator';
 import { handleValidationErrors } from '../middleware/validation.js';
 
 export const validateRegister = [
-  body('username')
-    .trim()
-    .isLength({ min: 3, max: 30 })
-    .withMessage('El nombre de usuario debe tener entre 3 y 30 caracteres')
-    .matches(/^[a-zA-Z0-9_]+$/)
-    .withMessage('El nombre de usuario solo puede contener letras, números y guiones bajos')
-    .escape(),
-  
   body('name')
     .trim()
     .isLength({ min: 2, max: 50 })
@@ -34,6 +26,20 @@ export const validateRegister = [
     .optional()
     .isIn(['user', 'barber'])
     .withMessage('Rol no válido'),
+  
+  handleValidationErrors
+];
+
+export const validatePasswordChange = [
+  body('currentPassword')
+    .exists()
+    .withMessage('La contraseña actual es requerida'),
+    
+  body('newPassword')
+    .isLength({ min: 6 })
+    .withMessage('La nueva contraseña debe tener al menos 6 caracteres')
+    .matches(/\d/)
+    .withMessage('La nueva contraseña debe contener al menos un número'),
   
   handleValidationErrors
 ];

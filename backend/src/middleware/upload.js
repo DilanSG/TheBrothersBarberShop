@@ -1,7 +1,7 @@
 import multer from 'multer';
 import path from 'path';
 import { cloudinary } from '../config/cloudinary.js';
-import { AppError } from './errorHandler.js';
+import { AppError } from '../utils/errors.js';
 import fs from 'fs';
 
 // Configuración de multer para subida temporal
@@ -32,6 +32,9 @@ export const upload = multer({
   },
   fileFilter: fileFilter
 });
+
+// Middleware para subir una sola imagen
+export const uploadImage = upload.single('image');
 
 // Middleware para subir imagen a Cloudinary
 export const uploadToCloudinary = async (req, res, next) => {
@@ -80,10 +83,25 @@ export const deleteFromCloudinary = async (publicId) => {
   }
 };
 
-// Middleware para validar tipo de archivo
-export const validateImage = (req, res, next) => {
+// Middleware para validar tipo de archivo (solo para endpoints que requieren imagen)
+export const validateImageRequired = (req, res, next) => {
   if (!req.file) {
     return next(new AppError('Por favor sube una imagen', 400));
+  }
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (!allowedTypes.includes(req.file.mimetype)) {
+    return next(new AppError('Formato de imagen no válido. Use JPEG, PNG, GIF o WEBP', 400));
+  }
+
+  next();
+};
+
+// Middleware para validar tipo de archivo (opcional para endpoints de actualización)
+export const validateImage = (req, res, next) => {
+  // Si no hay archivo, continúa sin error
+  if (!req.file) {
+    return next();
   }
 
   const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
