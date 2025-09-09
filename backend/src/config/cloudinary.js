@@ -3,11 +3,15 @@ import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import multer from 'multer';
 
 // Configurar Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+export { cloudinary };
+
+export const cloudinaryConfig = () => {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+};
 
 // Configurar almacenamiento para multer
 const storage = new CloudinaryStorage({
@@ -46,8 +50,8 @@ export const deleteImage = async (publicId) => {
   }
 };
 
-// Función para subir imagen
-export const uploadImage = async (filePath, folder = 'the_brothers_barbershop') => {
+// Función para subir imagen a Cloudinary
+export const uploadImageToCloudinary = async (filePath, folder = 'the_brothers_barbershop') => {
   try {
     const result = await cloudinary.uploader.upload(filePath, {
       folder: folder,
@@ -59,4 +63,4 @@ export const uploadImage = async (filePath, folder = 'the_brothers_barbershop') 
   }
 };
 
-export { cloudinary, upload };
+export { upload };

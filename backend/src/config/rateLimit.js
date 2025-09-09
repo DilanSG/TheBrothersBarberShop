@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 // Configuración general de rate limiting
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // máximo 100 requests por ventana
+  max: 300, // Incrementado para desarrollo: máximo 300 requests por ventana
   message: {
     success: false,
     message: 'Demasiadas peticiones, intenta nuevamente en 15 minutos'

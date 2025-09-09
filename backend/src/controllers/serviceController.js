@@ -1,33 +1,26 @@
+import ServiceOfferedService from '../services/serviceOfferedService.js';
+import { AppError } from '../utils/errors.js';
+import { validateService } from '../middleware/validation.js';
 import { asyncHandler } from '../middleware/index.js';
-import Service from '../models/Service.js';
-import { AppError } from '../middleware/errorHandler.js';
-    
+
 // @desc    Obtener todos los servicios
 // @route   GET /api/services
 // @access  Público
 export const getServices = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, category, active } = req.query;
+  const filters = {};
+  if (req.query.category) filters.category = req.query.category;
+  if (req.query.minPrice) filters.price = { $gte: parseFloat(req.query.minPrice) };
+  if (req.query.maxPrice) {
+    filters.price = { ...filters.price, $lte: parseFloat(req.query.maxPrice) };
+  }
+  if (req.query.active) {
+    filters.isActive = req.query.active === 'true';
+  }
 
-  const filter = {};
-  if (category) filter.category = category;
-  if (active !== undefined) filter.isActive = active === 'true';
-
-  const services = await Service.find(filter)
-    .limit(Number(limit))
-    .skip((Number(page) - 1) * Number(limit))
-    .sort({ name: 1 });
-
-  const total = await Service.countDocuments(filter);
-
+  const services = await ServiceOfferedService.getAllServices(filters);
   res.json({
     success: true,
     count: services.length,
-    total,
-    pagination: {
-      page: Number(page),
-      limit: Number(limit),
-      pages: Math.ceil(total / limit)
-    },
     data: services
   });
 });
@@ -36,12 +29,7 @@ export const getServices = asyncHandler(async (req, res) => {
 // @route   GET /api/services/:id
 // @access  Público
 export const getService = asyncHandler(async (req, res) => {
-  const service = await Service.findById(req.params.id);
-
-  if (!service) {
-    throw new AppError('Servicio no encontrado', 404);
-  }
-
+  const service = await ServiceOfferedService.getServiceById(req.params.id);
   res.json({
     success: true,
     data: service
@@ -52,9 +40,19 @@ export const getService = asyncHandler(async (req, res) => {
 // @route   POST /api/services
 // @access  Privado/Admin
 export const createService = asyncHandler(async (req, res) => {
-  const service = new Service(req.body);
-  await service.save();
+  // Validar los datos del servicio
+  const validationError = validateService(req.body);
+  if (validationError) {
+    throw new AppError(validationError, 400);
+  }
 
+  // Si se subió una imagen, incluir su URL
+  const serviceData = {
+    ...req.body,
+    image: req.file ? req.file.path : undefined
+  };
+
+  const service = await ServiceOfferedService.createService(serviceData);
   res.status(201).json({
     success: true,
     message: 'Servicio creado exitosamente',
@@ -66,16 +64,21 @@ export const createService = asyncHandler(async (req, res) => {
 // @route   PUT /api/services/:id
 // @access  Privado/Admin
 export const updateService = asyncHandler(async (req, res) => {
-  const service = await Service.findByIdAndUpdate(
-    req.params.id,
-    req.body,
-    { new: true, runValidators: true }
-  );
-
-  if (!service) {
-    throw new AppError('Servicio no encontrado', 404);
+  // Validar los datos de actualización
+  if (Object.keys(req.body).length > 0) {
+    const validationError = validateService(req.body, true);
+    if (validationError) {
+      throw new AppError(validationError, 400);
+    }
   }
 
+  // Si se subió una nueva imagen, incluir su URL
+  const updateData = {
+    ...req.body,
+    image: req.file ? req.file.path : undefined
+  };
+
+  const service = await ServiceOfferedService.updateService(req.params.id, updateData);
   res.json({
     success: true,
     message: 'Servicio actualizado exitosamente',
@@ -87,15 +90,62 @@ export const updateService = asyncHandler(async (req, res) => {
 // @route   DELETE /api/services/:id
 // @access  Privado/Admin
 export const deleteService = asyncHandler(async (req, res) => {
-  const service = await Service.findByIdAndDelete(req.params.id);
-
-  if (!service) {
-    throw new AppError('Servicio no encontrado', 404);
-  }
-
+  const result = await ServiceOfferedService.deleteService(req.params.id);
   res.json({
     success: true,
-    message: 'Servicio eliminado exitosamente',
-    data: service
+    message: result.message
+  });
+});
+
+// @desc    Asignar servicio a barbero
+// @route   POST /api/services/:serviceId/barbers/:barberId
+// @access  Privado/Admin
+export const assignServiceToBarber = asyncHandler(async (req, res) => {
+  const barber = await ServiceOfferedService.assignServiceToBarber(
+    req.params.barberId,
+    req.params.serviceId
+  );
+  res.json({
+    success: true,
+    message: 'Servicio asignado exitosamente',
+    data: barber
+  });
+});
+
+// @desc    Remover servicio de barbero
+// @route   DELETE /api/services/:serviceId/barbers/:barberId
+// @access  Privado/Admin
+export const removeServiceFromBarber = asyncHandler(async (req, res) => {
+  const barber = await ServiceOfferedService.removeServiceFromBarber(
+    req.params.barberId,
+    req.params.serviceId
+  );
+  res.json({
+    success: true,
+    message: 'Servicio removido exitosamente',
+    data: barber
+  });
+});
+
+// @desc    Obtener servicios de un barbero
+// @route   GET /api/services/barber/:barberId
+// @access  Público
+export const getServicesByBarber = asyncHandler(async (req, res) => {
+  const services = await ServiceOfferedService.getServicesByBarber(req.params.barberId);
+  res.json({
+    success: true,
+    count: services.length,
+    data: services
+  });
+});
+
+// @desc    Obtener estadísticas de servicios
+// @route   GET /api/services/stats
+// @access  Privado/Admin
+export const getServiceStats = asyncHandler(async (req, res) => {
+  const stats = await ServiceOfferedService.getServiceStats();
+  res.json({
+    success: true,
+    data: stats
   });
 });

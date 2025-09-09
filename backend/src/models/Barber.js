@@ -54,6 +54,20 @@ const barberSchema = new mongoose.Schema({
   photo: {
     public_id: String,
     url: String
+  },
+  // Estadísticas de ventas
+  totalSales: {
+    type: Number,
+    default: 0,
+    min: [0, 'El total de ventas no puede ser negativo']
+  },
+  totalRevenue: {
+    type: Number,
+    default: 0,
+    min: [0, 'Los ingresos totales no pueden ser negativos']
+  },
+  lastSaleDate: {
+    type: Date
   }
 }, {
   timestamps: true

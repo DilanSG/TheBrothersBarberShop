@@ -1,40 +1,21 @@
-// @desc    Editar perfil y horarios del barbero
-// @route   PUT /api/barbers/:id/profile
-// @access  Privado/Admin o el mismo barbero
 import { asyncHandler } from '../middleware/index.js';
-import { validateBarberProfile } from '../middleware/validation.js';
-import Barber from '../models/Barber.js';
-import User from '../models/User.js';
-import Appointment from '../models/Appointment.js';
-import { AppError } from '../middleware/errorHandler.js';
-import { deleteFromCloudinary } from '../utils/helpers.js'; // Mejor práctica: helpers, no middleware
+import { AppError } from '../utils/errors.js';
+import BarberService from '../services/barberService.js';
+import { User, Barber, Appointment } from '../models/index.js';
 
 export const editBarberProfile = asyncHandler(async (req, res) => {
-  const barber = await Barber.findById(req.params.id);
-  if (!barber) {
-    throw new AppError('Barbero no encontrado', 404);
-  }
-  if (req.user.role !== 'admin' && barber.user.toString() !== req.user._id.toString()) {
-    throw new AppError('No tienes permisos para editar este perfil', 403);
-  }
   const updates = { ...req.body };
-  if (updates.schedule) {
-    barber.schedule = updates.schedule;
-  }
-  // Update photo if provided in req.image
   if (req.image) {
-    barber.photo = {
-      public_id: req.image.public_id,
-      url: req.image.url
-    };
+    updates.photo = req.image;
   }
 
-  if (updates.specialty) barber.specialty = updates.specialty;
-  if (updates.experience !== undefined) barber.experience = updates.experience;
-  if (updates.description) barber.description = updates.description;
-  if (updates.services) barber.services = updates.services;
-  await barber.save();
-  await barber.populate('user', 'name email phone photo');
+  const barber = await BarberService.updateBarberProfile(
+    req.params.id,
+    req.user._id,
+    req.user.role,
+    updates
+  );
+
   res.json({
     success: true,
     message: 'Perfil de barbero actualizado',
@@ -46,59 +27,19 @@ export const editBarberProfile = asyncHandler(async (req, res) => {
 // @route   GET /api/barbers
 // @access  Público
 export const getBarbers = asyncHandler(async (req, res) => {
-  try {
-    console.log('Buscando barberos activos...');
-    const barbers = await Barber.find({ isActive: true })
-      .populate({
-        path: 'user',
-        select: 'name email phone photo role isActive',
-        match: { isActive: true }
-      })
-      .populate('services', 'name price duration')
-      .sort({ 'rating.average': -1 });
-    
-    console.log('Barberos encontrados:', barbers.length);
-    
-    // Filtrar barberos con usuarios inactivos
-    const validBarbers = barbers.filter(b => b.user != null);
-    console.log('Barberos válidos (con usuarios activos):', validBarbers.length);
-
-    res.status(200).json({
-      success: true,
-      data: validBarbers
-    });
-  } catch (error) {
-    console.error('Error al obtener barberos:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener la lista de barberos',
-      error: error.message
-    });
-  }
+  const barbers = await BarberService.getBarbers();
+  
+  res.json({
+    success: true,
+    data: barbers
+  });
 });
 
 // @desc    Eliminar barbero (cambiar a rol user)
 // @route   PUT /api/barbers/:id/remove
 // @access  Private/Admin
 export const removeBarber = asyncHandler(async (req, res) => {
-  const barber = await Barber.findById(req.params.id).populate('user');
-  if (!barber) {
-    throw new AppError('Barbero no encontrado', 404);
-  }
-
-  // Obtener el usuario asociado
-  const user = await User.findById(barber.user._id);
-  if (!user) {
-    throw new AppError('Usuario no encontrado', 404);
-  }
-
-  // Cambiar el rol a user
-  user.role = 'user';
-  await user.save();
-
-  // Desactivar el perfil de barbero
-  barber.isActive = false;
-  await barber.save();
+  const { barber, user } = await BarberService.removeBarber(req.params.id);
 
   res.status(200).json({
     success: true,

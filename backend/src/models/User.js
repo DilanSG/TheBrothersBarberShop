@@ -1,13 +1,13 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { config } from '../config/index.js';
 
 const userSchema = new mongoose.Schema({
-  username: {
+  name: {
     type: String,
-    required: [true, 'El nombre de usuario es requerido'],
+    required: [true, 'El nombre es requerido'],
     trim: true,
-    maxlength: [100, 'El nombre de usuario no puede exceder los 100 caracteres'],
-    unique: true
+    maxlength: [100, 'El nombre no puede exceder los 100 caracteres']
   },
   email: {
     type: String,
@@ -23,12 +23,6 @@ const userSchema = new mongoose.Schema({
     minlength: [6, 'La contraseña debe tener al menos 6 caracteres'],
     select: false
   },
-    name: {
-    type: String,
-    required: [true, 'El nombre es requerido'],
-    trim: true,
-    maxlength: [100, 'El nombre no puede exceder los 100 caracteres']
-  },
   role: {
     type: String,
     enum: ['user', 'barber', 'admin'],
@@ -38,13 +32,28 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  photo: {
-    public_id: String,
-    url: String
-  },
   birthdate: {
     type: Date,
     required: false
+  },
+  phone: {
+    type: String,
+    required: false,
+    trim: true
+  },
+  profilePicture: {
+    type: String,
+    required: false
+  },
+  preferences: {
+    emailNotifications: {
+      type: Boolean,
+      default: true
+    },
+    marketingEmails: {
+      type: Boolean,
+      default: false
+    }
   },
   resetPasswordToken: String,
   resetPasswordExpires: Date
@@ -56,8 +65,13 @@ const userSchema = new mongoose.Schema({
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   
+  // Si la contraseña ya está hasheada (empezó con $2), no la hashees de nuevo
+  if (this.password && this.password.startsWith('$2')) {
+    return next();
+  }
+  
   try {
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(config.security.bcryptRounds);
     this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (error) {

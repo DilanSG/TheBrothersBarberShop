@@ -2,14 +2,18 @@ import cors from 'cors';
 
 // Lista de dominios permitidos
 const allowedOrigins = [
-  'http://localhost:3000',   // Desarrollo frontend
-  'http://localhost:3001',   // Desarrollo alternativo
-  'http://localhost:5173',   // Vite frontend
-  'http://localhost:5174',   // Vite frontend alternativo
-  'http://127.0.0.1:5173',  // Vite frontend local IP
-  'http://127.0.0.1:5174',  // Vite frontend local IP alternativo
-  'https://dilansg.github.io',  // GitHub Pages
-  process.env.FRONTEND_URL,  // Producción frontend
+  'http://192.168.0.106:5173',
+  'http://192.168.0.106:5173',           // Desarrollo local
+  'http://localhost:3000',           // Desarrollo frontend
+  'http://localhost:3001',           // Desarrollo alternativo
+  'http://192.168.64.104:5173',     // Vite server
+  'http://192.168.64.104:5174',     // Vite server alternativo
+  'http://localhost:5173',          // Vite local
+  'http://localhost:5174',          // Vite local alternativo
+  'http://127.0.0.1:5173',         // Vite frontend local IP
+  'http://127.0.0.1:5174',         // Vite frontend local IP alternativo
+  'https://dilansg.github.io',      // GitHub Pages
+  process.env.FRONTEND_URL          // Producción frontend
 ].filter(Boolean);
 
 // Configuración de CORS

@@ -4,7 +4,8 @@ const appointmentSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'El usuario de la cita es requerido']
+    required: [true, 'El usuario de la cita es requerido'],
+    index: true
   },
   barber: {
     type: mongoose.Schema.Types.ObjectId,
@@ -44,9 +45,50 @@ const appointmentSchema = new mongoose.Schema({
     type: String,
     maxlength: [500, 'El motivo de cancelación no puede exceder los 500 caracteres']
   },
+  // Quien canceló la cita
+  cancelledBy: {
+    type: String,
+    enum: ['user', 'barber', 'admin'],
+    default: null
+  },
+  // Timestamp de cuando se canceló
+  cancelledAt: {
+    type: Date,
+    default: null
+  },
+  // Para citas confirmadas: si requiere aprobación del otro rol
+  requiresCancellationApproval: {
+    type: Boolean,
+    default: false
+  },
+  // Para notificar al otro rol sobre la cancelación
+  cancellationNotified: {
+    type: Boolean,
+    default: false
+  },
   reminderSent: {
     type: Boolean,
     default: false
+  },
+  // Campos para eliminación suave por rol
+  deletedBy: {
+    user: {
+      type: Boolean,
+      default: false
+    },
+    barber: {
+      type: Boolean,
+      default: false
+    },
+    admin: {
+      type: Boolean,
+      default: false
+    }
+  },
+  // Timestamp de cuándo se marcó para eliminación
+  markedForDeletion: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true
@@ -71,9 +113,15 @@ appointmentSchema.virtual('canBeCancelled').get(function() {
   return hoursDifference > 2; // Puede cancelar con más de 2 horas de anticipación
 });
 
-// Middleware para validar que la fecha sea futura
+// Virtual para verificar si todos los roles han marcado la cita para eliminar
+appointmentSchema.virtual('shouldBeDeleted').get(function() {
+  return this.deletedBy.user && this.deletedBy.barber && this.deletedBy.admin;
+});
+
+// Middleware para validar que la fecha sea futura (solo para citas nuevas en estado pending)
 appointmentSchema.pre('save', function(next) {
-  if (this.date <= new Date()) {
+  // Solo validar fecha futura si es una cita nueva Y está en estado 'pending'
+  if (this.isNew && this.status === 'pending' && this.date <= new Date()) {
     next(new Error('La cita debe ser en una fecha futura'));
   } else {
     next();

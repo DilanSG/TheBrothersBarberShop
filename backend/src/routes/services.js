@@ -4,20 +4,72 @@ import {
   getService,
   createService,
   updateService,
-  deleteService
+  deleteService,
+  assignServiceToBarber,
+  removeServiceFromBarber,
+  getServicesByBarber,
+  getServiceStats
 } from '../controllers/serviceController.js';
 import { protect, adminAuth } from '../middleware/auth.js';
 import { validateService, validateIdParam } from '../middleware/validation.js';
+import { uploadImage, uploadToCloudinary } from '../middleware/upload.js';
+import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache.js';
 
 const router = express.Router();
 
-// Rutas públicas
-router.get('/', getServices);
-router.get('/:id', validateIdParam, getService);
+// Cache patterns para invalidación
+const CACHE_PATTERNS = [
+  '^/api/services',
+  '^/api/services/\\w+',
+  '^/api/services/barber/\\w+'
+];
+
+// Rutas públicas con caché
+router.get('/', cacheMiddleware(60 * 5), getServices); // Cache por 5 minutos
+router.get('/:id', validateIdParam, cacheMiddleware(60 * 5), getService);
+router.get('/barber/:barberId', validateIdParam, cacheMiddleware(60 * 5), getServicesByBarber);
 
 // Rutas protegidas - Solo admin
-router.post('/', protect, adminAuth, validateService, createService);
-router.put('/:id', protect, adminAuth, validateIdParam, validateService, updateService);
-router.delete('/:id', protect, adminAuth, validateIdParam, deleteService);
+router.post('/', 
+  protect, 
+  adminAuth, 
+  uploadImage, 
+  uploadToCloudinary,
+  validateService, 
+  invalidateCacheMiddleware(CACHE_PATTERNS),
+  createService
+);
+
+router.put('/:id', 
+  protect, 
+  adminAuth, 
+  validateIdParam, 
+  uploadImage, 
+  uploadToCloudinary,
+  validateService,
+  invalidateCacheMiddleware(CACHE_PATTERNS),
+  updateService
+);
+
+router.delete('/:id', 
+  protect, 
+  adminAuth, 
+  validateIdParam,
+  invalidateCacheMiddleware(CACHE_PATTERNS),
+  deleteService
+);
+
+// Rutas para manejo de servicios y barberos
+router.post('/:serviceId/barbers/:barberId', 
+  protect, 
+  adminAuth, 
+  validateIdParam,
+  invalidateCacheMiddleware(CACHE_PATTERNS),
+  assignServiceToBarber
+);
+router.delete('/:serviceId/barbers/:barberId', protect, adminAuth, validateIdParam, removeServiceFromBarber);
+
+// Ruta de estadísticas
+router.get('/stats/overview', protect, adminAuth, getServiceStats);
 
 export default router;

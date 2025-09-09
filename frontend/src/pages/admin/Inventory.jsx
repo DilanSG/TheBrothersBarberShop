@@ -1,753 +1,1100 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../utils/AuthContext';
-import InventoryList from '../../components/InventoryList';
-import InventoryForm from '../../components/InventoryForm';
+import React, { useState, useEffect } from 'react';
+import { 
+  Plus, Edit, Trash2, Search, Package2, AlertTriangle, CheckCircle, 
+  TrendingUp, TrendingDown, BarChart3, Calculator, RotateCcw, 
+  ShoppingCart, Minus, ChevronDown, ChevronUp, User, Users, 
+  DollarSign, Activity, Eye, Calendar, Clock, Download, Camera
+} from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { inventoryService } from '../../services/api';
+import { useInventoryRefresh } from '../../contexts/InventoryContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { PageContainer } from '../../components/layout/PageContainer';
+import GradientButton from '../../components/ui/GradientButton';
+import GradientText from '../../components/ui/GradientText';
+import InventorySnapshot from '../../components/InventorySnapshot';
+import SavedInventoriesModal from '../../components/SavedInventoriesModal';
 
-function Inventory() {
-  const { user, token } = useAuth();
-  const [items, setItems] = useState([]);
-  const [filteredItems, setFilteredItems] = useState([]);
-  const [selectedVitrina, setSelectedVitrina] = useState('todas');
-  const [form, setForm] = useState({
-    name: '',
-    description: '',
-    cantidad_inicial: 0,
-    entradas: 0,
-    salidas: 0,
-    cantidad_actual: 0,
-    unidad: 'unidades',
-    tipo: 'insumo',
-    vitrina: '1',
-    prioridad: 'normal',
-    isActive: true
-  });
-  const [editing, setEditing] = useState(null);
+/**
+ * Componente moderno de gestión de inventario para The Brothers Barber Shop
+ * Diseño moderno con fondo de puntos, gradient text y diseño tipo lista lateral
+ */
+const Inventory = () => {
+  const { user } = useAuth();
+  const { refreshTrigger, needsRefresh, markRefreshed } = useInventoryRefresh();
+  const [inventory, setInventory] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [showForm, setShowForm] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [expandedSection, setExpandedSection] = useState(null); // 'form', 'movement', 'sale'
+  const [formData, setFormData] = useState({
+    name: '',
+    code: '',
+    category: 'insumos',
+    initialStock: '',
+    entries: '',
+    exits: '',
+    minStock: '',
+    realStock: '',
+    price: '',
+    description: ''
+  });
+  const [editingItem, setEditingItem] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [movementData, setMovementData] = useState({
+    type: 'entry',
+    quantity: '',
+    reason: '',
+    notes: ''
+  });
+  const [saleData, setSaleData] = useState({
+    quantity: '1'
+  });
+  const [countData, setCountData] = useState({
+    realStock: '',
+    entries: '',
+    exits: '',
+    notes: ''
+  });
+  const [showSnapshotModal, setShowSnapshotModal] = useState(false);
+  const [showSavedInventoriesModal, setShowSavedInventoriesModal] = useState(false);
 
-  const vitrinaNames = {
-    '1': 'Vitrina 1',
-    '2': 'Vitrina 2',
-    '3': 'Vitrina 3',
-    '4': 'Vitrina 4'
-  };
+  const categories = [
+    'cannabicos', 'gorras', 'insumos', 'productos_pelo', 'lociones',
+    'ceras', 'geles', 'maquinas', 'accesorios', 'otros'
+  ];
 
-  const fetchInventory = async () => {
-    const res = await fetch('http://localhost:5000/api/inventory');
-    const data = await res.json();
-    setItems(data.data || []);
-  };
-
-  // Filtrar items cuando cambie la vitrina seleccionada o los items
   useEffect(() => {
-    if (selectedVitrina === 'todas') {
-      setFilteredItems(items);
-    } else {
-      setFilteredItems(items.filter(item => item.vitrina === selectedVitrina));
+    loadInventory();
+  }, []);
+
+  // Auto-recarga cuando hay ventas nuevas
+  useEffect(() => {
+    console.log('🔄 InventoryAdmin: useEffect trigger -', { 
+      refreshTrigger, 
+      lastRefreshTime, 
+      needsRefresh: needsRefresh(lastRefreshTime) 
+    });
+    
+    if (needsRefresh(lastRefreshTime)) {
+      console.log('🔄 InventoryAdmin: Detectada venta nueva, recargando...');
+      loadInventory();
     }
-  }, [selectedVitrina, items]);
+  }, [refreshTrigger, lastRefreshTime, needsRefresh]);
 
-  useEffect(() => { fetchInventory(); }, []);
+  // También agregar un useEffect que se ejecute al montar el componente
+  useEffect(() => {
+    console.log('🔄 InventoryAdmin: Componente montado, verificando si necesita recarga...');
+    if (needsRefresh(lastRefreshTime)) {
+      console.log('🔄 InventoryAdmin: Necesita recarga al montar, ejecutando...');
+      loadInventory();
+    }
+  }, []);
 
-  const handleAdd = async data => {
+  const loadInventory = async () => {
     try {
-      console.log('Datos a enviar:', data);
-      const payload = {
-        name: data.name,
-        description: data.description,
-        cantidad_inicial: Number(data.cantidad_inicial),
-        entradas: Number(data.entradas),
-        salidas: Number(data.salidas),
-        cantidad_actual: Number(data.cantidad_actual),
-        unidad: data.unidad,
-        tipo: data.tipo,
-        vitrina: data.vitrina,  // Ya viene como string del formulario
-        prioridad: data.prioridad,
-        isActive: data.isActive
+      setLoading(true);
+      console.log('🔄 InventoryAdmin: Cargando inventario...');
+      
+      // Añadir timestamp para evitar caché
+      const timestamp = Date.now();
+      const response = await inventoryService.getInventory({ _t: timestamp });
+      
+      let inventoryData = [];
+      if (response && response.data && Array.isArray(response.data)) {
+        inventoryData = response.data;
+      } else if (response && Array.isArray(response.success)) {
+        inventoryData = response.success;
+      }
+      
+      setInventory(inventoryData);
+      setLastRefreshTime(markRefreshed());
+      console.log('✅ InventoryAdmin: Inventario cargado, productos:', inventoryData.length);
+    } catch (error) {
+      console.error('❌ InventoryAdmin: Error al cargar inventario:', error);
+      setError('Error al cargar el inventario');
+      setInventory([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const processedData = {
+        ...formData,
+        initialStock: formData.initialStock ? parseInt(formData.initialStock, 10) : 0,
+        entries: formData.entries ? parseInt(formData.entries, 10) : 0,
+        exits: formData.exits ? parseInt(formData.exits, 10) : 0,
+        stock: formData.initialStock ? parseInt(formData.initialStock, 10) : 0, // Stock calculado = inicial
+        minStock: formData.minStock ? parseInt(formData.minStock, 10) : 0,
+        realStock: formData.realStock ? parseInt(formData.realStock, 10) : undefined,
+        price: formData.price ? parseFloat(formData.price) : 0
       };
-      console.log('Payload a enviar:', payload);
-      const res = await fetch('http://localhost:5000/api/inventory', {
+
+      if (editingItem) {
+        await inventoryService.updateInventoryItem(editingItem._id, processedData);
+        setSuccess('Producto actualizado exitosamente');
+      } else {
+        await inventoryService.createInventoryItem(processedData);
+        setSuccess('Producto creado exitosamente');
+      }
+      
+      resetForm();
+      setExpandedSection(null);
+      loadInventory();
+      
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error al guardar producto:', error);
+      setError(error.message || 'Error al guardar el producto');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      code: '',
+      category: 'insumos',
+      initialStock: '',
+      entries: '',
+      exits: '',
+      minStock: '',
+      realStock: '',
+      price: '',
+      description: ''
+    });
+    setEditingItem(null);
+  };
+
+  const handleEdit = (item) => {
+    setFormData({
+      name: item.name,
+      code: item.code || '',
+      category: item.category,
+      initialStock: item.initialStock?.toString() || '',
+      entries: item.entries?.toString() || '',
+      exits: item.exits?.toString() || '',
+      minStock: item.minStock?.toString() || '',
+      realStock: item.realStock?.toString() || '',
+      price: item.price?.toString() || '',
+      description: item.description || ''
+    });
+    setEditingItem(item);
+    setExpandedSection('form');
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+      try {
+        await inventoryService.deleteInventoryItem(id);
+        setSuccess('Producto eliminado exitosamente');
+        loadInventory();
+        setTimeout(() => setSuccess(''), 3000);
+      } catch (error) {
+        console.error('Error al eliminar producto:', error);
+        setError('Error al eliminar el producto');
+        setTimeout(() => setError(''), 3000);
+      }
+    }
+  };
+
+  const handleNewProduct = () => {
+    resetForm();
+    setExpandedSection('form');
+  };
+
+  const handleMovement = (item) => {
+    setSelectedItem(item);
+    setMovementData({ type: 'entry', quantity: '', reason: '', notes: '' });
+    setExpandedSection('movement');
+  };
+
+  const handleSale = (item) => {
+    setSelectedItem(item);
+    setSaleData({ quantity: '1' });
+    setExpandedSection('sale');
+  };
+
+  const handleCount = (item) => {
+    setSelectedItem(item);
+    setCountData({
+      realStock: item.realStock || item.stock || '',
+      entries: '',
+      exits: '',
+      notes: ''
+    });
+    setExpandedSection('count');
+  };
+
+  const handleSnapshotCreated = () => {
+    setShowSnapshotModal(false);
+    loadInventory(); // Recargar inventario después de crear snapshot
+  };
+
+  const getStockStatus = (item) => {
+    const realStock = item.realStock || item.stock || item.currentStock || item.quantity || 0;
+    const minStock = item.minStock || 0;
+    
+    if (realStock <= 0) return { status: 'out', label: 'Sin stock', color: 'text-red-400', bgColor: 'bg-red-500/10' };
+    if (realStock <= minStock) return { status: 'low', label: 'Stock bajo', color: 'text-yellow-400', bgColor: 'bg-yellow-500/10' };
+    return { status: 'good', label: 'Stock normal', color: 'text-green-400', bgColor: 'bg-green-500/10' };
+  };
+
+  const filteredInventory = Array.isArray(inventory) ? inventory.filter(item =>
+    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.category.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
+
+  const handleMovementSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const quantity = parseInt(movementData.quantity);
+      const currentStock = selectedItem.stock || selectedItem.currentStock || selectedItem.quantity || 0;
+      
+      let newCurrentStock;
+      let newEntries = selectedItem.entries || 0;
+      let newExits = selectedItem.exits || 0;
+      
+      if (movementData.type === 'entry') {
+        newCurrentStock = currentStock + quantity;
+        newEntries += quantity;
+      } else {
+        newCurrentStock = Math.max(0, currentStock - quantity);
+        newExits += quantity;
+      }
+      
+      const updateData = {
+        ...selectedItem,
+        stock: newCurrentStock,
+        entries: newEntries,
+        exits: newExits,
+        quantity: newCurrentStock
+      };
+      
+      await inventoryService.updateInventoryItem(selectedItem._id, updateData);
+      setSuccess(`Movimiento registrado exitosamente: ${movementData.type === 'entry' ? 'Entrada' : 'Salida'} de ${quantity} unidades`);
+      
+      setMovementData({ type: 'entry', quantity: '', reason: '', notes: '' });
+      setExpandedSection(null);
+      loadInventory();
+      
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error al registrar movimiento:', error);
+      setError('Error al registrar el movimiento');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const handleSaleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const quantity = parseInt(saleData.quantity);
+      const currentStock = selectedItem.stock || selectedItem.currentStock || selectedItem.quantity || 0;
+      
+      if (quantity > currentStock) {
+        setError('No hay suficiente stock para realizar esta venta');
+        setTimeout(() => setError(''), 3000);
+        return;
+      }
+      
+      const salePayload = {
+        productId: selectedItem._id,
+        quantity: quantity,
+        barberId: user._id, // Usar el ID del usuario actual
+        customerName: `Venta directa - ${user.name}`, // Asignar automáticamente
+        notes: `Venta registrada por ${user.name} desde inventario`
+      };
+      
+      const response = await fetch('/api/v1/sales', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(salePayload)
       });
-      if (!res.ok) throw new Error('Error al agregar producto');
-      const result = await res.json();
-      console.log('Respuesta del servidor:', result);
       
-      const newItem = result.data;
-      console.log('Nuevo item a agregar:', newItem);
+      if (!response.ok) {
+        throw new Error('Error al registrar la venta');
+      }
       
-      setItems(items => [...items, newItem]);
-      setShowForm(false);
-      setForm({
-        name: '',
-        description: '',
-        cantidad_inicial: 0,
-        entradas: 0,
-        salidas: 0,
-        cantidad_actual: 0,
-        unidad: 'unidades',
-        tipo: 'insumo',
-        vitrina: '1',
-        prioridad: 'normal',
-        isActive: true
-      });
-      setSuccess('✅ Producto agregado exitosamente.');
-      setTimeout(() => setSuccess(''), 2500);
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  const handleEdit = item => {
-    setEditing(item);
-    setShowForm(true);
-    setForm({
-      name: item.name,
-      description: item.description,
-      cantidad_inicial: item.cantidad_inicial,
-      entradas: item.entradas || 0,
-      salidas: item.salidas || 0,
-      cantidad_actual: item.cantidad_actual,
-      unidad: item.unidad,
-      tipo: item.tipo,
-      vitrina: item.vitrina || '1',
-      prioridad: item.prioridad || 'normal',
-      isActive: item.isActive
-    });
-  };
-
-  const handleUpdate = async data => {
-    try {
-      const payload = {
-        name: data.name,
-        description: data.description,
-        cantidad_inicial: Number(data.cantidad_inicial),
-        entradas: Number(data.entradas),
-        salidas: Number(data.salidas),
-        cantidad_actual: Number(data.cantidad_actual),
-        unidad: data.unidad,
-        tipo: data.tipo,
-        vitrina: String(data.vitrina),  // Asegurar que vitrina sea string
-        prioridad: data.prioridad,
-        isActive: data.isActive
+      const newCurrentStock = currentStock - quantity;
+      const newExits = (selectedItem.exits || 0) + quantity;
+      const newSales = (selectedItem.sales || 0) + quantity; // Agregar a ventas también
+      
+      const updateData = {
+        ...selectedItem,
+        stock: newCurrentStock,
+        exits: newExits,
+        sales: newSales, // Incluir campo de ventas
+        quantity: newCurrentStock
       };
-      const res = await fetch(`http://localhost:5000/api/inventory/${editing._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error('Error al actualizar producto');
-      const result = await res.json();
-      setItems(items => items.map(i => (i._id === editing._id ? result.data : i)));
-      setEditing(null);
-      setShowForm(false);
-      setForm({
-        name: '',
-        description: '',
-        cantidad_inicial: 0,
-        entradas: 0,
-        salidas: 0,
-        cantidad_actual: 0,
-        unidad: 'unidades',
-        tipo: 'insumo',
-        isActive: true
-      });
-      setSuccess('✅ Producto actualizado exitosamente.');
-      setTimeout(() => setSuccess(''), 2500);
-    } catch (err) {
-      setError(err.message);
+      
+      await inventoryService.updateInventoryItem(selectedItem._id, updateData);
+      
+      setSuccess(`Venta registrada exitosamente: ${quantity} unidades`);
+      setSaleData({ quantity: '1' });
+      setExpandedSection(null);
+      loadInventory();
+      
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error al registrar venta:', error);
+      setError('Error al registrar la venta');
+      setTimeout(() => setError(''), 3000);
     }
   };
 
-  const handleCancel = () => {
-    setEditing(null);
-    setShowForm(false);
-    setForm({
-      name: '',
-      description: '',
-      cantidad_inicial: 0,
-      entradas: 0,
-      salidas: 0,
-      cantidad_actual: 0,
-      unidad: 'unidades',
-      tipo: 'insumo',
-      vitrina: '1',
-      prioridad: 'normal',
-      isActive: true
-    });
-  };
-
-  const handleChange = e => {
-    const { name, value, type, checked } = e.target;
-    console.log('Campo cambiado:', name, value, type);
-    
-    const newValue = type === 'checkbox' ? checked : value;
-    console.log('Nuevo valor:', newValue);
-    
-    setForm(f => {
-      const newForm = {
-        ...f,
-        [name]: newValue
-      };
-      console.log('Nuevo form:', newForm);
-      return newForm;
-    });
-  };
-
-  const handleDelete = async id => {
+  const handleCountSubmit = async (e) => {
+    e.preventDefault();
     try {
-      const res = await fetch(`http://localhost:5000/api/inventory/${id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      if (!res.ok) throw new Error('Error al eliminar producto');
-      setItems(items => items.filter(i => i._id !== id));
-      setSuccess('✅ Producto eliminado exitosamente.');
-      setTimeout(() => setSuccess(''), 2500);
-    } catch (err) {
-      setError(err.message);
-      setTimeout(() => setError(''), 2500);
+      const realStock = parseInt(countData.realStock) || 0;
+      const entries = parseInt(countData.entries) || 0;
+      const exits = parseInt(countData.exits) || 0;
+      
+      const updateData = {
+        ...selectedItem,
+        realStock: realStock,
+        entries: (selectedItem.entries || 0) + entries,
+        exits: (selectedItem.exits || 0) + exits,
+        notes: countData.notes
+      };
+      
+      await inventoryService.updateInventoryItem(selectedItem._id, updateData);
+      
+      setSuccess(`Conteo registrado exitosamente para ${selectedItem.name}`);
+      setCountData({ realStock: '', entries: '', exits: '', notes: '' });
+      setExpandedSection(null);
+      loadInventory();
+      
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error al registrar conteo:', error);
+      setError('Error al registrar el conteo');
+      setTimeout(() => setError(''), 3000);
     }
   };
 
+  // Función para exportar inventario a Excel
   const exportToExcel = () => {
     try {
-      // Preparar los datos para Excel
-      const getVitrinaName = (vitrina) => {
-        const vitrinaNames = {
-          '1': 'Vitrina 1',
-          '2': 'Vitrina 2',
-          '3': 'Vitrina 3',
-          '4': 'Vitrina 4'
-        };
-        return vitrinaNames[vitrina] || "No asignada";
-      };
-
-      const exportData = items.map(item => ({
-        'Producto': item.name,
-        'Descripción': item.description,
-        'Vitrina': `${getVitrinaName(item.vitrina)} (${item.vitrina})`,
-        'Stock Inicial': item.cantidad_inicial,
-        'Compras': item.entradas || 0,
-        'Ventas': item.salidas || 0,
-        'Stock Final': item.cantidad_actual,
-        'Diferencia': Math.abs((item.entradas || 0) - (item.salidas || 0) - item.cantidad_actual),
-        'Unidad': item.unidad,
-        'Tipo': item.tipo,
-        'Estado': item.cantidad_actual <= item.cantidad_inicial * 0.2 ? 'Stock Bajo' : 'Normal',
-        'Prioridad': item.prioridad
+      // Preparar datos para Excel
+      const excelData = filteredInventory.map(item => ({
+        'Código': item.code || '',
+        'Nombre': item.name || '',
+        'Categoría': item.category ? item.category.replace('_', ' ').toUpperCase() : '',
+        'Stock Inicial': item.initialStock || 0,
+        'Entradas': item.entries || 0,
+        'Salidas': item.exits || 0,
+        'Stock Actual': item.stock || item.currentStock || item.quantity || 0,
+        'Stock Mínimo': item.minStock || 0,
+        'Precio': item.price ? `$${item.price.toLocaleString('es-CO')}` : '$0',
+        'Estado': (item.stock || item.currentStock || item.quantity || 0) <= (item.minStock || 0) ? 'Stock Bajo' : 'Normal',
+        'Descripción': item.description || ''
       }));
 
-      // Crear el libro de Excel
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(exportData);
-
-      // Ajustar el ancho de las columnas
-      const columnWidths = [
-        { wch: 20 }, // Producto
-        { wch: 30 }, // Descripción
-        { wch: 8 },  // Vitrina
-        { wch: 12 }, // Stock Inicial
-        { wch: 10 }, // Compras
-        { wch: 10 }, // Ventas
-        { wch: 12 }, // Stock Final
-        { wch: 12 }, // Diferencia
-        { wch: 10 }, // Unidad
-        { wch: 12 }, // Tipo
-        { wch: 12 }, // Estado
-        { wch: 12 }  // Prioridad
-      ];
-      ws['!cols'] = columnWidths;
-
-      // Agregar la hoja al libro
-      XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
-
-      // Generar el archivo y descargarlo
-      const fecha = new Date().toLocaleDateString('es-ES').replace(/\//g, '-');
-      XLSX.writeFile(wb, `Inventario_TheBrothers_${fecha}.xlsx`);
+      // Crear hoja de trabajo
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
       
-      setSuccess('✅ Inventario exportado exitosamente.');
-      setTimeout(() => setSuccess(''), 2500);
-    } catch (err) {
-      setError('Error al exportar el inventario: ' + err.message);
-      setTimeout(() => setError(''), 2500);
+      // Ajustar ancho de columnas
+      const maxWidth = (arr) => Math.max(...arr.map(str => (str || '').toString().length));
+      const colWidths = Object.keys(excelData[0] || {}).map(key => ({
+        wch: Math.min(Math.max(maxWidth(excelData.map(row => row[key])), key.length), 50)
+      }));
+      worksheet['!cols'] = colWidths;
+
+      // Crear libro de trabajo
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Inventario');
+
+      // Generar nombre de archivo con fecha
+      const now = new Date();
+      const fileName = `inventario_${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}.xlsx`;
+
+      // Descargar archivo
+      XLSX.writeFile(workbook, fileName);
+      
+      setSuccess(`Inventario exportado exitosamente: ${fileName}`);
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error al exportar inventario:', error);
+      setError('Error al exportar el inventario');
+      setTimeout(() => setError(''), 3000);
     }
   };
 
-  if (!user || (user.role !== 'admin' && user.role !== 'barber')) {
-    return <p className="text-center text-red-500 mt-10">No autorizado</p>;
-  }
-
   return (
-    <div className="min-h-screen bg-gray-900 text-white pb-10">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-6">
-            <h1 className="text-3xl font-bold text-blue-400">Control de Inventario</h1>
-            
-            {/* Selector de Vitrina */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-300">Vitrina:</label>
-              <select
-                value={selectedVitrina}
-                onChange={(e) => setSelectedVitrina(e.target.value)}
-                className="px-3 py-2 rounded-lg bg-gray-700/50 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
-                <option value="todas">Todas las vitrinas</option>
-                {Object.entries(vitrinaNames).map(([value, name]) => (
-                  <option key={value} value={value}>{name}</option>
-                ))}
-              </select>
+    <div className="relative min-h-screen bg-gradient-to-b from-black via-gray-900 to-black overflow-hidden">
+      {/* Background con efectos de gradientes */}
+      <div className="absolute inset-0 bg-gradient-to-r from-red-900/8 via-blue-900/8 to-red-900/8"></div>
+      
+      {/* Efectos de puntos en toda la página - múltiples capas */}
+      <div className="absolute inset-0 opacity-40" style={{
+        backgroundImage: `radial-gradient(circle, rgba(59, 130, 246, 0.3) 1px, transparent 1px)`,
+        backgroundSize: '30px 30px',
+        backgroundPosition: '0 0, 15px 15px'
+      }}></div>
+      
+      <div className="absolute inset-0 opacity-20" style={{
+        backgroundImage: `radial-gradient(circle, rgba(239, 68, 68, 0.4) 1px, transparent 1px)`,
+        backgroundSize: '20px 20px',
+        backgroundPosition: '10px 10px'
+      }}></div>
+      
+      <div className="absolute inset-0 opacity-15" style={{
+        backgroundImage: `radial-gradient(circle, rgba(168, 85, 247, 0.5) 0.8px, transparent 0.8px)`,
+        backgroundSize: '40px 40px',
+        backgroundPosition: '20px 0'
+      }}></div>
+
+      {/* Contenido principal */}
+      <div className="relative z-10">
+        <PageContainer>
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="text-center py-8">
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">
+                <GradientText className="text-4xl md:text-5xl font-bold">
+                  <Package2 className="w-10 h-10 mx-auto mb-3" />
+                  Gestión de Inventario
+                </GradientText>
+              </h1>
+              
             </div>
-          </div>
 
-          <div className="flex items-center gap-4">
-            <button
-              onClick={exportToExcel}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Exportar a Excel
-            </button>
-            {!showForm && (
-              <button
-                onClick={() => setShowForm(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Nuevo Producto
-              </button>
-            )}
-          </div>
-        </div>
-
-        {(error || success) && (
-          <div className="mb-4">
+            {/* Mensajes de error y éxito */}
             {error && (
-              <div className="bg-red-900/50 backdrop-blur border border-red-700 text-red-200 px-4 py-3 rounded-lg shadow animate-fade-in flex items-center">
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
-                </svg>
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-2 rounded-xl backdrop-blur-sm flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
                 {error}
               </div>
             )}
+            
             {success && (
-              <div className="bg-green-900/50 backdrop-blur border border-green-700 text-green-200 px-4 py-3 rounded-lg shadow animate-fade-in flex items-center">
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-                </svg>
+              <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-2 rounded-xl backdrop-blur-sm flex items-center gap-2">
+                <CheckCircle className="w-4 h-4" />
                 {success}
               </div>
             )}
-          </div>
-        )}
 
-        {showForm && (
-          <div className="bg-gray-800/50 backdrop-blur p-6 rounded-xl shadow-lg border border-gray-700 mb-8">
-            <h2 className="text-xl font-semibold text-blue-400 mb-4">
-              {editing ? 'Editar Producto' : 'Nuevo Producto'}
-            </h2>
-            <form onSubmit={editing ? (e => { e.preventDefault(); handleUpdate(form); }) : (e => { e.preventDefault(); handleAdd(form); })}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-300">
-                    Nombre del Producto
-                  </label>
+            {/* Container principal transparente */}
+            <div className="bg-transparent border border-white/10 rounded-2xl backdrop-blur-sm shadow-2xl shadow-blue-500/20">
+              
+              {/* Header de controles */}
+              <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="flex gap-3">
+                  {user?.role === 'admin' && (
+                    <GradientButton
+                      onClick={handleNewProduct}
+                      className="text-sm px-8 py-2 min-w-[180px]"
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        <span>Nuevo Producto</span>
+                      </div>
+                    </GradientButton>
+                  )}
+                  
+                  {user?.role === 'admin' && (
+                    <button
+                      onClick={exportToExcel}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 rounded-lg transition-colors text-sm"
+                      disabled={filteredInventory.length === 0}
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Exportar Excel</span>
+                    </button>
+                  )}
+                  
+                  {user?.role === 'admin' && (
+                    <button
+                      onClick={() => setShowSnapshotModal(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-lg transition-colors text-sm"
+                      disabled={filteredInventory.length === 0}
+                    >
+                      <Camera className="w-4 h-4" />
+                      <span>Guardar Inventario</span>
+                    </button>
+                  )}
+                  
+                  {user?.role === 'admin' && (
+                    <button
+                      onClick={() => setShowSavedInventoriesModal(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30 rounded-lg transition-colors text-sm"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      <span>Ver Inventarios</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Búsqueda */}
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
                     type="text"
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg bg-gray-700/50 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                    required
+                    placeholder="Buscar productos..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:border-blue-500/50 text-sm backdrop-blur-sm"
                   />
-                </div>
-
-                <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-300">
-                    Descripción
-                  </label>
-                  <input
-                    type="text"
-                    name="description"
-                    value={form.description}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg bg-gray-700/50 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-300">
-                    Cantidad Inicial
-                  </label>
-                  <input
-                    type="number"
-                    name="cantidad_inicial"
-                    value={form.cantidad_inicial}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg bg-gray-700/50 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                    min="0"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-300">
-                    Compras / Entradas
-                  </label>
-                  <input
-                    type="number"
-                    name="entradas"
-                    value={form.entradas}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg bg-gray-700/50 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                    min="0"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-300">
-                    Ventas / Salidas
-                  </label>
-                  <input
-                    type="number"
-                    name="salidas"
-                    value={form.salidas}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg bg-gray-700/50 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                    min="0"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-300">
-                    Cantidad Actual
-                  </label>
-                  <input
-                    type="number"
-                    name="cantidad_actual"
-                    value={form.cantidad_actual}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg bg-gray-700/50 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                    min="0"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-300">
-                    Tipo de Producto
-                  </label>
-                  <select
-                    name="tipo"
-                    value={form.tipo}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg bg-gray-700/50 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                    required
-                  >
-                    <option value="insumo">Insumo</option>
-                    <option value="herramienta">Herramienta</option>
-                    <option value="producto">Producto</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-300">
-                    Unidad de Medida
-                  </label>
-                  <select
-                    name="unidad"
-                    value={form.unidad}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg bg-gray-700/50 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                    required
-                  >
-                    <option value="unidades">Unidades</option>
-                    <option value="ml">Mililitros</option>
-                    <option value="gramos">Gramos</option>
-                    <option value="piezas">Piezas</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-300">
-                    Número de Vitrina
-                  </label>
-                  <select
-                    name="vitrina"
-                    value={form.vitrina}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg bg-gray-700/50 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                    required
-                  >
-                    <option value="1">Vitrina 1</option>
-                    <option value="2">Vitrina 2</option>
-                    <option value="3">Vitrina 3</option>
-                    <option value="4">Vitrina 4</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-300">
-                    Importancia del Producto
-                  </label>
-                  <select
-                    name="prioridad"
-                    value={form.prioridad}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg bg-gray-700/50 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                    required
-                  >
-                    <option value="baja">Producto Secundario</option>
-                    <option value="normal">Producto Regular</option>
-                    <option value="alta">Producto Principal</option>
-                    <option value="urgente">Producto Esencial</option>
-                  </select>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-4 mt-6">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-all"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
-                >
-                  {editing ? 'Actualizar' : 'Guardar'} Producto
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
+              {/* Formularios expandibles en el lugar correcto - Solo Admin */}
+              {expandedSection === 'form' && user?.role === 'admin' && (
+                <div className="mx-4 mt-4 bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-md shadow-2xl shadow-blue-500/20">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">
+                      <GradientText className="text-lg font-semibold">
+                        {editingItem ? 'Editar Producto' : 'Nuevo Producto'}
+                      </GradientText>
+                    </h3>
+                    <button
+                      onClick={() => setExpandedSection(null)}
+                      className="text-gray-400 hover:text-white transition-colors"
+                    >
+                      <ChevronUp className="w-5 h-5" />
+                    </button>
+                  </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-gray-800/50 backdrop-blur rounded-lg overflow-hidden border border-gray-700">
-            <thead>
-              <tr className="bg-gray-700/50">
-                <th className="px-4 py-3 text-left text-sm font-semibold text-blue-300">Producto</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-blue-300">Vitrina</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-blue-300">Stock Inicial</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-blue-300">Compras</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-blue-300">Ventas</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-blue-300">Stock Final</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-blue-300">Diferencia</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-blue-300">Tipo</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-blue-300">Estado</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-blue-300">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700">
-              {filteredItems.map(item => (
-                <tr 
-                  key={item._id}
-                  className="hover:bg-gray-700/30 transition-colors"
-                >
-                  <td className="px-4 py-3">
+                  <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
-                      <span className="font-medium text-blue-400">{item.name}</span>
-                      <p className="text-sm text-gray-400 mt-1">{item.description}</p>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">Nombre</label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
+                        required
+                      />
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="font-medium text-blue-400">
-                      {(() => {
-                        const vitrinaName = {
-                          '1': "Vitrina 1",
-                          '2': "Vitrina 2",
-                          '3': "Vitrina 3",
-                          '4': "Vitrina 4"
-                        }[String(item.vitrina)] || "No asignada";
-                        return vitrinaName;
-                      })()}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <div className="flex flex-col items-center">
-                      <span className="text-lg font-medium text-gray-300">
-                        {item.cantidad_inicial}
-                      </span>
-                      <span className="text-xs text-gray-400">{item.unidad}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <div className="flex flex-col items-center">
-                      <span className="text-lg font-medium text-blue-400">
-                        {item.entradas || 0}
-                      </span>
-                      <span className="text-xs text-gray-400">{item.unidad}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <div className="flex flex-col items-center">
-                      <span className="text-lg font-medium text-yellow-400">
-                        {item.salidas || 0}
-                      </span>
-                      <span className="text-xs text-gray-400">{item.unidad}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <div className="flex flex-col items-center">
-                      <span className={`text-lg font-medium ${
-                        item.cantidad_actual <= item.cantidad_inicial * 0.2 
-                          ? 'text-red-400' 
-                          : 'text-green-400'
-                      }`}>
-                        {item.cantidad_actual}
-                      </span>
-                      <span className="text-xs text-gray-400">{item.unidad}</span>
-                      {item.cantidad_actual <= item.cantidad_inicial * 0.2 && (
-                        <span className="text-xs text-red-400 mt-1">Stock Bajo</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <div className="flex flex-col items-center">
-                      {(() => {
-                        // Nueva fórmula: Stock Final - (Inicial + Entradas - Salidas)
-                        const stockTeorico = Number(item.cantidad_inicial || 0) + Number(item.entradas || 0) - Number(item.salidas || 0);
-                        const diferencia = Number(item.cantidad_actual || 0) - stockTeorico;
-                        return (
-                          <>
-                            <span className={`text-lg font-medium ${
-                              diferencia === 0 
-                                ? 'text-green-400' 
-                                : diferencia < 0 
-                                  ? 'text-red-400'   // Faltan productos
-                                  : 'text-blue-400'  // Sobran productos
-                            }`}>
-                              {diferencia === 0 ? '0' : 
-                               diferencia < 0 ? diferencia : // Ya tiene el signo -
-                               `+${diferencia}`}           
-                            </span>
-                            <span className="text-xs text-gray-400">{item.unidad}</span>
-                            <span className="text-xs mt-1">
-                              {diferencia === 0 ? (
-                                <span className="text-green-400">✓ Correcto</span>
-                              ) : diferencia < 0 ? (
-                                <span className="text-red-400">Faltan {Math.abs(diferencia)}</span>
-                              ) : (
-                                <span className="text-blue-400">Sobran {diferencia}</span>
-                              )}
-                            </span>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-sm font-medium bg-gray-700/50 text-gray-300 capitalize">
-                      {item.tipo}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <div className="flex flex-col items-center gap-1">
-                      {(() => {
-                        // Calcular el stock teórico y porcentaje actual
-                        const stockActual = Number(item.cantidad_actual || 0);
-                        const stockInicial = Number(item.cantidad_inicial || 0);
-                        const porcentajeStock = (stockActual / stockInicial) * 100;
 
-                        if (stockActual === 0) {
-                          return (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-red-600/20 text-red-400">
-                              Sin Stock
-                            </span>
-                          );
-                        } else if (porcentajeStock <= 20) {
-                          return (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-red-600/20 text-red-400">
-                              Stock Crítico ({Math.round(porcentajeStock)}%)
-                            </span>
-                          );
-                        } else if (porcentajeStock <= 40) {
-                          return (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-yellow-600/20 text-yellow-400">
-                              Stock Bajo ({Math.round(porcentajeStock)}%)
-                            </span>
-                          );
-                        } else {
-                          return (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-green-600/20 text-green-400">
-                              Stock Normal ({Math.round(porcentajeStock)}%)
-                            </span>
-                          );
-                        }
-                      })()}
-                      {item.prioridad === 'alta' && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-yellow-600/20 text-yellow-400">
-                          Principal
-                        </span>
-                      )}
-                      {item.prioridad === 'urgente' && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-red-600/20 text-red-400">
-                          Esencial
-                        </span>
-                      )}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">Código</label>
+                      <input
+                        type="text"
+                        value={formData.code}
+                        onChange={(e) => setFormData({...formData, code: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
+                        placeholder="Ej: PRD001"
+                        required
+                      />
                     </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-center gap-2">
-                      <button
-                        onClick={() => handleEdit(item)}
-                        className="p-1.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 transition-all"
-                        title="Editar"
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">Categoría</label>
+                      <select
+                        value={formData.category}
+                        onChange={(e) => setFormData({...formData, category: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
+                        {categories.map(cat => (
+                          <option key={cat} value={cat}>
+                            {cat.replace('_', ' ').toUpperCase()}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">Stock Inicial</label>
+                      <input
+                        type="number"
+                        value={formData.initialStock}
+                        onChange={(e) => setFormData({...formData, initialStock: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
+                        min="0"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">Stock Mínimo</label>
+                      <input
+                        type="number"
+                        value={formData.minStock}
+                        onChange={(e) => setFormData({...formData, minStock: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
+                        min="0"
+                      />
+                    </div>
+
+                    {/* Campo Stock Real - Solo para administradores */}
+                    {user?.role === 'admin' && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-300 mb-1">Stock Real (Conteo)</label>
+                        <input
+                          type="number"
+                          value={formData.realStock || ''}
+                          onChange={(e) => setFormData({...formData, realStock: e.target.value})}
+                          className="w-full px-3 py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg text-blue-300 text-sm backdrop-blur-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+                          min="0"
+                          placeholder="Stock físico contado"
+                        />
+                        <p className="text-xs text-blue-400/70 mt-1">Stock físico verificado por conteo manual</p>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">Precio</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={formData.price}
+                        onChange={(e) => setFormData({...formData, price: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
+                        min="0"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-300 mb-1">Descripción</label>
+                      <input
+                        type="text"
+                        value={formData.description}
+                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2 lg:col-span-4 flex gap-3 pt-2">
+                      <GradientButton type="submit" className="text-sm px-4 py-2">
+                        {editingItem ? 'Actualizar' : 'Crear'}
+                      </GradientButton>
                       <button
-                        onClick={() => handleDelete(item._id)}
-                        className="p-1.5 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-all"
-                        title="Eliminar"
+                        type="button"
+                        onClick={() => {
+                          resetForm();
+                          setExpandedSection(null);
+                        }}
+                        className="px-4 py-2 bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 transition-colors text-sm backdrop-blur-sm"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
+                        Cancelar
                       </button>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Formulario de Movimientos - Solo Admin */}
+              {expandedSection === 'movement' && selectedItem && user?.role === 'admin' && (
+                <div className="mx-4 mt-4 bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-md shadow-2xl shadow-blue-500/20">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">
+                      <GradientText className="text-lg font-semibold">
+                        Movimiento - {selectedItem.name}
+                      </GradientText>
+                    </h3>
+                    <button
+                      onClick={() => setExpandedSection(null)}
+                      className="text-gray-400 hover:text-white transition-colors"
+                    >
+                      <ChevronUp className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleMovementSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">Tipo</label>
+                      <select
+                        value={movementData.type}
+                        onChange={(e) => setMovementData({...movementData, type: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
+                      >
+                        <option value="entry">Entrada</option>
+                        <option value="exit">Salida</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">Cantidad</label>
+                      <input
+                        type="number"
+                        value={movementData.quantity}
+                        onChange={(e) => setMovementData({...movementData, quantity: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
+                        min="1"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">Motivo</label>
+                      <input
+                        type="text"
+                        value={movementData.reason}
+                        onChange={(e) => setMovementData({...movementData, reason: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex items-end gap-3">
+                      <GradientButton type="submit" className="text-sm px-4 py-2">
+                        Registrar
+                      </GradientButton>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedSection(null)}
+                        className="px-4 py-2 bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 transition-colors text-sm backdrop-blur-sm"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Formulario de Ventas - Solo Admin */}
+              {expandedSection === 'sale' && selectedItem && user?.role === 'admin' && (
+                <div className="mx-4 mt-4 bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-md shadow-2xl shadow-blue-500/20">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-6 gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold">
+                        <GradientText className="text-lg font-semibold">
+                          Venta - {selectedItem.name}
+                        </GradientText>
+                      </h3>
+                      <div className="mt-2">
+                        <span className="text-3xl font-bold text-green-400">
+                          ${selectedItem.price || 0}
+                        </span>
+                        <span className="text-sm text-gray-400 ml-2">por unidad</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setExpandedSection(null)}
+                      className="text-gray-400 hover:text-white transition-colors lg:self-start"
+                    >
+                      <ChevronUp className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSaleSubmit} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Cantidad</label>
+                        <input
+                          type="number"
+                          value={saleData.quantity}
+                          onChange={(e) => setSaleData({...saleData, quantity: e.target.value})}
+                          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white text-lg backdrop-blur-sm text-center font-semibold"
+                          min="1"
+                          max={selectedItem.stock || selectedItem.currentStock || selectedItem.quantity || 0}
+                          required
+                        />
+                        <p className="text-xs text-gray-400 mt-1 text-center">
+                          Stock disponible: {selectedItem.stock || selectedItem.currentStock || selectedItem.quantity || 0}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col justify-center">
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Total a Pagar</label>
+                        <div className="bg-green-500/20 border border-green-500/30 rounded-xl p-4 text-center">
+                          <span className="text-4xl font-bold text-green-400">
+                            ${((parseFloat(saleData.quantity) || 0) * (parseFloat(selectedItem.price) || 0)).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4 pt-4">
+                      <GradientButton type="submit" className="flex-1 text-base py-3">
+                        <div className="flex items-center justify-center gap-2">
+                          <Package2 className="w-5 h-5" />
+                          <span>Registrar Venta</span>
+                        </div>
+                      </GradientButton>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedSection(null)}
+                        className="px-6 py-3 bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 transition-colors text-base backdrop-blur-sm"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Formulario de Conteo */}
+              {expandedSection === 'count' && selectedItem && (
+                <div className="mx-4 mt-4 bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-md shadow-2xl shadow-yellow-500/20">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-6 gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold">
+                        <GradientText className="text-lg font-semibold">
+                          Conteo de Stock - {selectedItem.name}
+                        </GradientText>
+                      </h3>
+                      <div className="mt-2 text-sm text-gray-400">
+                        <div>Stock Esperado: <span className="text-purple-400 font-medium">{selectedItem.initialStock + (selectedItem.entries || 0) - (selectedItem.exits || 0) - (selectedItem.sales || 0)}</span></div>
+                        <div>Stock Actual: <span className="text-blue-400 font-medium">{selectedItem.realStock || selectedItem.stock || 0}</span></div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setExpandedSection(null)}
+                      className="text-gray-400 hover:text-white transition-colors lg:self-start"
+                    >
+                      <ChevronUp className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleCountSubmit} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Stock Contado</label>
+                        <input
+                          type="number"
+                          value={countData.realStock}
+                          onChange={(e) => setCountData({...countData, realStock: e.target.value})}
+                          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white text-lg backdrop-blur-sm text-center font-semibold"
+                          min="0"
+                          placeholder="Ingrese stock real"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Entradas</label>
+                        <input
+                          type="number"
+                          value={countData.entries}
+                          onChange={(e) => setCountData({...countData, entries: e.target.value})}
+                          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white text-lg backdrop-blur-sm text-center"
+                          min="0"
+                          placeholder="0"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Salidas</label>
+                        <input
+                          type="number"
+                          value={countData.exits}
+                          onChange={(e) => setCountData({...countData, exits: e.target.value})}
+                          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white text-lg backdrop-blur-sm text-center"
+                          min="0"
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Notas (Opcional)</label>
+                      <textarea
+                        value={countData.notes}
+                        onChange={(e) => setCountData({...countData, notes: e.target.value})}
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white backdrop-blur-sm"
+                        rows="3"
+                        placeholder="Observaciones del conteo..."
+                      />
+                    </div>
+
+                    <div className="flex gap-4 pt-4">
+                      <GradientButton type="submit" className="flex-1 text-base py-3">
+                        <div className="flex items-center justify-center gap-2">
+                          <Calculator className="w-5 h-5" />
+                          <span>Guardar Conteo</span>
+                        </div>
+                      </GradientButton>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedSection(null)}
+                        className="px-6 py-3 bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 transition-colors text-base backdrop-blur-sm"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Header de tabla tipo Excel */}
+              <div className="px-4 py-2 bg-white/5 border-b border-white/10 backdrop-blur-sm">
+                <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-300">
+                  <div className="col-span-2">PRODUCTO</div>
+                  <div className="col-span-1 text-center">INICIAL</div>
+                  <div className="col-span-1 text-center">ENTRADAS</div>
+                  <div className="col-span-1 text-center">SALIDAS</div>
+                  <div className="col-span-1 text-center">VENTAS</div>
+                  <div className="col-span-1 text-center">ESPERADO</div>
+                  <div className="col-span-1 text-center">REAL</div>
+                  <div className="col-span-1 text-center">DIFERENCIA</div>
+                  <div className="col-span-1 text-center">ESTADO</div>
+                  <div className="col-span-2 text-center">ACCIONES</div>
+                </div>
+              </div>
+
+              {/* Lista de productos */}
+              {loading ? (
+                <div className="p-8 text-center">
+                  <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                  <p className="mt-2 text-gray-400 text-sm">Cargando...</p>
+                </div>
+              ) : filteredInventory.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Package2 className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                  <p className="text-gray-400 text-sm">No hay productos en el inventario</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-white/10">
+                  {filteredInventory.map((item) => {
+                    const stockStatus = getStockStatus(item);
+                    const currentStock = item.stock || item.currentStock || item.quantity || 0;
+                    const initialStock = item.initialStock || 0;
+                    const entries = item.entries || 0;
+                    const exits = item.exits || 0;
+                    const sales = item.sales || 0; 
+                    const minStock = item.minStock || 0;
+                    const realStock = item.realStock || currentStock; // Stock real ingresado por barbero
+                    // Stock esperado: lo que debería haber para diferencia = 0
+                    const expectedStock = initialStock + entries - exits - sales;
+                    // Diferencia: Stock real - Stock esperado
+                    const difference = realStock - expectedStock;
+                    
+                    return (
+                      <div key={item._id} className="px-4 py-2 hover:bg-white/5 transition-colors backdrop-blur-sm border-b border-white/5">
+                        <div className="grid grid-cols-12 gap-2 items-center text-sm">
+                          {/* Producto */}
+                          <div className="col-span-2">
+                            <div>
+                              <GradientText className="font-medium text-sm">
+                                {item.name}
+                              </GradientText>
+                              <p className="text-xs text-gray-400 capitalize">
+                                {item.category?.replace('_', ' ')}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Stock Inicial */}
+                          <div className="col-span-1 text-center">
+                            <span className="text-gray-300 font-medium">{initialStock}</span>
+                          </div>
+                          
+                          {/* Entradas */}
+                          <div className="col-span-1 text-center">
+                            <span className="text-green-400 font-medium">{entries}</span>
+                          </div>
+                          
+                          {/* Salidas */}
+                          <div className="col-span-1 text-center">
+                            <span className="text-red-400 font-medium">{exits}</span>
+                          </div>
+                          
+                          {/* Ventas */}
+                          <div className="col-span-1 text-center">
+                            <span className="text-orange-400 font-medium">{sales}</span>
+                          </div>
+                          
+                          {/* Stock Esperado */}
+                          <div className="col-span-1 text-center">
+                            <span className="text-purple-400 font-medium">{expectedStock}</span>
+                          </div>
+                          
+                          {/* Stock Real - Solo lectura */}
+                          <div className="col-span-1 text-center">
+                            <span className="text-blue-400 font-medium">
+                              {realStock}
+                            </span>
+                          </div>
+                          
+                          {/* Diferencia */}
+                          <div className="col-span-1 text-center">
+                            <span className={`font-medium ${difference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {difference}
+                            </span>
+                          </div>
+                          
+                          {/* Estado */}
+                          <div className="col-span-1 text-center">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${stockStatus.bgColor} ${stockStatus.color}`}>
+                              {stockStatus.status === 'out' ? 'Sin' : 
+                               stockStatus.status === 'low' ? 'Bajo' : 'OK'}
+                            </span>
+                          </div>
+                          
+                          {/* Acciones */}
+                          <div className="col-span-2 flex justify-center gap-1">
+                            {user?.role === 'admin' ? (
+                              <>
+                                <button
+                                  onClick={() => handleEdit(item)}
+                                  className="p-1.5 bg-blue-600/20 text-blue-400 rounded-md hover:bg-blue-600/30 transition-colors"
+                                  title="Editar"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                                
+                                <button
+                                  onClick={() => handleMovement(item)}
+                                  className="p-1.5 bg-purple-600/20 text-purple-400 rounded-md hover:bg-purple-600/30 transition-colors"
+                                  title="Movimiento"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                </button>
+                                
+                                <button
+                                  onClick={() => handleSale(item)}
+                                  className="p-1.5 bg-green-600/20 text-green-400 rounded-md hover:bg-green-600/30 transition-colors"
+                                  title="Venta"
+                                >
+                                  <ShoppingCart className="w-3.5 h-3.5" />
+                                </button>
+                                
+                                <button
+                                  onClick={() => handleDelete(item._id)}
+                                  className="p-1.5 bg-red-600/20 text-red-400 rounded-md hover:bg-red-600/30 transition-colors"
+                                  title="Eliminar"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            ) : (
+                              // Solo mostrar conteo para barberos
+                              <button
+                                onClick={() => handleCount(item)}
+                                className="p-1.5 bg-yellow-600/20 text-yellow-400 rounded-md hover:bg-yellow-600/30 transition-colors"
+                                title="Conteo de Stock"
+                              >
+                                <Calculator className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </PageContainer>
+
+        {/* Modal de Snapshot */}
+        <InventorySnapshot
+          isOpen={showSnapshotModal}
+          onClose={() => setShowSnapshotModal(false)}
+          inventory={inventory}
+          onSnapshotCreated={handleSnapshotCreated}
+          onInventoryReset={loadInventory} // Recargar inventario después del reset
+        />
+
+        {/* Modal de Inventarios Guardados */}
+        <SavedInventoriesModal
+          isOpen={showSavedInventoriesModal}
+          onClose={() => setShowSavedInventoriesModal(false)}
+        />
       </div>
-
-      <style>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.5s ease;
-        }
-      `}</style>
     </div>
   );
-}
+};
 
 export default Inventory;

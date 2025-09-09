@@ -1,51 +1,220 @@
 import winston from 'winston';
-import path from 'path';
+import DailyRotateFile from 'winston-daily-rotate-file';
+import { config } from '../config/index.js';
 
-// Formato de log personalizado
-const logFormat = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  winston.format.errors({ stack: true }),
-  winston.format.json()
-);
+// Niveles de log personalizados
+const levels = {
+  error: 0,
+  warn: 1,
+  info: 2,
+  http: 3,
+  debug: 4
+};
 
-// Logger para desarrollo (consola)
-const developmentLogger = winston.createLogger({
-  level: 'debug',
-  format: winston.format.combine(
-    winston.format.colorize(),
-    winston.format.printf(({ timestamp, level, message, stack }) => {
-      return `${timestamp} ${level}: ${stack || message}`;
+// Colores para cada nivel
+const colors = {
+  error: 'red',
+  warn: 'yellow',
+  info: 'green',
+  http: 'magenta',
+  debug: 'cyan'
+};
+
+// Añadir colores a Winston
+winston.addColors(colors);
+
+// Función para serialización segura de objetos circulares
+const safeStringify = (obj, space) => {
+  const seen = new WeakSet();
+  return JSON.stringify(obj, (key, val) => {
+    if (val != null && typeof val === 'object') {
+      if (seen.has(val)) {
+        return '[Circular]';
+      }
+      seen.add(val);
+    }
+    return val;
+  }, space);
+};
+
+// Formato para los logs
+const formats = {
+  // Formato para consola con colores y emojis
+  console: winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    winston.format.colorize({ all: true }),
+    winston.format.printf(info => {
+      const emoji = {
+        error: '❌',
+        warn: '⚠️',
+        info: 'ℹ️',
+        http: '🌐',
+        debug: '🔍'
+      };
+      return `${info.timestamp} ${emoji[info.level]} ${info.level}: ${info.message}`;
     })
   ),
-  transports: [new winston.transports.Console()]
-});
 
-// Logger para producción (archivo)
-const productionLogger = winston.createLogger({
-  level: 'info',
-  format: logFormat,
-  defaultMeta: { service: 'the-brothers-barbershop-api' },
-  transports: [
-    new winston.transports.File({
-      filename: path.join('logs', 'error.log'),
-      level: 'error',
-      maxsize: 5242880,
-      maxFiles: 5
-    }),
-    new winston.transports.File({
-      filename: path.join('logs', 'combined.log'),
-      maxsize: 5242880,
-      maxFiles: 5
+  // Formato para archivos (JSON estructurado)
+  file: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.splat(),
+    winston.format.json()
+  ),
+
+  // Formato para logs de HTTP
+  http: winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    winston.format.printf(info => {
+      const { timestamp, level, message } = info;
+      return `${timestamp} ${level}: ${message}`;
     })
-  ]
+  )
+};
+
+// Transports configurables
+const createTransports = () => {
+  const transports = [];
+
+  // Transport para todos los logs
+  transports.push(
+    new DailyRotateFile({
+      filename: `${config.logging.dirname}/%DATE%-combined.log`,
+      datePattern: 'YYYY-MM-DD',
+      maxFiles: config.logging.maxFiles,
+      maxSize: config.logging.maxSize,
+      format: formats.file
+    })
+  );
+
+  // Transport específico para errores
+  transports.push(
+    new DailyRotateFile({
+      filename: `${config.logging.dirname}/%DATE%-error.log`,
+      datePattern: 'YYYY-MM-DD',
+      level: 'error',
+      maxFiles: config.logging.maxFiles,
+      maxSize: config.logging.maxSize,
+      format: formats.file
+    })
+  );
+
+  // Transport específico para logs HTTP
+  transports.push(
+    new DailyRotateFile({
+      filename: `${config.logging.dirname}/%DATE%-http.log`,
+      datePattern: 'YYYY-MM-DD',
+      level: 'http',
+      maxFiles: config.logging.maxFiles,
+      maxSize: config.logging.maxSize,
+      format: formats.http
+    })
+  );
+
+  // En desarrollo, añadir transport de consola
+  if (config.app.nodeEnv === 'development') {
+    transports.push(
+      new winston.transports.Console({
+        level: 'debug',
+        format: formats.console
+      })
+    );
+  } else {
+    // En producción, solo errores y warnings a consola
+    transports.push(
+      new winston.transports.Console({
+        level: 'warn',
+        format: formats.console
+      })
+    );
+  }
+
+  return transports;
+};
+
+// Crear el logger
+const logger = winston.createLogger({
+  level: config.logging.level,
+  levels,
+  defaultMeta: { 
+    service: 'the-brothers-barbershop-api',
+    environment: config.app.nodeEnv
+  },
+  transports: createTransports(),
+  // Manejo de excepciones y rechazos no capturados
+  exceptionHandlers: [
+    new DailyRotateFile({
+      filename: `${config.logging.dirname}/%DATE%-exceptions.log`,
+      datePattern: 'YYYY-MM-DD',
+      maxFiles: config.logging.maxFiles,
+      format: formats.file
+    })
+  ],
+  rejectionHandlers: [
+    new DailyRotateFile({
+      filename: `${config.logging.dirname}/%DATE%-rejections.log`,
+      datePattern: 'YYYY-MM-DD',
+      maxFiles: config.logging.maxFiles,
+      format: formats.file
+    })
+  ],
+  exitOnError: false
 });
 
-// Elegir logger según entorno
-const logger = process.env.NODE_ENV === 'production' ? productionLogger : developmentLogger;
+// Métodos de utilidad
+logger.logRequest = (req, res, responseTime) => {
+  const meta = {
+    requestId: req.id,
+    method: req.method,
+    url: req.originalUrl,
+    status: res.statusCode,
+    responseTime: `${responseTime}ms`,
+    userAgent: req.get('user-agent'),
+    ip: req.ip,
+    user: req.user ? req.user._id : 'anonymous'
+  };
 
-// Middleware de logging de requests
+  const message = `${req.method} ${req.originalUrl} ${res.statusCode} ${responseTime}ms`;
+  logger.http(message, meta);
+};
+
+logger.logError = (error, req = null) => {
+  const meta = {
+    name: error.name,
+    stack: error.stack,
+    ...((req && {
+      requestId: req.id,
+      method: req.method,
+      url: req.originalUrl,
+      user: req.user ? req.user._id : 'anonymous',
+      ip: req.ip
+    }))
+  };
+
+  logger.error(error.message, meta);
+};
+
+logger.startupLog = () => {
+  logger.info('=================================');
+  logger.info('🚀 Servidor iniciado');
+  logger.info(`🌍 Ambiente: ${config.app.nodeEnv}`);
+  logger.info(`🔌 Puerto: ${config.app.port}`);
+  logger.info('=================================');
+};
+
+// Stream para Morgan
+logger.stream = {
+  write: (message) => logger.http(message.trim())
+};
+
+// Funciones auxiliares para logging
 export const requestLogger = (req, res, next) => {
   const start = Date.now();
+  const requestId = Math.random().toString(36).substring(7);
+  
+  // Agregar requestId al request para tracking
+  req.requestId = requestId;
 
   res.on('finish', () => {
     const duration = Date.now() - start;
