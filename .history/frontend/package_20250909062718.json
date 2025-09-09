@@ -1,0 +1,27 @@
+{
+  "name": "thebrothersbarbershop-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --mode development",
+    "dev:network": "vite --mode network --host",
+    "build": "vite build && cp dist/index.html dist/404.html || copy dist\\index.html dist\\404.html",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "date-fns": "^3.6.0",
+    "lucide-react": "^0.542.0",
+    "react": "^18.2.0",
+    "react-day-picker": "^8.10.1",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.15.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.2",
+    "autoprefixer": "^10.4.15",
+    "postcss": "^8.4.29",
+    "tailwindcss": "^3.3.3",
+    "vite": "^7.1.4"
+  }
+}
