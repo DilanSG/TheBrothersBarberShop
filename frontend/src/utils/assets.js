@@ -15,9 +15,12 @@ export const getAssetUrl = (assetPath) => {
   // Eliminar slash inicial si existe
   const cleanPath = assetPath.startsWith('/') ? assetPath.slice(1) : assetPath;
   
+  // Codificar espacios y caracteres especiales en la URL
+  const encodedPath = encodeURI(cleanPath);
+  
   // En development, BASE_URL es '/'
   // En production (GitHub Pages), BASE_URL es '/TheBrothersBarberShop/'
-  return `${BASE_PATH}${cleanPath}`;
+  return `${BASE_PATH}${encodedPath}`;
 };
 
 /**
