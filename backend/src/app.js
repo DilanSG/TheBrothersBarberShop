@@ -35,10 +35,10 @@ import routes from './routes/index.js';
 
 // Obtener __dirname en ES modules
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.dirname(__dirname);
 
-// Validar variables de entorno - Comentado temporalmente para debugging
-// validateEnv();
+// Validar variables de entorno
+validateEnv();
 
 // Inicializar Express
 const app = express();
