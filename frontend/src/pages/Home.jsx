@@ -3,7 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import GradientButton from '../components/ui/GradientButton';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Link } from 'react-router-dom';
-import { api } from '../services/api';                    {/* Background con efectos mejorados y mayor transparencia */}
+import { api } from '../services/api';
+import { LOGOS, DEFAULT_IMAGES } from '../utils/assets';                    {/* Background con efectos mejorados y mayor transparencia */}
                     <div className="absolute inset-0 bg-gradient-to-b from-gray-900/30 via-black/20 to-gray-900/30">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-red-500/5 via-transparent to-blue-500/5"></div>
                         <div className="absolute inset-0 opacity-10" style={{
@@ -23,7 +24,7 @@ import { api } from '../services/api';                    {/* Background con efe
 const BarberCard = ({ barber }) => {
   const handleImageError = (e) => {
     e.target.onerror = null; // Previene loop infinito
-    e.target.src = '/images/default-profile.png'; // Usa una imagen por defecto
+    e.target.src = DEFAULT_IMAGES.profile(); // Usa una imagen por defecto
     e.target.classList.add('fallback-image');
   };
 
@@ -186,7 +187,7 @@ function Home() {
                             <div className="mb-12">
                                 <div className="relative mx-auto w-56 sm:w-64 md:w-72 lg:w-80 mb-8 transform hover:scale-105 transition-all duration-500">
                                     <img
-                                        src="/images/logo 1.png"
+                                        src={LOGOS.main()}
                                         alt="The Brothers Barber Shop"
                                         className="w-full h-auto filter drop-shadow-[0_0_30px_rgba(59,130,246,0.6)]"
                                         onError={(e) => {
