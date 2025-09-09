@@ -2,7 +2,7 @@ import React, { useEffect, useState, memo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import GradientButton from '../components/ui/GradientButton';
 import { PageContainer } from '../components/layout/PageContainer';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { LOGOS, DEFAULT_IMAGES } from '../utils/assets';
 import { api } from '../services/api';
 import usePerformanceMonitor from '../hooks/usePerformanceMonitor';
@@ -107,6 +107,7 @@ function Home() {
     const [dataLoaded, setDataLoaded] = useState(false);
     const { user, accessToken } = useAuth();
     const { logAction } = usePerformanceMonitor('Home');
+    const navigate = useNavigate();
 
     useEffect(() => {
         // Evitar múltiples llamadas
@@ -281,7 +282,7 @@ function Home() {
                                         variant="primary"
                                         size="lg"
                                         className="inline-flex items-center justify-center whitespace-nowrap px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold rounded-xl sm:rounded-2xl shadow-lg transform hover:scale-105 transition-all duration-300 min-w-fit"
-                                        onClick={() => window.location.href = '/appointment'}
+                                        onClick={() => navigate('/appointment')}
                                     >
                                         <span className="flex items-center gap-2 sm:gap-3">
                                             <span className="hidden sm:inline">Reserva tu cita ahora</span>
@@ -548,7 +549,7 @@ function Home() {
                                 variant="outline"
                                 size="md"
                                 className="px-8 py-3"
-                                onClick={() => window.location.href = '/barbers'}
+                                onClick={() => navigate('/barbers')}
                             >
                                 Ver todos los barberos
                                 <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -684,7 +685,7 @@ function Home() {
                                         variant="primary"
                                         size="md"
                                         className="w-full py-2 sm:py-2.5 text-sm sm:text-base"
-                                        onClick={() => window.location.href = '/appointment'}
+                                        onClick={() => navigate('/appointment')}
                                     >
                                         Reservar una cita
                                         <svg className="w-3 h-3 sm:w-4 sm:h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
