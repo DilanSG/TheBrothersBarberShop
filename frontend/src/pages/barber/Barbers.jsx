@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
+import { DEFAULT_IMAGES } from '../../utils/assets';
 
 // Componente de Card de Barbero para usuarios
 const BarberCardForUsers = ({ barber, userRole }) => {
   const handleImageError = (e) => {
     e.target.onerror = null;
-    e.target.src = '/images/default-avatar.png';
+    e.target.src = DEFAULT_IMAGES.avatar();
     e.target.classList.add('fallback-image');
   };
 

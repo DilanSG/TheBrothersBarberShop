@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import GradientButton from '../components/ui/GradientButton';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Link } from 'react-router-dom';
+import { LOGOS, DEFAULT_IMAGES } from '../utils/assets';
 import { api } from '../services/api';
 import usePerformanceMonitor from '../hooks/usePerformanceMonitor';
 import ErrorLogger from '../utils/errorLogger';                    {/* Background con efectos mejorados y mayor transparencia */}
@@ -25,7 +26,7 @@ import ErrorLogger from '../utils/errorLogger';                    {/* Backgroun
 const BarberCard = memo(({ barber }) => {
   const handleImageError = (e) => {
     e.target.onerror = null; // Previene loop infinito
-    e.target.src = '/images/default-profile.png'; // Usa una imagen por defecto
+    e.target.src = DEFAULT_IMAGES.profile(); // Usa una imagen por defecto
     e.target.classList.add('fallback-image');
   };
 
@@ -200,7 +201,7 @@ function Home() {
                             <div className="mb-8 sm:mb-12">
                                 <div className="relative mx-auto w-48 sm:w-56 md:w-64 lg:w-72 xl:w-80 mb-6 sm:mb-8 transform hover:scale-105 transition-all duration-500">
                                     <img
-                                        src="/images/logo 1.png"
+                                        src={LOGOS.main()}
                                         alt="The Brothers Barber Shop"
                                         className="w-full h-auto filter drop-shadow-[0_0_30px_rgba(59,130,246,0.6)]"
                                         onError={(e) => {
