@@ -37,8 +37,8 @@ import routes from './routes/index.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Validar variables de entorno
-validateEnv();
+// Validar variables de entorno - Comentado temporalmente para debugging
+// validateEnv();
 
 // Inicializar Express
 const app = express();
