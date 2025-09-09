@@ -1,0 +1,50 @@
+{
+  "name": "the-brothers-barber-shop",
+  "version": "1.0.0",
+  "description": "Sistema de gestión integral para barbería con backend Node.js/Express y frontend React",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "start": "npm start --prefix backend",
+    "build": "npm run build --prefix frontend",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "install:backend": "npm install --prefix backend",
+    "install:frontend": "npm install --prefix frontend",
+    "test": "npm test --prefix backend",
+    "lint": "npm run lint --prefix backend && npm run lint --prefix frontend",
+    "seed": "npm run seed --prefix backend"
+  },
+  "keywords": [
+    "barberia",
+    "barber-shop",
+    "react",
+    "nodejs",
+    "express",
+    "mongodb",
+    "jwt",
+    "appointment-system",
+    "inventory-management",
+    "fullstack"
+  ],
+  "author": {
+    "name": "DilanSG",
+    "url": "https://github.com/DilanSG"
+  },
+  "license": "PROPRIETARY",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DilanSG/TheBrothersBarberShop.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DilanSG/TheBrothersBarberShop/issues"
+  },
+  "homepage": "https://github.com/DilanSG/TheBrothersBarberShop#readme",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+}

@@ -1,20 +1,41 @@
 import express from 'express';
 import {
   getInventory,
-  createInventory,
-  updateInventory,
-  deleteInventory
+  getInventoryItem,
+  createInventoryItem,
+  updateInventoryItem,
+  deleteInventoryItem,
+  adjustStock,
+  getItemsByCategory,
+  getLowStockItems,
+  getMovementHistory,
+  getInventoryStats,
+  getInventoryLogs,
+  getInventoryLogStats,
+  getDailyInventoryReport
 } from '../controllers/inventoryController.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminAuth, barberAuth } from '../middleware/auth.js';
+import { validateIdParam, validateInventoryItem } from '../middleware/validation.js';
 
 const router = express.Router();
 
-// Listar inventario (todos pueden ver)
-router.get('/', getInventory);
+// Rutas protegidas - Barberos y admin pueden ver
+router.get('/', protect, barberAuth, getInventory);
+router.get('/low-stock', protect, barberAuth, getLowStockItems);
+router.get('/stats/overview', protect, adminAuth, getInventoryStats);
+router.get('/daily-report', protect, adminAuth, getDailyInventoryReport);
+router.get('/logs', protect, adminAuth, getInventoryLogs);
+router.get('/logs/stats', protect, adminAuth, getInventoryLogStats);
+router.get('/category/:category', protect, barberAuth, validateIdParam, getItemsByCategory);
+router.get('/:id', protect, barberAuth, validateIdParam, getInventoryItem);
+router.get('/:id/history', protect, barberAuth, validateIdParam, getMovementHistory);
 
-// Crear, editar y eliminar solo admin/barber
-router.post('/', protect, createInventory);
-router.put('/:id', protect, updateInventory);
-router.delete('/:id', protect, deleteInventory);
+// Rutas protegidas - Barberos pueden crear/editar, admin puede todo
+router.post('/', protect, barberAuth, validateInventoryItem, createInventoryItem);
+router.put('/:id', protect, barberAuth, validateIdParam, validateInventoryItem, updateInventoryItem);
+router.post('/:id/stock', protect, barberAuth, validateIdParam, adjustStock);
+
+// Rutas solo para admin
+router.delete('/:id', protect, adminAuth, validateIdParam, deleteInventoryItem);
 
 export default router;

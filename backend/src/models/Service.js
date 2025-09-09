@@ -27,13 +27,10 @@ const serviceSchema = new mongoose.Schema({
   category: {
     type: String,
     required: [true, 'La categoría del servicio es requerida'],
-    name: {
-      type: String,
-      required: [true, 'El nombre del servicio es requerido'],
-      trim: true,
-      maxlength: [100, 'El nombre no puede exceder los 100 caracteres'],
-      unique: true
-    },
+    enum: ['corte', 'afeitado', 'lavado', 'combo', 'otro']
+  },
+  isActive: {
+    type: Boolean,
     default: true
   },
   image: {

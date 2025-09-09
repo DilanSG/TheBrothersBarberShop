@@ -3,13 +3,19 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './app.jsx';
 import './index.css';
-import { AuthProvider } from './utils/AuthContext.jsx';
+import { AuthProvider } from './contexts/AuthContext.jsx';
+import { NotificationProvider } from './contexts/NotificationContext.jsx';
+
+// Obtener la base URL del entorno o usar un valor por defecto
+const baseUrl = import.meta.env.BASE_URL || '/';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
 	<React.StrictMode>
-		<BrowserRouter>
+		<BrowserRouter basename={baseUrl}>
 			<AuthProvider>
-				<App />
+				<NotificationProvider>
+					<App />
+				</NotificationProvider>
 			</AuthProvider>
 		</BrowserRouter>
 	</React.StrictMode>

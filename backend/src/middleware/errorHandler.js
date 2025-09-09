@@ -1,96 +1,133 @@
-// Clases de error personalizadas
-export class AppError extends Error {
-  constructor(message, statusCode = 400) {
-    super(message);
-    this.statusCode = statusCode;
-    this.name = 'AppError';
-    Error.captureStackTrace(this, this.constructor);
+import mongoose from 'mongoose';
+import { AppError, CommonErrors } from '../utils/errors.js';
+import { logger } from '../utils/logger.js';
+
+const handleCastErrorDB = err => {
+  const message = `Valor inválido ${err.value} para el campo ${err.path}`;
+  return new AppError(message, 400);
+};
+
+const handleDuplicateFieldsDB = err => {
+  const value = err.errmsg.match(/(["'])(\\?.)*?\1/)[0];
+  const message = `Valor duplicado: ${value}. Por favor use otro valor`;
+  return new AppError(message, 400);
+};
+
+const handleValidationErrorDB = err => {
+  const errors = Object.values(err.errors).map(el => el.message);
+  const message = `Datos inválidos. ${errors.join('. ')}`;
+  return new AppError(message, 400);
+};
+
+const handleJWTError = () => CommonErrors.INVALID_TOKEN;
+
+const handleJWTExpiredError = () => CommonErrors.EXPIRED_TOKEN;
+
+const handleMulterError = err => {
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return new AppError('El archivo es demasiado grande. Máximo 5MB permitido.', 400);
   }
-}
-
-export class ValidationError extends AppError {
-  constructor(errors) {
-    super('Errores de validación', 400);
-    this.errors = errors;
+  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+    return new AppError('Tipo de archivo no permitido', 400);
   }
-}
+  return new AppError('Error procesando el archivo', 400);
+};
 
-export class NotFoundError extends AppError {
-  constructor(resource) {
-    super(`${resource || 'Recurso'} no encontrado`, 404);
-  }
-}
-
-export class UnauthorizedError extends AppError {
-  constructor(message = 'No autorizado') {
-    super(message, 401);
-  }
-}
-
-export class ForbiddenError extends AppError {
-  constructor(message = 'Acceso prohibido') {
-    super(message, 403);
-  }
-}
-
-// Middleware de manejo de errores
-export const errorHandler = (err, req, res, next) => {
-  let error = { ...err };
-  error.message = err.message;
-
-  // Log del error
-  console.error('Error:', {
+const sendErrorDev = (err, req, res) => {
+  // Log completo para desarrollo
+  logger.error('ERROR 💥', {
+    status: err.status,
+    error: err,
     message: err.message,
-    stack: err.stack,
-    url: req.originalUrl,
-    method: req.method,
-    ip: req.ip,
-    user: req.user ? req.user._id : 'No autenticado'
+    stack: err.stack
   });
 
-  // Error de Mongoose - ObjectId inválido
-  if (err.name === 'CastError') {
-    const message = 'ID inválido';
-    error = new AppError(message, 400);
+  // API
+  if (req.originalUrl && req.originalUrl.startsWith('/api')) {
+    return res.status(err.statusCode || 500).json({
+      success: false,
+      status: err.status || 'error',
+      message: err.message || 'Error interno del servidor',
+      error: err,
+      stack: err.stack,
+      details: err.details
+    });
   }
 
-  // Error de Mongoose - Validación
-  if (err.name === 'ValidationError') {
-    const errors = Object.values(err.errors).map(e => e.message);
-    error = new ValidationError(errors);
-  }
-
-  // Error de Mongoose - Duplicado
-  if (err.code === 11000) {
-    const field = Object.keys(err.keyValue)[0];
-    const message = `${field} ya existe`;
-    error = new AppError(message, 400);
-  }
-
-  // Error de JWT
-  if (err.name === 'JsonWebTokenError') {
-    const message = 'Token inválido';
-    error = new AppError(message, 401);
-  }
-
-  // Error de JWT expirado
-  if (err.name === 'TokenExpiredError') {
-    const message = 'Token expirado';
-    error = new AppError(message, 401);
-  }
-
-  // Respuesta de error
-  res.status(error.statusCode || 500).json({
-    success: false,
-    message: error.message || 'Error interno del servidor',
-    ...(error.errors && { errors: error.errors }),
-    ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+  // Renderizado Web
+  res.status(err.statusCode || 500).json({
+    title: 'Something went wrong!',
+    message: err.message || 'Error interno del servidor'
   });
 };
 
-// Middleware para rutas no encontradas
-export const notFound = (req, res, next) => {
-  next(new NotFoundError(`Ruta ${req.originalUrl} no encontrada`));
+const sendErrorProd = (err, req, res) => {
+  // A) API
+  if (req.originalUrl && req.originalUrl.startsWith('/api')) {
+    // Error operacional, de confianza: enviar mensaje al cliente
+    if (err.isOperational) {
+      return res.status(err.statusCode).json({
+        success: false,
+        status: err.status,
+        message: err.message,
+        ...(err.details && { details: err.details })
+      });
+    }
+    
+    // B) Error de programación u otro: no filtrar detalles
+    // 1) Log del error
+    logger.error('ERROR 💥', err);
+
+    // 2) Enviar mensaje genérico
+    return res.status(500).json({
+      success: false,
+      status: 'error',
+      message: 'Algo salió mal!'
+    });
+  }
+
+  // B) Renderizado Web
+  if (err.isOperational) {
+    return res.status(err.statusCode).json({
+      title: 'Something went wrong!',
+      message: err.message
+    });
+  }
+  
+  // Error de programación u otro: no filtrar detalles
+  logger.error('ERROR 💥', err);
+  
+  res.status(err.statusCode).json({
+    title: 'Something went wrong!',
+    message: 'Please try again later.'
+  });
+};
+
+// Middleware principal de manejo de errores
+export const errorHandler = (err, req, res, next) => {
+  err.statusCode = err.statusCode || 500;
+  err.status = err.status || 'error';
+
+  if (process.env.NODE_ENV === 'development') {
+    sendErrorDev(err, req, res);
+  } else {
+    let error = { ...err };
+    error.message = err.message;
+
+    // Errores específicos de Mongoose
+    if (error instanceof mongoose.Error.CastError) error = handleCastErrorDB(error);
+    if (error.code === 11000) error = handleDuplicateFieldsDB(error);
+    if (error instanceof mongoose.Error.ValidationError) error = handleValidationErrorDB(error);
+
+    // Errores de JWT
+    if (error.name === 'JsonWebTokenError') error = handleJWTError();
+    if (error.name === 'TokenExpiredError') error = handleJWTExpiredError();
+
+    // Errores de Multer
+    if (error.name === 'MulterError') error = handleMulterError(error);
+
+    sendErrorProd(error, req, res);
+  }
 };
 
 // Wrapper async para evitar try-catch

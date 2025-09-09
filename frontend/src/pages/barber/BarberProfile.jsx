@@ -1,341 +1,449 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useAuth } from '../../utils/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
+import {PageContainer} from '../../components/layout/PageContainer';
+import { 
+  User, 
+  Clock, 
+  Phone, 
+  Mail, 
+  MapPin, 
+  Star, 
+  Scissors, 
+  Calendar, 
+  Award,
+  TrendingUp,
+  BarChart3,
+  DollarSign
+} from 'lucide-react';
+import GradientText from '../../components/ui/GradientText';
 
 export default function BarberProfile() {
   const { id } = useParams();
   const [barber, setBarber] = useState(null);
-  const { user, token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
+  const { user } = useAuth();
 
   useEffect(() => {
-    const fetchBarberAndStats = async () => {
-      try {
-        const [barberRes, statsRes] = await Promise.all([
-          api.get(`/barbers/${id}`),
-          user?.role === 'admin' || user?._id === id ? 
-            api.get(`/barbers/${id}/stats`) : null
-        ].filter(Boolean));
+    fetchBarberData();
+  }, [id]);
 
-        if (!barberRes.success) {
-          throw new Error(barberRes.message || 'Error al cargar el barbero');
+  const fetchBarberData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await api.get(`/barbers/${id}`);
+      
+      if (response.success) {
+        console.log('Datos del barbero recibidos:', response.data);
+        setBarber(response.data);
+        
+        // Si es admin, obtener estadísticas
+        if (user?.role === 'admin') {
+          try {
+            const statsResponse = await api.get(`/barbers/${id}/stats`);
+            if (statsResponse.success) {
+              setStats(statsResponse.data);
+            }
+          } catch (statsError) {
+            console.warn('No se pudieron cargar las estadísticas:', statsError);
+          }
         }
-
-        setBarber(barberRes.data);
-
-        if (statsRes && statsRes.success) {
-          setStats(statsRes.data);
-        }
-
-        setLoading(false);
-      } catch (error) {
-        console.error('Error:', error);
-        setError(error.message || 'Error al cargar el perfil del barbero');
-        setLoading(false);
+      } else {
+        setError('Error al cargar los datos del barbero');
       }
-    };
-
-    fetchBarberAndStats();
-  }, [id, token, user]);
+    } catch (error) {
+      console.error('Error fetching barber data:', error);
+      if (error.response?.status === 404) {
+        setError('Barbero no encontrado');
+      } else {
+        setError('Error al conectar con el servidor');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex justify-center items-center">
-        <div className="relative">
-          <div className="w-16 h-16 border-t-4 border-b-4 border-blue-500 rounded-full animate-spin"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-12 h-12 border-t-4 border-blue-400/40 rounded-full animate-spin"></div>
+      <PageContainer>
+        <div className="flex justify-center items-center min-h-[60vh] p-4">
+          <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/40 rounded-2xl p-8 shadow-xl text-center">
+            <div className="text-blue-400 mb-4">
+              <div className="w-16 h-16 border-t-4 border-blue-400/40 rounded-full animate-spin"></div>
+            </div>
           </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col justify-center items-center p-4">
-        <div className="bg-red-900/50 border border-red-700 rounded-xl p-8 max-w-lg w-full text-center">
-          <div className="bg-red-800/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+      <PageContainer>
+        <div className="flex flex-col justify-center items-center min-h-[60vh] p-4">
+          <div className="bg-red-900/30 border border-red-500/50 rounded-2xl p-8 max-w-lg w-full text-center shadow-xl shadow-red-500/10">
+            <div className="bg-red-800/50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-red-400 mb-4">{error}</h3>
+            <Link
+              to="/barbers"
+              className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-gray-700/50 to-gray-600/50 hover:from-gray-600/50 hover:to-gray-500/50 text-white rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Volver a la lista de barberos
+            </Link>
           </div>
-          <h3 className="text-xl font-bold text-red-400 mb-4">{error}</h3>
-          <Link
-            to="/barbers"
-            className="inline-flex items-center justify-center px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Volver a la lista de barberos
-          </Link>
         </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex justify-center items-center p-4">
-        <div className="bg-red-500/10 backdrop-blur-sm border border-red-500/20 text-red-400 px-6 py-4 rounded-xl relative max-w-md w-full shadow-2xl">
-          <strong className="font-bold">Error:</strong>
-          <span className="block sm:inline ml-2">{error}</span>
-        </div>
-      </div>
+      </PageContainer>
     );
   }
 
   if (!barber) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex justify-center items-center p-4">
-        <div className="bg-yellow-500/10 backdrop-blur-sm border border-yellow-500/20 text-yellow-400 px-6 py-4 rounded-xl relative max-w-md w-full shadow-2xl">
-          No se encontró el barbero
+      <PageContainer>
+        <div className="flex justify-center items-center min-h-[60vh] p-4">
+          <div className="bg-yellow-500/20 backdrop-blur-sm border border-yellow-500/40 text-yellow-400 px-8 py-6 rounded-2xl relative max-w-md w-full shadow-xl text-center">
+            <div className="bg-yellow-800/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold mb-2">Barbero no encontrado</h3>
+            <p className="text-yellow-300 mb-4">El barbero que buscas no existe o ha sido eliminado.</p>
+            <Link
+              to="/barbers"
+              className="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-gray-700/50 to-gray-600/50 hover:from-gray-600/50 hover:to-gray-500/50 text-white rounded-lg transition-all duration-300"
+            >
+              Ver barberos disponibles
+            </Link>
+          </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
-  const canEdit = user && (user.role === 'admin' || user._id === barber.user?._id);
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Barra de acciones para admin/propio barbero */}
-        {canEdit && (
-          <div className="mb-8 bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 rounded-xl p-4 flex justify-end space-x-4 shadow-2xl border border-gray-700/50 backdrop-blur-sm">
-            <Link
-              to={user.role === 'admin' ? `/admin/barbers/edit/${barber._id}` : `/profile-edit`}
-              className="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-500 hover:to-blue-600 transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-300" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-              </svg>
-              <span className="relative group-hover:translate-x-1 transition-transform duration-300">
-                {user.role === 'admin' ? 'Editar Barbero' : 'Editar Perfil'}
-              </span>
-            </Link>
-          </div>
-        )}
-
-        <div className={`grid grid-cols-1 ${user?.role === 'admin' ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-8`}>
-          {/* Columna izquierda - Información personal */}
-          <div className="lg:col-span-1">
-            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl shadow-2xl p-8 border border-gray-700/50 backdrop-blur-sm transform transition-all duration-300 hover:shadow-blue-500/10">
-              <div className="flex flex-col items-center">
-                <div className="relative group mb-6">
-                  {barber.photo?.url || barber.user?.photo?.url ? (
-                    <img 
-                      src={barber.photo?.url || barber.user?.photo?.url}
-                      alt={barber.user?.name} 
-                      className="w-36 h-36 rounded-full object-cover border-4 border-blue-500/50 shadow-xl transition-transform duration-300 group-hover:scale-105 group-hover:border-blue-400"
+    <PageContainer>
+      <div className="min-h-screen relative">
+        {/* Header del perfil */}
+        <div className="mb-8">
+          <div className="bg-gray-800/30 border border-gray-700/30 rounded-2xl p-8 backdrop-blur-sm">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
+              {/* Foto de perfil */}
+              <div className="relative">
+                {(() => {
+                  // Si es el perfil del usuario actual, usar la foto del contexto (siempre actualizada)
+                  const isCurrentUser = user && barber && (user._id === barber.user?._id || user._id === barber._id);
+                  const profilePicture = isCurrentUser ? user.profilePicture : (barber?.user?.photo || barber?.profilePicture);
+                  
+                  return profilePicture ? (
+                    <img
+                      src={profilePicture}
+                      alt={barber?.user?.name || barber?.name}
+                      className="w-32 h-32 rounded-full object-cover shadow-xl"
                     />
                   ) : (
-                    <div className="w-36 h-36 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center text-gray-400 border-4 border-blue-500/50 shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-blue-400">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 transition-transform duration-300 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
+                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-600/20 flex items-center justify-center shadow-xl">
+                      <User className="w-16 h-16 text-blue-400" />
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Información principal */}
+              <div className="flex-1">
+                <GradientText className="text-4xl font-bold mb-2">
+                  {barber?.user?.name || barber?.name || 'Cargando...'}
+                </GradientText>
+                <div className="flex items-center gap-2 mb-4">
+                  <Award className="w-5 h-5 text-blue-400" />
+                  <span className="text-gray-300 font-medium">Barbero Profesional</span>
+                </div>
+
+                {/* Información de contacto */}
+                <div className="grid grid-cols-1 gap-4">
+                  {(barber?.user?.email || barber?.email) && (
+                    <div className="flex items-center gap-3 text-gray-300">
+                      <Mail className="w-5 h-5 text-blue-400" />
+                      <span>{barber?.user?.email || barber?.email}</span>
+                    </div>
+                  )}
+                  {(barber?.user?.phone || barber?.phone) && (
+                    <div className="flex items-center gap-3 text-gray-300">
+                      <Phone className="w-5 h-5 text-blue-400" />
+                      <span>{barber?.user?.phone || barber?.phone}</span>
+                    </div>
+                  )}
+                  {barber?.specialties && barber.specialties.length > 0 && (
+                    <div className="flex items-center gap-3 text-gray-300">
+                      <Star className="w-5 h-5 text-blue-400" />
+                      <span>{barber.specialties.join(', ')}</span>
+                    </div>
+                  )}
+                  {barber?.experience && (
+                    <div className="flex items-center gap-3 text-gray-300">
+                      <Award className="w-5 h-5 text-blue-400" />
+                      <span>{barber.experience} años de experiencia</span>
                     </div>
                   )}
                 </div>
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent mb-3">{barber.user?.name}</h2>
-                <div className="flex items-center mb-6 bg-blue-500/10 px-4 py-2 rounded-full">
-                  <span className="text-yellow-400 text-xl mr-2">★</span>
-                  <span className="text-white font-bold">
-                    {typeof barber.rating === 'number' ? barber.rating.toFixed(2) : 'Sin calificación'}
-                  </span>
-                </div>
-
-                <div className="w-full space-y-6">
-                  <div className="group transition-all duration-300 hover:transform hover:translate-x-2">
-                    <h3 className="text-blue-400 font-semibold mb-2 flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                      Especialidad
-                    </h3>
-                    <p className="text-white bg-gray-800/50 rounded-xl p-4 shadow-inner transition-all duration-300 group-hover:bg-gray-800/70">
-                      {barber.specialty || 'No especificada'}
-                    </p>
-                  </div>
-                  <div className="group transition-all duration-300 hover:transform hover:translate-x-2">
-                    <h3 className="text-blue-400 font-semibold mb-2 flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Experiencia
-                    </h3>
-                    <p className="text-white bg-gray-800/50 rounded-xl p-4 shadow-inner transition-all duration-300 group-hover:bg-gray-800/70">
-                      {barber.experience ? `${barber.experience} años` : 'No especificada'}
-                    </p>
-                  </div>
-                  <div className="group transition-all duration-300 hover:transform hover:translate-x-2">
-                    <h3 className="text-blue-400 font-semibold mb-2 flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      Descripción
-                    </h3>
-                    <p className="text-white bg-gray-800/50 rounded-xl p-4 shadow-inner transition-all duration-300 group-hover:bg-gray-800/70">
-                      {barber.description || 'Sin descripción'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Columna central - Servicios y Reservas */}
-          <div className="lg:col-span-1">
-            {/* Sección de Servicios */}
-            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl shadow-2xl p-8 border border-gray-700/50 backdrop-blur-sm mb-8">
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent mb-6 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Servicios Disponibles
-              </h3>
-              <div className="space-y-3">
-                {barber.services?.length > 0 ? (
-                  barber.services.map((service, idx) => (
-                    <div key={idx} className="group bg-gray-800/50 p-4 rounded-xl text-white flex justify-between items-center transform transition-all duration-300 hover:bg-gray-800/70 hover:translate-x-2">
-                      <span className="font-medium">{service.name}</span>
-                      <span className="text-blue-400 font-bold bg-blue-500/10 px-3 py-1 rounded-full group-hover:scale-110 transition-transform duration-300">
-                        ${service.price}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-400 text-center py-8 bg-gray-800/30 rounded-xl">No hay servicios disponibles</p>
-                )}
               </div>
             </div>
 
-            {/* Botón de reserva para usuarios */}
-            {user && user.role === 'user' && (
-              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl shadow-2xl p-8 border border-gray-700/50 backdrop-blur-sm mb-8">
-                <div className="text-center mb-4">
-                  <h3 className="text-2xl font-bold bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent mb-2">¿Listo para tu corte?</h3>
-                  <p className="text-gray-400">Reserva tu cita ahora y luce un nuevo estilo</p>
-                </div>
-                <Link
-                  to={`/appointment?barberId=${barber._id}`}
-                  className="group w-full inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-xl hover:from-green-500 hover:to-green-600 transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 group-hover:animate-bounce" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-lg font-medium">Reservar Cita Ahora</span>
-                </Link>
+            {/* Descripción */}
+            {barber?.description && (
+              <div className="mt-6 pt-6 border-t border-gray-700/30">
+                <h3 className="text-xl font-semibold text-blue-400 mb-3 flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Sobre mí
+                </h3>
+                <p className="text-gray-300 leading-relaxed bg-gray-800/20 rounded-xl p-4">
+                  {barber.description}
+                </p>
               </div>
             )}
           </div>
+        </div>
 
-          {/* Nueva columna - Horario */}
-          <div className="lg:col-span-1">
-            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl shadow-2xl p-8 border border-gray-700/50 backdrop-blur-sm">
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent mb-6 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Horario de Atención
+        {/* Secciones principales */}
+        <div className="space-y-8">
+          {/* Horario */}
+          <div className="w-full">
+            <div className="bg-gray-800/30 border border-gray-700/30 rounded-2xl p-8 backdrop-blur-sm">
+              <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                <GradientText>
+                  <Clock className="w-6 h-6" />
+                  Horario de Atención
+                </GradientText>
               </h3>
-              {barber.schedule && (
-                <div className="space-y-3">
-                  {Object.entries(barber.schedule).map(([day, info]) => (
-                    <div key={day} className={`group p-4 rounded-xl transition-all duration-300 transform hover:translate-x-2 ${
-                      info.available ? 'bg-gray-800/50 hover:bg-gray-800/70' : 'bg-gray-900/30'
-                    }`}>
-                      <div className="flex justify-between items-center">
-                        <span className={`font-medium capitalize ${info.available ? 'text-blue-400' : 'text-gray-500'}`}>
-                          {day}
-                        </span>
-                        <span className={`px-3 py-1 rounded-full text-sm ${
-                          info.available
-                            ? 'text-white bg-blue-500/10 group-hover:scale-110 transition-transform duration-300'
-                            : 'text-gray-500 bg-gray-800/30'
-                        }`}>
-                          {info.available ? `${info.start} - ${info.end}` : 'No disponible'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+              
+              {barber?.schedule ? (
+                <div className="overflow-x-auto">
+                  <div className="grid grid-cols-7 gap-2 min-w-max">
+                    {/* Nombres de los días */}
+                    {Object.entries(barber.schedule).map(([day, info]) => {
+                      const dayNames = {
+                        monday: 'LUN',
+                        tuesday: 'MAR',
+                        wednesday: 'MIÉ',
+                        thursday: 'JUE',
+                        friday: 'VIE',
+                        saturday: 'SÁB',
+                        sunday: 'DOM'
+                      };
+                      
+                      return (
+                        <div key={day} className="text-center min-w-[80px]">
+                          {/* Día */}
+                          <div className={`p-2 rounded-t-lg font-semibold text-sm ${
+                            info.available 
+                              ? 'bg-blue-500/20 text-blue-300 border-b-2 border-blue-500/50' 
+                              : 'bg-gray-800/30 text-gray-500 border-b-2 border-gray-600/30'
+                          }`}>
+                            {dayNames[day]}
+                          </div>
+                          
+                          {/* Horario */}
+                          <div className={`p-3 rounded-b-lg text-xs leading-tight min-h-[60px] flex flex-col justify-center ${
+                            info.available
+                              ? 'bg-gray-700/30 text-gray-200 border border-t-0 border-gray-600/20'
+                              : 'bg-gray-900/30 text-gray-500 border border-t-0 border-gray-800/20'
+                          }`}>
+                            {info.available ? (
+                              <>
+                                <div className="font-medium">
+                                  <GradientText className="text-sm font-bold">
+                                    {info.start}
+                                  </GradientText>
+                                </div>
+                                <div className="text-gray-400">a</div>
+                                <div className="font-medium">
+                                  <GradientText className="text-sm font-bold">
+                                    {info.end}
+                                  </GradientText>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-center">Cerrado</div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Horario no disponible</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Columna derecha - Acciones y estadísticas (solo para admin) */}
-          {user?.role === 'admin' && (
-            <div className="lg:col-span-1">
-              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl shadow-2xl p-8 border border-gray-700/50 backdrop-blur-sm">
-                {stats && (
-                <>
-                  <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent mb-6 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    Estadísticas
-                  </h3>
-                  
-                  <div className="grid grid-cols-2 gap-4 mb-8">
-                    <div className="group bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-5 rounded-xl transform transition-all duration-300 hover:translate-y-[-4px] hover:shadow-xl hover:shadow-blue-500/10">
-                      <div className="text-blue-400 text-sm mb-1 group-hover:text-blue-300 transition-colors duration-300">Citas totales</div>
-                      <div className="text-3xl font-bold text-white group-hover:scale-110 transition-transform duration-300 origin-left">
-                        {stats.totalAppointments || 0}
-                      </div>
-                    </div>
-                    <div className="group bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-5 rounded-xl transform transition-all duration-300 hover:translate-y-[-4px] hover:shadow-xl hover:shadow-blue-500/10">
-                      <div className="text-blue-400 text-sm mb-1 group-hover:text-blue-300 transition-colors duration-300">Este mes</div>
-                      <div className="text-3xl font-bold text-white group-hover:scale-110 transition-transform duration-300 origin-left">
-                        {stats.thisMonth || 0}
-                      </div>
-                    </div>
-                    <div className="group bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-5 rounded-xl transform transition-all duration-300 hover:translate-y-[-4px] hover:shadow-xl hover:shadow-blue-500/10">
-                      <div className="text-blue-400 text-sm mb-1 group-hover:text-blue-300 transition-colors duration-300">Esta semana</div>
-                      <div className="text-3xl font-bold text-white group-hover:scale-110 transition-transform duration-300 origin-left">
-                        {stats.thisWeek || 0}
-                      </div>
-                    </div>
-                    <div className="group bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-5 rounded-xl transform transition-all duration-300 hover:translate-y-[-4px] hover:shadow-xl hover:shadow-green-500/10">
-                      <div className="text-blue-400 text-sm mb-1 group-hover:text-blue-300 transition-colors duration-300">Ingresos totales</div>
-                      <div className="text-3xl font-bold text-green-400 group-hover:scale-110 transition-transform duration-300 origin-left">
-                        ${stats.totalRevenue || 0}
-                      </div>
-                    </div>
-                  </div>
-
-                  {stats.appointmentsByService && stats.appointmentsByService.length > 0 && (
-                    <div>
-                      <h4 className="text-xl font-semibold text-blue-400 mb-4">Servicios más solicitados</h4>
-                      <div className="space-y-3">
-                        {stats.appointmentsByService.map((s, idx) => (
-                          <div key={idx} className="group bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-4 rounded-xl transform transition-all duration-300 hover:translate-x-2">
-                            <div className="flex justify-between items-center">
-                              <span className="text-white group-hover:text-blue-300 transition-colors duration-300">{s.service}</span>
-                              <span className="text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full text-sm group-hover:scale-110 transition-transform duration-300">
-                                {s.count} citas
-                              </span>
-                            </div>
-                            <div className="text-right text-green-400 text-sm mt-2 font-medium group-hover:scale-110 transition-transform duration-300 origin-right">
-                              ${s.revenue}
-                            </div>
+          {/* Servicios */}
+          <div className="w-full">
+            <div className="bg-gray-800/30 border border-gray-700/30 rounded-2xl p-8 backdrop-blur-sm">
+              <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                <GradientText>
+                  <Scissors className="w-6 h-6" />
+                  Servicios Disponibles
+                </GradientText>
+              </h3>
+              
+              {barber?.services?.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <div className="flex gap-4 pb-2 w-max">
+                    {barber.services.map((service, idx) => (
+                      <div key={idx} className="group bg-gray-800/20 hover:bg-gray-800/40 p-4 rounded-xl transition-all duration-300 border border-gray-700/20 hover:border-blue-500/30 flex-shrink-0 min-w-[200px]">
+                        <div className="text-center">
+                          <div className="font-medium mb-2 text-sm">
+                            <GradientText className="font-bold">
+                              {service.name}
+                            </GradientText>
                           </div>
-                        ))}
+                          <div className="text-blue-400 font-bold bg-blue-500/10 px-3 py-2 rounded-full group-hover:bg-blue-500/20 transition-all duration-300 text-lg">
+                            ${service.price}
+                          </div>
+                          {service.duration && (
+                            <div className="text-xs text-gray-400 mt-2">
+                              {service.duration} min
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <Scissors className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No hay servicios disponibles</p>
+                </div>
+              )}
+
+              {/* Botón de reserva para usuarios */}
+              {user && user.role === 'user' && (
+                <div className="mt-6 pt-6 border-t border-gray-700/30">
+                  <Link
+                    to={`/appointment?barberId=${barber?._id}`}
+                    className="group w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-blue-500/25"
+                  >
+                    <Calendar className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
+                    <span className="font-semibold">Reservar Cita</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Estadísticas (solo para admin) */}
+          {user?.role === 'admin' && (
+            <div className="w-full">
+              <div className="bg-gray-800/30 border border-gray-700/30 rounded-2xl p-8 backdrop-blur-sm">
+                <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                  <GradientText>
+                    <BarChart3 className="w-6 h-6" />
+                    Estadísticas
+                  </GradientText>
+                </h3>
+                
+                {stats ? (
+                  <div className="space-y-6">
+                    {/* Grid de estadísticas principales */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="group bg-gray-800/20 hover:bg-gray-800/40 p-4 rounded-xl transition-all duration-300 border border-gray-700/20 hover:border-blue-500/30">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Calendar className="w-4 h-4 text-blue-400" />
+                          <span className="text-sm text-gray-400">Total Citas</span>
+                        </div>
+                        <div className="text-2xl font-bold text-white">
+                          {stats.totalAppointments || 0}
+                        </div>
+                      </div>
+                      
+                      <div className="group bg-gray-800/20 hover:bg-gray-800/40 p-4 rounded-xl transition-all duration-300 border border-gray-700/20 hover:border-green-500/30">
+                        <div className="flex items-center gap-2 mb-2">
+                          <DollarSign className="w-4 h-4 text-green-400" />
+                          <span className="text-sm text-gray-400">Ingresos</span>
+                        </div>
+                        <div className="text-2xl font-bold text-green-400">
+                          ${stats.totalRevenue || 0}
+                        </div>
+                      </div>
+                      
+                      <div className="group bg-gray-800/20 hover:bg-gray-800/40 p-4 rounded-xl transition-all duration-300 border border-gray-700/20 hover:border-purple-500/30">
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingUp className="w-4 h-4 text-purple-400" />
+                          <span className="text-sm text-gray-400">Este Mes</span>
+                        </div>
+                        <div className="text-2xl font-bold text-purple-400">
+                          {stats.currentMonthAppointments || 0}
+                        </div>
+                      </div>
+
+                      <div className="group bg-gray-800/20 hover:bg-gray-800/40 p-4 rounded-xl transition-all duration-300 border border-gray-700/20 hover:border-yellow-500/30">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Star className="w-4 h-4 text-yellow-400" />
+                          <span className="text-sm text-gray-400">Rating</span>
+                        </div>
+                        <div className="text-2xl font-bold text-yellow-400">
+                          {stats.averageRating || '0.0'}
+                        </div>
                       </div>
                     </div>
-                  )}
-                </>
-              )}
+
+                    {/* Servicios más solicitados */}
+                    {stats.appointmentsByService && stats.appointmentsByService.length > 0 && (
+                      <div>
+                        <h4 className="text-lg font-semibold text-blue-400 mb-4 flex items-center gap-2">
+                          <Star className="w-5 h-5" />
+                          Servicios Populares
+                        </h4>
+                        <div className="space-y-3">
+                          {stats.appointmentsByService.map((s, idx) => (
+                            <div key={idx} className="group bg-gray-800/20 hover:bg-gray-800/40 p-4 rounded-xl transition-all duration-300 border border-gray-700/20 hover:border-blue-500/30">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <div className="font-medium text-gray-200 group-hover:text-white">
+                                    {s.service}
+                                  </div>
+                                  <div className="text-green-400 text-sm font-medium">
+                                    ${s.revenue}
+                                  </div>
+                                </div>
+                                <span className="text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full text-sm">
+                                  {s.count} citas
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    <BarChart3 className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>Estadísticas no disponibles</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }
