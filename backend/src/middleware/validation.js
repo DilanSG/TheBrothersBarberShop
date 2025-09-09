@@ -418,14 +418,28 @@ export const validateAppointment = [
           }
           
           // Validar horario del barbero
-          const appointmentHour = appointmentDate.getHours();
-          const appointmentMinute = appointmentDate.getMinutes();
+          // Convertir la fecha a la timezone de Colombia para validar correctamente
+          const colombiaTime = new Date(appointmentDate.toLocaleString("en-US", {timeZone: "America/Bogota"}));
+          const appointmentHour = colombiaTime.getHours();
+          const appointmentMinute = colombiaTime.getMinutes();
           const appointmentTime = appointmentHour * 60 + appointmentMinute;
           
           const [startHour, startMinute] = daySchedule.start.split(':').map(Number);
           const [endHour, endMinute] = daySchedule.end.split(':').map(Number);
           const startTime = startHour * 60 + startMinute;
           const endTime = endHour * 60 + endMinute;
+          
+          console.log('DEBUG: Appointment validation (FIXED):', {
+            originalDate: appointmentDate.toISOString(),
+            colombiaTime: colombiaTime.toISOString(),
+            appointmentHour,
+            appointmentMinute,
+            appointmentTime,
+            daySchedule,
+            startTime,
+            endTime,
+            isValid: appointmentTime >= startTime && appointmentTime < endTime
+          });
           
           if (appointmentTime < startTime || appointmentTime >= endTime) {
             throw new Error(`El horario debe estar entre ${daySchedule.start} y ${daySchedule.end}`);

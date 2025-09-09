@@ -500,21 +500,16 @@ export const getBarberAvailability = asyncHandler(async (req, res) => {
       const timeString = currentTime.toLocaleTimeString('es-CO', {
         hour: '2-digit',
         minute: '2-digit',
-        hour12: false
+        hour12: false,
+        timeZone: 'America/Bogota'
       });
       
-      // Usar formato local de Colombia (UTC-5) en lugar de UTC
-      const year = currentTime.getFullYear();
-      const month = String(currentTime.getMonth() + 1).padStart(2, '0');
-      const day = String(currentTime.getDate()).padStart(2, '0');
-      const hours = String(currentTime.getHours()).padStart(2, '0');
-      const minutes = String(currentTime.getMinutes()).padStart(2, '0');
-      
-      const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}:00.000-05:00`;
+      // Asegurar que la fecha esté en el timezone de Colombia
+      const colombiaDate = new Date(currentTime.toLocaleString("en-US", {timeZone: "America/Bogota"}));
       
       availableSlots.push({
         time: timeString,
-        datetime: localDateTime
+        datetime: colombiaDate.toISOString()
       });
     }
 
