@@ -388,13 +388,13 @@ async function runSeed() {
       specialty: 'Cortes clásicos y afeitado con navaja',
       bio: 'Barbero profesional con más de 5 años de experiencia',
       schedule: {
-        monday: { start: '09:00', end: '18:00', isActive: true },
-        tuesday: { start: '09:00', end: '18:00', isActive: true },
-        wednesday: { start: '09:00', end: '18:00', isActive: true },
-        thursday: { start: '09:00', end: '18:00', isActive: true },
-        friday: { start: '09:00', end: '18:00', isActive: true },
-        saturday: { start: '09:00', end: '15:00', isActive: true },
-        sunday: { start: '10:00', end: '14:00', isActive: false }
+        monday: { start: '07:00', end: '19:00', isActive: true },
+        tuesday: { start: '07:00', end: '19:00', isActive: true },
+        wednesday: { start: '07:00', end: '19:00', isActive: true },
+        thursday: { start: '07:00', end: '19:00', isActive: true },
+        friday: { start: '07:00', end: '19:00', isActive: true },
+        saturday: { start: '07:00', end: '19:00', isActive: true },
+        sunday: { start: '07:00', end: '19:00', isActive: false }
       }
     });
 
@@ -402,13 +402,13 @@ async function runSeed() {
       specialty: 'Cortes modernos y diseño de barba',
       bio: 'Especialista en estilos modernos y cortes de moda',
       schedule: {
-        monday: { start: '10:00', end: '19:00', isActive: true },
-        tuesday: { start: '10:00', end: '19:00', isActive: true },
-        wednesday: { start: '10:00', end: '19:00', isActive: true },
-        thursday: { start: '10:00', end: '19:00', isActive: true },
-        friday: { start: '10:00', end: '19:00', isActive: true },
-        saturday: { start: '09:00', end: '16:00', isActive: true },
-        sunday: { start: '10:00', end: '14:00', isActive: false }
+        monday: { start: '07:00', end: '19:00', isActive: true },
+        tuesday: { start: '07:00', end: '19:00', isActive: true },
+        wednesday: { start: '07:00', end: '19:00', isActive: true },
+        thursday: { start: '07:00', end: '19:00', isActive: true },
+        friday: { start: '07:00', end: '19:00', isActive: true },
+        saturday: { start: '07:00', end: '19:00', isActive: true },
+        sunday: { start: '07:00', end: '19:00', isActive: false }
       }
     });
     
