@@ -1,0 +1,83 @@
+openapi: 3.0.0
+info:
+  title: The Brothers Barber Shop API
+  description: API for The Brothers Barber Shop management system
+  version: 1.0.0
+  contact:
+    name: The Brothers Barber Shop
+    email: info@thebrothersbarber.com
+
+servers:
+  - url: https://thebrothersbarbershop.onrender.com/api/v1
+    description: Production server
+  - url: http://localhost:5000/api/v1
+    description: Development server
+
+paths:
+  /:
+    get:
+      summary: Health check
+      description: Returns API status and basic information
+      responses:
+        '200':
+          description: API is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  version:
+                    type: string
+                  timestamp:
+                    type: string
+                  status:
+                    type: string
+
+  /health:
+    get:
+      summary: Detailed health check
+      description: Returns detailed API health information
+      responses:
+        '200':
+          description: Detailed health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+                  time:
+                    type: string
+                  uptime:
+                    type: number
+                  database:
+                    type: object
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        error:
+          type: string
+
+tags:
+  - name: Health
+    description: API health endpoints
+  - name: Authentication
+    description: User authentication
+  - name: Appointments
+    description: Appointment management
+  - name: Services
+    description: Barber services
+  - name: Users
+    description: User management
