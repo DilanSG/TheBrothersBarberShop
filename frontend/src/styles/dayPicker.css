@@ -1,0 +1,104 @@
+/* Estilos personalizados para react-day-picker */
+.rdp-custom {
+  --rdp-cell-size: 35px;
+  --rdp-accent-color: #10b981;
+  --rdp-background-color: #1f2937;
+  --rdp-accent-color-dark: #059669;
+  --rdp-background-color-dark: #111827;
+  font-size: 0.875rem;
+}
+
+.rdp-custom .rdp-months {
+  background-color: #1f2937;
+  border-radius: 0.5rem;
+}
+
+.rdp-custom .rdp-month {
+  background-color: #1f2937;
+  color: white;
+}
+
+.rdp-custom .rdp-head_cell {
+  color: #9ca3af;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.rdp-custom .rdp-button {
+  color: white;
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+}
+
+.rdp-custom .rdp-button:hover {
+  background-color: #374151;
+  color: #10b981;
+}
+
+.rdp-custom .rdp-button_reset {
+  background: none;
+  border: none;
+}
+
+.rdp-custom .rdp-day_selected {
+  background-color: #10b981 !important;
+  color: white !important;
+  font-weight: 600;
+}
+
+.rdp-custom .rdp-day_today {
+  background-color: #374151;
+  color: #10b981;
+  font-weight: bold;
+}
+
+.rdp-custom .rdp-day_disabled {
+  color: #6b7280;
+  opacity: 0.5;
+}
+
+.rdp-custom .rdp-day_disabled:hover {
+  background-color: transparent !important;
+  color: #6b7280 !important;
+}
+
+.rdp-custom .rdp-nav_button {
+  color: #9ca3af;
+  border-radius: 0.375rem;
+  padding: 0.25rem;
+}
+
+.rdp-custom .rdp-nav_button:hover {
+  background-color: #374151;
+  color: #10b981;
+}
+
+.rdp-custom .rdp-caption_label {
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* Animación de entrada para el popup */
+.date-picker-enter {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.date-picker-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms, transform 200ms;
+}
+
+.date-picker-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.date-picker-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 200ms, transform 200ms;
+}

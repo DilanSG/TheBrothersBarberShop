@@ -12,8 +12,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { PageContainer } from '../../components/layout/PageContainer';
 import GradientButton from '../../components/ui/GradientButton';
 import GradientText from '../../components/ui/GradientText';
-import InventorySnapshot from '../../components/InventorySnapshot';
-import SavedInventoriesModal from '../../components/SavedInventoriesModal';
+import InventorySnapshot from '../../components/inventory/InventorySnapshot';
+import SavedInventoriesModal from '../../components/inventory/SavedInventoriesModal';
 
 /**
  * Componente moderno de gestión de inventario para The Brothers Barber Shop

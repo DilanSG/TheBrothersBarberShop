@@ -6,7 +6,12 @@
     "dev": "vite --mode development",
     "dev:network": "vite --mode network --host",
     "build": "vite build && cp dist/index.html dist/404.html || copy dist\\index.html dist\\404.html",
-    "preview": "vite preview"
+    "build:analyze": "vite build --mode analyze",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .js,.jsx --fix",
+    "format": "prettier --write src/**/*.{js,jsx,css}",
+    "clean": "rm -rf dist || rmdir /s dist",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "date-fns": "^3.6.0",

@@ -503,9 +503,18 @@ export const getBarberAvailability = asyncHandler(async (req, res) => {
         hour12: false
       });
       
+      // Usar formato local de Colombia (UTC-5) en lugar de UTC
+      const year = currentTime.getFullYear();
+      const month = String(currentTime.getMonth() + 1).padStart(2, '0');
+      const day = String(currentTime.getDate()).padStart(2, '0');
+      const hours = String(currentTime.getHours()).padStart(2, '0');
+      const minutes = String(currentTime.getMinutes()).padStart(2, '0');
+      
+      const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}:00.000-05:00`;
+      
       availableSlots.push({
         time: timeString,
-        datetime: currentTime.toISOString()
+        datetime: localDateTime
       });
     }
 

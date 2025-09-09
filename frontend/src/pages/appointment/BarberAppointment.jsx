@@ -7,6 +7,24 @@ import { constructFrom, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar, Clock, User, Scissors, CheckCircle, XCircle, AlertTriangle, Eye, Trash2, Check, X } from 'lucide-react';
 
+// Helper function para manejar fechas con timezone correctamente
+const formatAppointmentDate = (dateStr, formatStr) => {
+  if (dateStr.includes('T') && dateStr.includes('-05:00')) {
+    // Extraer la fecha y hora local sin conversión de timezone
+    const [datePart, timePart] = dateStr.split('T');
+    
+    if (formatStr.includes('HH:mm')) {
+      // Para mostrar hora
+      return timePart.split('.')[0].substring(0, 5); // Obtener solo HH:mm
+    } else {
+      // Para mostrar fecha
+      return format(new Date(datePart + 'T00:00:00'), formatStr, { locale: es });
+    }
+  }
+  // Fallback para formato anterior
+  return format(new Date(dateStr), formatStr, { locale: es });
+};
+
 const BarberAppointment = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +83,31 @@ const BarberAppointment = () => {
       return;
     }
 
+    // Confirmaciones específicas para diferentes acciones
+    let confirmMessage = '';
+    let successMessage = '';
+    
+    switch (newStatus) {
+      case 'confirmed':
+        confirmMessage = '¿Estás seguro de que deseas confirmar esta cita?';
+        successMessage = 'Cita confirmada exitosamente';
+        break;
+      case 'completed':
+        confirmMessage = '¿Estás seguro de que deseas marcar esta cita como completada?\n\nEsto indicará que el servicio fue realizado exitosamente.';
+        successMessage = '¡Cita completada exitosamente! El servicio ha sido registrado.';
+        break;
+      case 'no-show':
+        confirmMessage = '¿Estás seguro de que el cliente no se presentó a la cita?';
+        successMessage = 'Cita marcada como "No asistió"';
+        break;
+      default:
+        throw new Error(`Estado no válido: ${newStatus}`);
+    }
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
     try {
       setProcessingAppointments(prev => new Set(prev).add(appointmentId));
       
@@ -86,7 +129,7 @@ const BarberAppointment = () => {
       }
       
       if (response.success) {
-        showSuccess(`Cita ${newStatus === 'confirmed' ? 'confirmada' : 'actualizada'} exitosamente`);
+        showSuccess(successMessage);
         fetchBarberAppointments(barberId);
       }
     } catch (error) {
@@ -196,14 +239,14 @@ const BarberAppointment = () => {
               <Calendar className="w-3 h-3 text-blue-400" />
               <span className="text-gray-400">Fecha:</span>
               <span className="bg-gradient-to-r from-blue-300 to-blue-100 bg-clip-text text-transparent font-medium">
-                {format(new Date(appointment.date), "EEEE d 'de' MMM", { locale: es })}
+                {formatAppointmentDate(appointment.date, "EEEE d 'de' MMM")}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="w-3 h-3 text-green-400" />
               <span className="text-gray-400">Hora:</span>
               <span className="bg-gradient-to-r from-green-300 to-green-100 bg-clip-text text-transparent font-medium">
-                {format(new Date(appointment.date), "HH:mm")}
+                {formatAppointmentDate(appointment.date, "HH:mm")}
               </span>
             </div>
           </div>
@@ -244,13 +287,48 @@ const BarberAppointment = () => {
             </>
           )}
           {appointment.status === 'confirmed' && (
-            <button
-              onClick={() => handleOpenCancelModal(appointment._id)}
-              className="p-1.5 bg-orange-600/20 text-orange-400 rounded hover:bg-orange-600/30 transition-all duration-200 border border-orange-500/50"
-              title="Cancelar con motivo"
-            >
-              <X className="w-3 h-3" />
-            </button>
+            <>
+              <button
+                onClick={() => handleStatusChange(appointment._id, 'completed')}
+                disabled={processingAppointments.has(appointment._id)}
+                className={`p-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                  processingAppointments.has(appointment._id)
+                    ? 'bg-gray-600/20 text-gray-500 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-blue-400 hover:from-blue-600/30 hover:to-indigo-600/30 border border-blue-500/50 hover:border-blue-400/70 shadow-sm hover:shadow-blue-500/25'
+                }`}
+                title="Completar cita - Marcar servicio como realizado"
+              >
+                {processingAppointments.has(appointment._id) ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b border-current"></div>
+                ) : (
+                  <CheckCircle className="w-4 h-4" />
+                )}
+                <span className="hidden sm:inline">Completar</span>
+              </button>
+              <button
+                onClick={() => handleStatusChange(appointment._id, 'no-show')}
+                disabled={processingAppointments.has(appointment._id)}
+                className={`p-1.5 rounded text-xs transition-all duration-200 flex items-center gap-1 ${
+                  processingAppointments.has(appointment._id)
+                    ? 'bg-gray-600/20 text-gray-500 cursor-not-allowed'
+                    : 'bg-yellow-600/20 text-yellow-400 hover:bg-yellow-600/30 border border-yellow-500/50'
+                }`}
+                title="Marcar como no asistió"
+              >
+                {processingAppointments.has(appointment._id) ? (
+                  <div className="animate-spin rounded-full h-3 w-3 border-b border-current"></div>
+                ) : (
+                  <AlertTriangle className="w-3 h-3" />
+                )}
+              </button>
+              <button
+                onClick={() => handleOpenCancelModal(appointment._id)}
+                className="p-1.5 bg-orange-600/20 text-orange-400 rounded hover:bg-orange-600/30 transition-all duration-200 border border-orange-500/50"
+                title="Cancelar con motivo"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </>
           )}
           {appointment.status === 'cancelled' && appointment.cancellationReason && appointment.cancelledBy !== 'barber' && (
             <button

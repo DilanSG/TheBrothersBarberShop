@@ -13,7 +13,7 @@ export { default as Register } from './auth/Register';
 // Páginas de barbero
 export { default as Barbers } from './barber/Barbers';
 export { default as BarberProfile } from './barber/BarberProfile';
-export { default as BarberProfileEdit } from './barber/BarberProfileEditer';
+export { default as BarberProfileEdit } from './barber/BarberProfileEdit';
 
 // Páginas de administrador
 export { default as UserRoleManager } from './admin/UserRoleManager';
