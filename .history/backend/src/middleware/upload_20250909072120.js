@@ -4,19 +4,6 @@ import { cloudinary } from '../config/cloudinary.js';
 import { AppError } from '../utils/errors.js';
 import fs from 'fs';
 
-// Función para asegurar que el directorio existe
-const ensureUploadDirectory = () => {
-  if (process.env.NODE_ENV !== 'production') {
-    const uploadDir = 'uploads/temp/';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-  }
-};
-
-// Asegurar que el directorio existe al importar el módulo
-ensureUploadDirectory();
-
 // Configuración de multer para subida temporal
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
