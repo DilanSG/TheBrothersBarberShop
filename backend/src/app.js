@@ -35,7 +35,7 @@ import routes from './routes/index.js';
 
 // Obtener __dirname en ES modules
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__dirname);
+const __dirname = path.dirname(__filename);
 
 // Validar variables de entorno
 validateEnv();
