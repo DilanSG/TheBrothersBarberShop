@@ -4,7 +4,9 @@ import { connectDB } from './config/database.js';
 import { logger } from './utils/logger.js';
 import mongoose from 'mongoose';
 
-console.log('Starting server...');
+console.log('🚀 Starting server...');
+console.log('📍 Port:', process.env.PORT || 5000);
+console.log('🌍 Environment:', process.env.NODE_ENV || 'development');
 
 const startServer = async () => {
   console.log('🚀 Iniciando servidor...');
@@ -12,9 +14,10 @@ const startServer = async () => {
   console.log('🌍 Entorno:', config.app.nodeEnv);
   
   try {
-    // Iniciar el servidor PRIMERO
+    // Iniciar el servidor PRIMERO - esto es crítico para Render
     const server = app.listen(config.app.port, '0.0.0.0', () => {
       console.log(`✅ Servidor iniciado exitosamente en puerto ${config.app.port}`);
+      console.log(`📡 Servidor escuchando en http://0.0.0.0:${config.app.port}`);
       logger.info(`
 🚀 Servidor iniciado en modo ${config.app.nodeEnv}
 📡 API escuchando en:
