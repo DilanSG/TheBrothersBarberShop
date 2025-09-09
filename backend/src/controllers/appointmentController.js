@@ -500,12 +500,16 @@ export const getBarberAvailability = asyncHandler(async (req, res) => {
       const timeString = currentTime.toLocaleTimeString('es-CO', {
         hour: '2-digit',
         minute: '2-digit',
-        hour12: false
+        hour12: false,
+        timeZone: 'America/Bogota'
       });
+      
+      // Asegurar que la fecha esté en el timezone de Colombia
+      const colombiaDate = new Date(currentTime.toLocaleString("en-US", {timeZone: "America/Bogota"}));
       
       availableSlots.push({
         time: timeString,
-        datetime: currentTime.toISOString()
+        datetime: colombiaDate.toISOString()
       });
     }
 
