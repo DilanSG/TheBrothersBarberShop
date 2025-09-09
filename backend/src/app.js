@@ -129,6 +129,16 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // Rutas de la API
 app.use(`/api/${config.app.apiVersion}`, routes);
 
+// Ruta raíz
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'The Brothers Barber Shop API is running!',
+    version: config.app.apiVersion,
+    timestamp: new Date().toISOString(),
+    status: 'healthy'
+  });
+});
+
 // Ruta de estado de salud
 app.get('/health', (req, res) => {
   res.status(200).json({
