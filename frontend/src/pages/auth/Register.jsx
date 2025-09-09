@@ -4,6 +4,7 @@ import { authService } from '../../services/authService';
 import { useNotification } from '../../contexts/NotificationContext';
 import { PageContainer } from '../../components/layout/PageContainer';
 import GradientButton from '../../components/ui/GradientButton';
+import { LOGOS } from '../../utils/assets';
 
 function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
@@ -141,13 +142,13 @@ function Register() {
               <div className="w-32 h-32 mx-auto mb-6 relative group">
                 <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 via-blue-600/20 to-red-600/20 rounded-full blur-xl transform group-hover:scale-110 transition-transform duration-500"></div>
                 <img
-                  src="/images/logo 1.png"
+                  src={LOGOS.main()}
                   alt="The Brothers Barber Shop"
                   className="w-full h-full object-contain relative z-10 transform group-hover:scale-105 transition-transform duration-500"
                   style={{ filter: 'drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))' }}
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = "/images/logo 4.png";
+                    e.target.src = LOGOS.fallback();
                   }}
                 />
               </div>

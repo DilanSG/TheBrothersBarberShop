@@ -5,6 +5,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 import { api } from '../../services/api';
 import GradientButton from '../ui/GradientButton';
 import {PageContainer} from '../layout/PageContainer';
+import { DEFAULT_IMAGES } from '../../utils/assets';
 import { 
   User, 
   Mail, 
@@ -353,7 +354,7 @@ const UserProfileEdit = () => {
                       <div className="relative group">
                         <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-blue-900 border-2 border-red-500/30 shadow-xl hover:border-red-500/60 transition-all duration-300">
                           <img
-                            src={previewImage || formData.profilePicture || '/images/default-avatar.png'}
+                            src={previewImage || formData.profilePicture || DEFAULT_IMAGES.avatar()}
                             alt="Foto de perfil"
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                           />

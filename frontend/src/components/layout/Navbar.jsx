@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { LOGOS } from "../../utils/assets";
 
 export const NAV_HEIGHT = 'h-14 sm:h-16';
 export const NAV_HEIGHT_CLASS = 'pt-20 sm:pt-24';
@@ -233,7 +234,7 @@ const Navbar = () => {
           <Link to="/" className="flex items-center space-x-3 group">
             {!logoError ? (
               <img
-                src="/images/logo 5.1.png"
+                src={LOGOS.navbar()}
                 alt="The Brothers Barber Shop"
                 className="h-12 w-auto transform group-hover:scale-105 transition-transform duration-200"
                 onError={() => setLogoError(true)}

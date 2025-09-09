@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { api, barberService, serviceService } from '../../services/api';
 import { useNotification } from '../../contexts/NotificationContext';
 import GradientButton from '../../components/ui/GradientButton';
+import { DEFAULT_IMAGES } from '../../utils/assets';
 import { 
   User, 
   Camera, 
@@ -437,7 +438,7 @@ const BarberProfileEdit = () => {
                     <div className="relative group">
                       <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-blue-900 border-2 border-red-500/30 shadow-xl hover:border-red-500/60 transition-all duration-300">
                         <img
-                          src={previewImage || user?.profilePicture || '/images/default-avatar.png'}
+                          src={previewImage || user?.profilePicture || DEFAULT_IMAGES.avatar()}
                           alt="Foto de perfil"
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                         />
