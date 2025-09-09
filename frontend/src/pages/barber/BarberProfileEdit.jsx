@@ -32,13 +32,13 @@ const daysInSpanish = {
 };
 
 const defaultSchedule = {
-  monday: { start: '09:00', end: '17:00', available: true },
-  tuesday: { start: '09:00', end: '17:00', available: true },
-  wednesday: { start: '09:00', end: '17:00', available: true },
-  thursday: { start: '09:00', end: '17:00', available: true },
-  friday: { start: '09:00', end: '17:00', available: true },
-  saturday: { start: '09:00', end: '15:00', available: true },
-  sunday: { start: '09:00', end: '15:00', available: false }
+  monday: { start: '07:00', end: '19:00', available: true },
+  tuesday: { start: '07:00', end: '19:00', available: true },
+  wednesday: { start: '07:00', end: '19:00', available: true },
+  thursday: { start: '07:00', end: '19:00', available: true },
+  friday: { start: '07:00', end: '19:00', available: true },
+  saturday: { start: '07:00', end: '19:00', available: true },
+  sunday: { start: '07:00', end: '19:00', available: false }
 };
 
 const BarberProfileEdit = () => {
@@ -787,6 +787,7 @@ const BarberProfileEdit = () => {
                             <div className="flex items-center gap-3 flex-1">
                               <input
                                 type="time"
+                                step="1800"
                                 value={daySchedule.start}
                                 onChange={(e) => handleScheduleChange(day, 'start', e.target.value)}
                                 className="px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
@@ -794,6 +795,7 @@ const BarberProfileEdit = () => {
                               <span className="text-gray-300 font-medium text-sm">a</span>
                               <input
                                 type="time"
+                                step="1800"
                                 value={daySchedule.end}
                                 onChange={(e) => handleScheduleChange(day, 'end', e.target.value)}
                                 className="px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
