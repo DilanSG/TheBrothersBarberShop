@@ -6,7 +6,7 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon --exec \"dotenv -e .env -- node\" src/index.js",
-    "start": "node src/fixed-server.js",
+    "start": "node src/index.js",
     "start:debug": "node src/step-debug-index.js",
     "start:minimal": "node src/minimal-server.js",
     "start:full": "dotenv -e .env -- node src/index.js",
