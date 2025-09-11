@@ -15,7 +15,7 @@ import YAML from 'yamljs';
 import swaggerUi from 'swagger-ui-express';
 import mongoose from 'mongoose';
 
-// Configuraciones
+// Configuraciones - Updated 2025-09-11: Frontend color scheme updated to blue
 import { config, validateEnv } from './config/index.js';
 import { corsOptions } from './config/cors.js';
 import { cloudinaryConfig } from './config/cloudinary.js';
