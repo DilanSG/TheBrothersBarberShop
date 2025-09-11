@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import {PageContainer} from '../components/layout/PageContainer';
+import GradientButton from '../components/ui/GradientButton';
 import { User, Mail, Phone, Calendar, Edit3 } from 'lucide-react';
 
 function Profile() {
@@ -43,28 +44,30 @@ function Profile() {
         backgroundPosition: '20px 0'
       }}></div>
 
-      <div className="relative z-10 max-w-4xl mx-auto space-y-8">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         {/* Header con degradado sutil */}
         <div className="relative">
-          <div className="relative bg-gray-800/30 backdrop-blur-xl rounded-2xl p-8 border border-white/10 shadow-xl shadow-blue-500/10">
-            <div className="flex items-center space-x-6">
+          <div className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-4 sm:p-6 lg:p-8 border border-white/10 shadow-xl shadow-blue-500/20 overflow-hidden">
+            {/* Efecto de brillo */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-2xl"></div>
+            <div className="relative flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
               {/* Foto de perfil */}
               <div className="relative">
                 {user.profilePicture ? (
                   <img
                     src={user.profilePicture}
                     alt="Foto de perfil"
-                    className="w-28 h-28 rounded-full object-cover ring-4 ring-blue-500/30 shadow-lg shadow-blue-500/20"
+                    className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full object-cover ring-4 ring-blue-500/30 shadow-lg shadow-blue-500/20"
                   />
                 ) : (
-                  <div className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center text-2xl font-bold ring-4 ring-blue-500/30 shadow-lg shadow-blue-500/20">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center text-lg sm:text-xl lg:text-2xl font-bold ring-4 ring-blue-500/30 shadow-lg shadow-blue-500/20">
                     <span className="bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
                       {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}
                     </span>
                   </div>
                 )}
                 {/* Badge de rol */}
-                <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs px-3 py-1 rounded-full shadow-lg">
+                <div className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs px-2 py-1 sm:px-3 sm:py-1 rounded-full shadow-lg">
                   <span className="bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent font-medium">
                     {user.role === 'admin' ? 'Admin' : user.role === 'barber' ? 'Barbero' : 'Cliente'}
                   </span>
@@ -72,87 +75,100 @@ function Profile() {
               </div>
               
               {/* Información básica */}
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent mb-2">
+              <div className="flex-1 text-center sm:text-left">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent mb-2">
                   {user.name || 'Sin nombre'}
                 </h1>
-                <p className="text-lg bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                <p className="text-sm sm:text-base lg:text-lg bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent break-words">
                   {user.email}
                 </p>
               </div>
 
               {/* Botón de editar mejorado */}
-              <Link
-                to="/profile-edit"
-                className="group relative inline-flex items-center px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 border border-blue-500/30 transition-all duration-300 text-white space-x-2 shadow-lg hover:shadow-blue-500/20 hover:scale-105"
-              >
-                <Edit3 className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
-                <span className="font-medium bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
-                  Editar Perfil
-                </span>
-              </Link>
+              <div className="w-full sm:w-auto">
+                <Link to="/profile-edit" className="block w-full sm:w-auto">
+                  <GradientButton
+                    variant="primary"
+                    size="md"
+                    className="shadow-xl shadow-blue-500/20 w-full sm:w-auto"
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <Edit3 size={16} sm:size={18} />
+                      <span className="text-sm sm:text-base">Editar Perfil</span>
+                    </div>
+                  </GradientButton>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Detalles del perfil con grid mejorado */}
-        <div className="grid gap-8 md:grid-cols-2">
+        <div className="grid gap-4 sm:gap-6 lg:gap-8 grid-cols-1 lg:grid-cols-2">
           {/* Información de contacto */}
-          <div className="group bg-gray-800/20 backdrop-blur-xl rounded-2xl p-8 border border-white/10 shadow-xl hover:shadow-blue-500/10 transition-all duration-300 hover:border-blue-500/20">
-            <h2 className="text-xl font-bold mb-6 flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20">
-                <Mail className="w-6 h-6 text-blue-400" />
-              </div>
-              <span className="bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
-                Información de Contacto
-              </span>
-            </h2>
-            <div className="space-y-6">
-              <div className="p-4 rounded-xl bg-gray-700/20 border border-white/5">
-                <p className="text-sm font-medium mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  Correo electrónico
-                </p>
-                <p className="text-lg bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent break-all">
-                  {user.email}
-                </p>
-              </div>
-              <div className="p-4 rounded-xl bg-gray-700/20 border border-white/5">
-                <p className="text-sm font-medium mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  Teléfono
-                </p>
-                <p className="text-lg bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  {user.phone || 'No especificado'}
-                </p>
+          <div className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-4 sm:p-6 lg:p-8 border border-white/10 shadow-xl shadow-blue-500/20 hover:border-white/40 transition-all duration-300 overflow-hidden">
+            {/* Efecto de brillo */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-2xl"></div>
+            <div className="relative">
+              <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20">
+                  <Mail className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
+                </div>
+                <span className="bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                  Información de Contacto
+                </span>
+              </h2>
+              <div className="space-y-4 sm:space-y-6">
+                <div className="p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-xl shadow-blue-500/20">
+                  <p className="text-xs sm:text-sm font-medium mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    Correo electrónico
+                  </p>
+                  <p className="text-sm sm:text-base lg:text-lg bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent break-all">
+                    {user.email}
+                  </p>
+                </div>
+                <div className="p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-xl shadow-blue-500/20">
+                  <p className="text-xs sm:text-sm font-medium mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    Teléfono
+                  </p>
+                  <p className="text-sm sm:text-base lg:text-lg bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                    {user.phone || 'No especificado'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Información personal */}
-          <div className="group bg-gray-800/20 backdrop-blur-xl rounded-2xl p-8 border border-white/10 shadow-xl hover:shadow-purple-500/10 transition-all duration-300 hover:border-purple-500/20">
-            <h2 className="text-xl font-bold mb-6 flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-blue-500/20">
-                <User className="w-6 h-6 text-purple-400" />
-              </div>
-              <span className="bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
-                Información Personal
-              </span>
-            </h2>
-            <div className="space-y-6">
-              <div className="p-4 rounded-xl bg-gray-700/20 border border-white/5">
-                <p className="text-sm font-medium mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                  Nombre completo
-                </p>
-                <p className="text-lg bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  {user.name || 'No especificado'}
-                </p>
-              </div>
-              <div className="p-4 rounded-xl bg-gray-700/20 border border-white/5">
-                <p className="text-sm font-medium mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                  Fecha de nacimiento
-                </p>
-                <p className="text-lg bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  {formatDate(user.birthdate)}
-                </p>
+          <div className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-4 sm:p-6 lg:p-8 border border-white/10 shadow-xl shadow-blue-500/20 hover:border-white/40 transition-all duration-300 overflow-hidden">
+            {/* Efecto de brillo */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-2xl"></div>
+            <div className="relative">
+              <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-blue-500/20">
+                  <User className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" />
+                </div>
+                <span className="bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
+                  Información Personal
+                </span>
+              </h2>
+              <div className="space-y-4 sm:space-y-6">
+                <div className="p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-xl shadow-blue-500/20">
+                  <p className="text-xs sm:text-sm font-medium mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                    Nombre completo
+                  </p>
+                  <p className="text-sm sm:text-base lg:text-lg bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                    {user.name || 'No especificado'}
+                  </p>
+                </div>
+                <div className="p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-xl shadow-blue-500/20">
+                  <p className="text-xs sm:text-sm font-medium mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                    Fecha de nacimiento
+                  </p>
+                  <p className="text-sm sm:text-base lg:text-lg bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                    {formatDate(user.birthdate)}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

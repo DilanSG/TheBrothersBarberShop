@@ -8,7 +8,8 @@ import {
   assignServiceToBarber,
   removeServiceFromBarber,
   getServicesByBarber,
-  getServiceStats
+  getServiceStats,
+  toggleShowInHome
 } from '../controllers/serviceController.js';
 import { protect, adminAuth } from '../middleware/auth.js';
 import { validateService, validateIdParam } from '../middleware/validation.js';
@@ -71,5 +72,14 @@ router.delete('/:serviceId/barbers/:barberId', protect, adminAuth, validateIdPar
 
 // Ruta de estadísticas
 router.get('/stats/overview', protect, adminAuth, getServiceStats);
+
+// Ruta para actualizar showInHome
+router.patch('/:id/show-in-home', 
+  protect, 
+  adminAuth, 
+  validateIdParam,
+  invalidateCacheMiddleware(CACHE_PATTERNS),
+  toggleShowInHome
+);
 
 export default router;

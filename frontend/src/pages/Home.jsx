@@ -1,10 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import GradientButton from '../components/ui/GradientButton';
+import GradientText from '../components/ui/GradientText';
 import { PageContainer } from '../components/layout/PageContainer';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { LOGOS, DEFAULT_IMAGES } from '../utils/assets';                    {/* Background con efectos mejorados y mayor transparencia */}
+import { LOGOS, DEFAULT_IMAGES } from '../utils/assets';
+import { 
+  Scissors, 
+  Clock, 
+  MapPin, 
+  Phone, 
+  Star, 
+  ArrowRight,
+  Calendar,
+  Check,
+  Users,
+  Award,
+  Heart,
+  Settings,
+  User
+} from 'lucide-react';                    {/* Background con efectos mejorados y mayor transparencia */}
                     <div className="absolute inset-0 bg-gradient-to-b from-gray-900/30 via-black/20 to-gray-900/30">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-red-500/5 via-transparent to-blue-500/5"></div>
                         <div className="absolute inset-0 opacity-10" style={{
@@ -20,7 +36,7 @@ import { LOGOS, DEFAULT_IMAGES } from '../utils/assets';                    {/* 
                         }}></div>
                     </div>
 
-// Componente de Tarjeta de Barbero
+// Componente de Tarjeta de Barbero con glassmorphism unificado
 const BarberCard = ({ barber }) => {
   const handleImageError = (e) => {
     e.target.onerror = null; // Previene loop infinito
@@ -43,49 +59,49 @@ const BarberCard = ({ barber }) => {
   const userData = barber.user || {};
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl transform hover:scale-105 transition-all duration-300 bg-gradient-to-br from-gray-800 via-gray-900 to-blue-900">
-      <div className="aspect-[4/5] w-full relative">
-        {(userData.photo?.url || barber.photo?.url) ? (
+    <div className="group relative backdrop-blur-sm border border-white/10 rounded-2xl transition-all duration-300 overflow-hidden hover:scale-[1.002] hover:-translate-y-0.5 bg-white/5 shadow-xl shadow-blue-500/20 hover:border-white/20">
+      {/* Efecto de brillo */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-2xl"></div>
+      
+      <div className="relative aspect-[4/5] w-full">
+        {(userData.profilePicture || barber.photo?.url) ? (
           <>
             <img 
-              src={userData.photo?.url || barber.photo?.url}
+              src={userData.profilePicture || barber.photo?.url}
               alt={userData.name || 'Barbero'}
-              className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+              className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity rounded-t-2xl"
               onError={handleImageError}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent rounded-t-2xl"></div>
           </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 via-blue-900/50 to-gray-900">
-            <div className="p-4 rounded-full bg-blue-600/10 backdrop-blur">
-              <svg className="w-20 h-20 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                  d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-600/10 to-purple-600/10 rounded-t-2xl">
+            <div className="p-4 rounded-full bg-blue-600/10 backdrop-blur-sm border border-blue-500/20 shadow-lg shadow-blue-500/20">
+              <Users className="w-16 h-16 text-blue-400 drop-shadow-[0_1px_2px_rgba(96,165,250,0.3)]" />
             </div>
           </div>
         )}
       </div>
-      <div className="absolute inset-0 flex flex-col justify-end p-6">
-        <div className="transform transition-transform group-hover:translate-y-0 translate-y-4">
-          <div className="space-y-3">
-            <h3 className="text-2xl font-bold text-white group-hover:text-blue-400 transition-colors">
+      
+      <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-6">
+        <div className="transform transition-transform group-hover:translate-y-0 translate-y-2">
+          <div className="space-y-2 sm:space-y-3">
+            <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-white group-hover:text-blue-400 transition-colors">
               {userData.name || barber.name || 'Nombre no disponible'}
             </h3>
-            <p className="text-gray-300 text-sm">
+            <p className="text-gray-300 text-xs sm:text-sm">
               {barber.specialty || 'Barbero Profesional'}
             </p>
-            <div className="flex flex-wrap gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 delay-100">
+            <div className="flex flex-wrap gap-1 sm:gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 delay-100">
               {barber.experience && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-900/50 text-blue-200 border border-blue-700 backdrop-blur-sm">
-                  {barber.experience} de experiencia
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30 backdrop-blur-sm shadow-sm shadow-blue-500/20">
+                  <Award className="w-3 h-3 mr-1 drop-shadow-[0_1px_2px_rgba(96,165,250,0.3)]" />
+                  {barber.experience}
                 </span>
               )}
               {formatRating(barber?.rating) && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-900/50 text-blue-200 border border-blue-700 backdrop-blur-sm">
-                  <svg className="w-4 h-4 mr-1 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                  </svg>
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 backdrop-blur-sm shadow-sm shadow-yellow-500/20">
+                  <Star className="w-3 h-3 mr-1 text-yellow-400 drop-shadow-[0_1px_2px_rgba(251,191,36,0.3)]" fill="currentColor" />
                   {formatRating(barber.rating)}
                 </span>
               )}
@@ -104,6 +120,14 @@ function Home() {
     const [error, setError] = useState(null);
     const [dataLoaded, setDataLoaded] = useState(false);
     const { user, accessToken } = useAuth();
+    const navigate = useNavigate();
+
+    const handleProfileNavigation = () => {
+        if (!user) return;
+        
+        // Usar la ruta unificada que decide automáticamente el componente según el rol
+        navigate('/profile-edit');
+    };
 
     useEffect(() => {
         // Evitar múltiples llamadas
@@ -141,8 +165,9 @@ function Home() {
 
                 console.log('Barberos activos filtrados:', activeBarbers);
 
-                // Guardar servicios (máximo 6 servicios)
-                setServices(servicesData.slice(0, 6));
+                // Filtrar servicios que están marcados para mostrar en Home (máximo 3)
+                const homeServices = servicesData.filter(service => service.showInHome === true).slice(0, 3);
+                setServices(homeServices);
 
                 // Guardar barberos filtrados
                 setBarbers(activeBarbers);
@@ -164,28 +189,12 @@ function Home() {
             {/* Hero Section - Solo para usuarios no logueados */}
             {!user && (
                 <div className="relative min-h-screen flex flex-col">
-                    {/* Background con efectos mejorados y mayor transparencia */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-gray-900/30 via-black/20 to-gray-900/30">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-red-500/5 via-transparent to-blue-500/5"></div>
-                        <div className="absolute inset-0 opacity-10" style={{
-                            backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239BA9B4' fill-opacity='0.05'%3E%3Cpath d='M40 44v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V10h-2v4h-4v2h4v4h2v-4h4v-2h-4zM20 44v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM20 14v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-                        }}></div>
-                        
-                        {/* Degradado sutil en los bordes - 2px hacia adentro */}
-                        <div className="absolute inset-0" style={{
-                            background: `
-                                linear-gradient(to right, rgba(17, 24, 39, 0.3) 0px, transparent 2px, transparent calc(100% - 2px), rgba(17, 24, 39, 0.3) 100%),
-                                linear-gradient(to bottom, rgba(17, 24, 39, 0.3) 0px, transparent 2px, transparent calc(100% - 2px), rgba(17, 24, 39, 0.3) 100%)
-                            `
-                        }}></div>
-                    </div>
-
                     {/* Contenido principal del hero */}
-                    <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-12">
-                        <div className="text-center max-w-6xl mx-auto">
+                    <div className="relative z-10 flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
+                        <div className="text-center max-w-4xl lg:max-w-6xl mx-auto">
                             {/* Logo y título principal */}
-                            <div className="mb-12">
-                                <div className="relative mx-auto w-56 sm:w-64 md:w-72 lg:w-80 mb-8 transform hover:scale-105 transition-all duration-500">
+                            <div className="mb-8 sm:mb-12">
+                                <div className="relative mx-auto w-48 sm:w-56 md:w-64 lg:w-72 xl:w-80 mb-6 sm:mb-8 transform hover:scale-105 transition-all duration-500">
                                     <img
                                         src={LOGOS.main()}
                                         alt="The Brothers Barber Shop"
@@ -196,105 +205,94 @@ function Home() {
                                         }}
                                     />
                                     <div 
-                                        className="hidden text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-center tracking-tight"
+                                        className="hidden text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-center tracking-tight"
                                         style={{ textShadow: '0 0 30px rgba(59, 130, 246, 0.6)' }}
                                     >
-                                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-200 to-blue-400">
-                                            The Brothers
-                                        </span>
+                                        <GradientText>The Brothers</GradientText>
                                     </div>
                                 </div>
 
-                                {/* Eslogan principal */}
-                                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-6 leading-tight">
-                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-white to-blue-400">
-                                        Donde el estilo se encuentra
-                                    </span>
-                                    <br />
-                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-white to-red-400">
-                                        con la tradición
-                                    </span>
-                                </h1>
+                                {/* Eslogan principal con GradientText */}
+                                <div className="space-y-2 sm:space-y-4">
+                                    <GradientText className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold leading-tight">
+                                        Donde el estilo se encuentra con la tradición
+                                    </GradientText>
+                                </div>
                             </div>
 
                             {/* Descripción y características */}
-                            <div className="mb-12 space-y-8">
-                                <p className="text-xl sm:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+                            <div className="mb-8 sm:mb-12 space-y-6 sm:space-y-8">
+                                <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 max-w-2xl lg:max-w-3xl mx-auto leading-relaxed px-4">
                                     Experimenta un corte de pelo que define tu personalidad.
                                     <span className="block mt-2 text-blue-400 font-medium">
                                         Tradición, calidad y estilo en cada corte.
                                     </span>
                                 </p>
 
-                                {/* Características destacadas */}
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-                                    <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/30 hover:border-red-500/30 transition-all duration-300">
-                                        <div className="mb-4 mx-auto w-12 h-12 bg-gradient-to-r from-red-600/20 to-blue-600/20 rounded-full flex items-center justify-center">
-                                            <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
+                                {/* Características destacadas con glassmorphism */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 max-w-3xl lg:max-w-4xl mx-auto px-4">
+                                    <div className="group relative backdrop-blur-sm border border-white/10 rounded-xl p-4 sm:p-6 transition-all duration-300 bg-white/5 shadow-xl shadow-blue-500/20 hover:border-white/20 hover:scale-105">
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-xl"></div>
+                                        <div className="relative">
+                                            <div className="mb-3 sm:mb-4 mx-auto w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-red-600/20 to-blue-600/20 rounded-xl border border-red-500/20 flex items-center justify-center shadow-lg shadow-red-500/20">
+                                                <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-red-400 drop-shadow-[0_1px_2px_rgba(239,68,68,0.3)]" />
+                                            </div>
+                                            <h3 className="font-bold text-white text-sm sm:text-base mb-1 sm:mb-2">Reservas Online</h3>
+                                            <p className="text-gray-400 text-xs sm:text-sm">Agenda tu cita 24/7</p>
                                         </div>
-                                        <h3 className="font-bold text-white mb-2">Reservas Online</h3>
-                                        <p className="text-gray-400 text-sm">Agenda tu cita 24/7</p>
                                     </div>
 
-                                    <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/30 hover:border-blue-500/30 transition-all duration-300">
-                                        <div className="mb-4 mx-auto w-12 h-12 bg-gradient-to-r from-blue-600/20 to-red-600/20 rounded-full flex items-center justify-center">
-                                            <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                                            </svg>
+                                    <div className="group relative backdrop-blur-sm border border-white/10 rounded-xl p-4 sm:p-6 transition-all duration-300 bg-white/5 shadow-xl shadow-blue-500/20 hover:border-white/20 hover:scale-105">
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-xl"></div>
+                                        <div className="relative">
+                                            <div className="mb-3 sm:mb-4 mx-auto w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl border border-blue-500/20 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                                <Scissors className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400 drop-shadow-[0_1px_2px_rgba(96,165,250,0.3)]" />
+                                            </div>
+                                            <h3 className="font-bold text-white text-sm sm:text-base mb-1 sm:mb-2">Barberos Expertos</h3>
+                                            <p className="text-gray-400 text-xs sm:text-sm">Profesionales certificados</p>
                                         </div>
-                                        <h3 className="font-bold text-white mb-2">Barberos Expertos</h3>
-                                        <p className="text-gray-400 text-sm">Profesionales certificados</p>
                                     </div>
 
-                                    <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/30 hover:border-red-500/30 transition-all duration-300">
-                                        <div className="mb-4 mx-auto w-12 h-12 bg-gradient-to-r from-red-600/20 to-blue-600/20 rounded-full flex items-center justify-center">
-                                            <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                            </svg>
+                                    <div className="group relative backdrop-blur-sm border border-white/10 rounded-xl p-4 sm:p-6 transition-all duration-300 bg-white/5 shadow-xl shadow-blue-500/20 hover:border-white/20 hover:scale-105">
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-xl"></div>
+                                        <div className="relative">
+                                            <div className="mb-3 sm:mb-4 mx-auto w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-red-600/20 to-purple-600/20 rounded-xl border border-red-500/20 flex items-center justify-center shadow-lg shadow-red-500/20">
+                                                <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-red-400 drop-shadow-[0_1px_2px_rgba(239,68,68,0.3)]" />
+                                            </div>
+                                            <h3 className="font-bold text-white text-sm sm:text-base mb-1 sm:mb-2">Calidad Premium</h3>
+                                            <p className="text-gray-400 text-xs sm:text-sm">Los mejores productos</p>
                                         </div>
-                                        <h3 className="font-bold text-white mb-2">Calidad Premium</h3>
-                                        <p className="text-gray-400 text-sm">Los mejores productos</p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Call to Action */}
-                            <div className="space-y-6">
+                            <div className="space-y-4 sm:space-y-6 px-4">
                                 <div className="flex justify-center">
                                     <GradientButton 
                                         variant="primary"
                                         size="lg"
-                                        className="inline-flex items-center justify-center whitespace-nowrap px-8 py-4 text-lg font-semibold rounded-2xl shadow-lg transform hover:scale-105 transition-all duration-300 min-w-fit"
+                                        className="inline-flex items-center justify-center whitespace-nowrap px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold rounded-2xl shadow-xl shadow-blue-500/20 transform hover:scale-105 transition-all duration-300 min-w-fit"
                                         onClick={() => window.location.href = '/appointment'}
                                     >
-                                        <span className="flex items-center gap-3">
+                                        <span className="flex items-center gap-2 sm:gap-3">
                                             Reserva tu cita ahora
-                                            <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                            </svg>
+                                            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 transform group-hover:translate-x-1 transition-transform flex-shrink-0" />
                                         </span>
                                     </GradientButton>
                                 </div>
 
-                                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-sm text-gray-400">
+                                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 lg:gap-8 text-xs sm:text-sm text-gray-400">
                                     <div className="flex items-center gap-2">
-                                        <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
+                                        <Check className="w-3 h-3 sm:w-4 sm:h-4 text-green-400 drop-shadow-[0_1px_2px_rgba(34,197,94,0.3)]" />
                                         Sin compromiso
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
+                                        <Check className="w-3 h-3 sm:w-4 sm:h-4 text-green-400 drop-shadow-[0_1px_2px_rgba(34,197,94,0.3)]" />
                                         Cancelación gratuita
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
+                                        <Check className="w-3 h-3 sm:w-4 sm:h-4 text-green-400 drop-shadow-[0_1px_2px_rgba(34,197,94,0.3)]" />
                                         Confirmación inmediata
                                     </div>
                                 </div>
@@ -303,69 +301,101 @@ function Home() {
                     </div>
 
                     {/* Indicador de scroll */}
-                    <div className="relative z-10 pb-8 flex justify-center">
+                    <div className="relative z-10 pb-6 sm:pb-8 flex justify-center">
                         <div className="animate-bounce">
-                            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                            </svg>
+                            <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400 rotate-90 drop-shadow-sm" />
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Services Section - Rediseñada */}
-            <section className={`${user ? 'py-8 sm:py-12' : 'py-24 sm:py-32'} px-4 relative bg-gradient-to-b from-black via-gray-900 to-black`}>
-                {/* Background con efectos */}
-                <div className="absolute inset-0 bg-gradient-to-r from-red-900/8 via-blue-900/8 to-red-900/8"></div>
-                <div className="absolute inset-0 opacity-30" style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%235a67d8' fill-opacity='0.1'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-                }}></div>
-                
-                <div className="container mx-auto relative">
-                    {/* Header con información del usuario - Solo para usuarios logueados */}
+            {/* Services Section - Rediseñada con glassmorphism */}
+            <section className={`${user ? 'py-8 sm:py-12' : 'py-16 sm:py-24'} px-4 sm:px-6 lg:px-8 relative`}>
+                <div className="container mx-auto relative max-w-7xl">
+                    {/* Header del usuario - Solo para usuarios logueados */}
                     {user && (
-                        <div className="relative z-10 mb-8">
-                            <div className="flex justify-end">
-                                <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 shadow-2xl">
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-blue-600/20 to-red-600/20 border border-blue-500/30">
-                                            <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                            </svg>
+                        <div className="absolute -top-6 sm:-top-8 -right-2 sm:-right-8 z-20">
+                            <div className="group relative backdrop-blur-md border border-white/20 rounded-lg sm:rounded-xl p-2 sm:p-3 shadow-2xl shadow-blue-500/20 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/15 hover:to-white/10 transition-all duration-500 overflow-hidden min-w-0 max-w-[280px] sm:max-w-none">
+                                {/* Efecto de brillo */}
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[3%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-lg sm:rounded-xl"></div>
+                                
+                                <div className="relative flex items-center gap-1.5 sm:gap-2">
+                                    {/* Avatar compacto */}
+                                    <div className="relative flex-shrink-0">
+                                        <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-600/30 to-red-600/30 border border-blue-500/40 shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/40 transition-all duration-500">
+                                            <Users className="w-3 h-3 sm:w-4 sm:h-4 text-blue-300 drop-shadow-[0_2px_4px_rgba(96,165,250,0.4)]" />
                                         </div>
-                                        <div>
-                                            <p className="font-semibold text-white text-sm">Bienvenido,</p>
-                                            <p className="font-bold text-blue-400">{user.username || user.name || user.email}</p>
-                                            {user.role === 'admin' && (
-                                                <span className="inline-block mt-1 px-2 py-0.5 bg-gradient-to-r from-blue-600/30 to-red-600/30 border border-blue-500/30 text-blue-400 rounded-full text-xs font-medium">
-                                                    {user.role}
+                                        {/* Indicador de status online */}
+                                        <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 border border-white/20 rounded-full shadow-lg shadow-green-500/50"></div>
+                                    </div>
+                                    
+                                    {/* Información del usuario compacta */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="space-y-0.5">
+                                            <p className="font-medium text-gray-300 text-[10px] sm:text-xs leading-none">Bienvenido,</p>
+                                            <p className="font-bold text-white text-xs sm:text-sm truncate group-hover:text-blue-300 transition-colors duration-300 leading-none">
+                                                {user.username || user.name || user.email}
+                                            </p>
+                                            
+                                            {/* Badges compactos */}
+                                            <div className="flex flex-wrap gap-0.5 sm:gap-1">
+                                                {user.role === 'admin' && (
+                                                    <span className="inline-flex items-center gap-0.5 px-1 sm:px-1.5 py-0.5 bg-gradient-to-r from-blue-600/40 to-purple-600/40 border border-blue-400/50 text-blue-200 rounded text-[9px] sm:text-xs font-medium shadow-lg shadow-blue-500/30 backdrop-blur-sm leading-none">
+                                                        <svg className="w-1.5 h-1.5 sm:w-2 sm:h-2" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                        </svg>
+                                                        <span className="hidden sm:inline">Admin</span>
+                                                        <span className="sm:hidden">A</span>
+                                                    </span>
+                                                )}
+                                                {user.role === 'barber' && (
+                                                    <span className="inline-flex items-center gap-0.5 px-1 sm:px-1.5 py-0.5 bg-gradient-to-r from-red-600/40 to-orange-600/40 border border-red-400/50 text-red-200 rounded text-[9px] sm:text-xs font-medium shadow-lg shadow-red-500/30 backdrop-blur-sm leading-none">
+                                                        <Scissors className="w-1.5 h-1.5 sm:w-2 sm:h-2" />
+                                                        <span className="hidden sm:inline">Barbero</span>
+                                                        <span className="sm:hidden">B</span>
+                                                    </span>
+                                                )}
+                                                {user.role === 'user' && (
+                                                    <span className="inline-flex items-center gap-0.5 px-1 sm:px-1.5 py-0.5 bg-gradient-to-r from-green-600/40 to-blue-600/40 border border-green-400/50 text-green-200 rounded text-[9px] sm:text-xs font-medium shadow-lg shadow-green-500/30 backdrop-blur-sm leading-none">
+                                                        <User className="w-1.5 h-1.5 sm:w-2 sm:h-2" />
+                                                        <span className="hidden sm:inline">Cliente</span>
+                                                        <span className="sm:hidden">C</span>
+                                                    </span>
+                                                )}
+                                                
+                                                {/* Badge de tiempo online compacto */}
+                                                <span className="inline-flex items-center gap-0.5 px-1 sm:px-1.5 py-0.5 bg-gradient-to-r from-gray-600/30 to-gray-700/30 border border-gray-500/40 text-gray-300 rounded text-[9px] sm:text-xs font-medium shadow-sm backdrop-blur-sm leading-none">
+                                                    <div className="w-1 h-1 bg-green-400 rounded-full animate-pulse"></div>
+                                                    <span className="hidden sm:inline">Online</span>
                                                 </span>
-                                            )}
+                                            </div>
                                         </div>
                                     </div>
+                                    
+                                    {/* Botón settings compacto */}
+                                    <button 
+                                        onClick={handleProfileNavigation}
+                                        className="flex-shrink-0 p-1 bg-gradient-to-r from-blue-600/20 to-red-600/20 hover:from-blue-600/30 hover:to-red-600/30 border border-blue-500/30 hover:border-blue-400/50 rounded text-blue-400 hover:text-blue-300 transition-all duration-300 transform hover:scale-110 shadow-lg shadow-blue-500/20"
+                                        title="Editar Perfil"
+                                    >
+                                        <Settings className="w-2.5 h-2.5 sm:w-3 sm:h-3 drop-shadow-[0_1px_2px_rgba(96,165,250,0.3)]" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {/* Header de la sección */}
-                    <div className={`text-center max-w-4xl mx-auto ${user ? 'mb-12' : 'mb-20'}`}>
-                        <div className="mb-6">
-                            <span className="inline-block px-4 py-2 bg-gradient-to-r from-red-600/20 to-blue-600/20 border border-red-500/30 rounded-full text-red-400 text-sm font-medium uppercase tracking-wider">
-                                Nuestros Servicios
-                            </span>
-                        </div>
-                        <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-8 leading-tight">
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-white to-blue-400">
+                    <div className="text-center max-w-3xl lg:max-w-4xl mx-auto mb-12 sm:mb-20 pt-16 sm:pt-12">
+                        <div className="space-y-2 sm:space-y-4 mb-6 sm:mb-8">
+                            <GradientText className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
                                 Servicios Profesionales
-                            </span>
-                            <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-white to-red-400">
+                            </GradientText>
+                            <GradientText className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
                                 de Barbería
-                            </span>
-                        </h2>
-                        <p className="text-xl text-gray-300 leading-relaxed max-w-2xl mx-auto">
+                            </GradientText>
+                        </div>
+                        <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 leading-relaxed max-w-xl lg:max-w-2xl mx-auto px-4">
                             Ofrecemos una amplia gama de servicios de barbería profesional 
                             <span className="block mt-2 text-blue-400 font-medium">
                                 para que luzcas tu mejor versión
@@ -375,8 +405,8 @@ function Home() {
 
                     {/* Contenido de servicios */}
                     {loading ? (
-                        <div className="flex justify-center py-16">
-                            <div className="relative w-16 h-16">
+                        <div className="flex justify-center py-12 sm:py-16">
+                            <div className="relative w-12 h-12 sm:w-16 sm:h-16">
                                 <div className="absolute inset-0">
                                     <div className="w-full h-full border-4 border-blue-500/20 rounded-full"></div>
                                     <div className="w-full h-full border-4 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
@@ -384,67 +414,56 @@ function Home() {
                             </div>
                         </div>
                     ) : services.length === 0 ? (
-                        <div className="text-center py-16">
-                            <div className="mb-6 mx-auto w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center">
-                                <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                        <div className="text-center py-12 sm:py-16">
+                            <div className="mb-4 sm:mb-6 mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-gray-800/50 rounded-xl border border-white/10 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                <Scissors className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500 drop-shadow-sm" />
                             </div>
-                            <p className="text-gray-500 text-lg">No hay servicios disponibles en este momento.</p>
+                            <p className="text-gray-500 text-base sm:text-lg">No hay servicios disponibles en este momento.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
-                            {services.slice(0, 6).map((service, index) => (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
+                            {services.map((service, index) => (
                                 <div key={service._id} 
-                                    className={`group relative overflow-hidden bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-sm rounded-3xl border border-gray-700/50 hover:border-red-500/40 transition-all duration-700 transform hover:-translate-y-2 hover:shadow-[0_20px_60px_rgba(220,38,38,0.25)] ${
+                                    className={`group relative backdrop-blur-sm border border-white/10 rounded-2xl lg:rounded-3xl transition-all duration-700 transform hover:-translate-y-2 hover:scale-[1.002] bg-white/5 shadow-xl shadow-blue-500/20 hover:border-white/20 hover:shadow-2xl hover:shadow-red-500/20 ${
                                         index === 0 ? 'md:col-span-2 lg:col-span-1' : ''
                                     }`}
                                     style={{ animationDelay: `${index * 100}ms` }}
                                 >
                                     {/* Efecto de brillo en hover */}
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 rounded-2xl lg:rounded-3xl"></div>
                                     
-                                    <div className="relative p-8">
+                                    <div className="relative p-6 sm:p-8 h-full flex flex-col">
                                         {/* Icono del servicio */}
-                                        <div className="mb-6 relative">
-                                            <div className="w-16 h-16 mx-auto bg-gradient-to-br from-red-600/20 to-blue-600/20 rounded-2xl flex items-center justify-center border border-red-500/20 group-hover:border-blue-500/40 transition-all duration-500">
-                                                <svg className="w-8 h-8 text-red-400 group-hover:text-blue-400 transition-colors duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                                                        d="M15.414 5l5.293 5.293a1 1 0 0 1 0 1.414L15.414 17H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h9.414z M12 12h.01" />
-                                                </svg>
+                                        <div className="mb-4 sm:mb-6 relative">
+                                            <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 mx-auto bg-gradient-to-br from-red-600/20 to-blue-600/20 rounded-xl lg:rounded-2xl flex items-center justify-center border border-red-500/20 group-hover:border-blue-500/40 transition-all duration-500 shadow-lg shadow-red-500/20">
+                                                <Scissors className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-red-400 group-hover:text-blue-400 transition-colors duration-500 drop-shadow-[0_1px_2px_rgba(239,68,68,0.3)] group-hover:drop-shadow-[0_1px_2px_rgba(96,165,250,0.3)]" />
                                             </div>
                                             {/* Indicador de popularidad para el primer servicio */}
                                             {index === 0 && (
-                                                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-red-600 to-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-red-600 to-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg shadow-red-500/20">
                                                     Popular
                                                 </div>
                                             )}
                                         </div>
 
-                                        {/* Contenido del servicio */}
-                                        <div className="text-center mb-6">
-                                            <h3 className="font-bold text-2xl lg:text-3xl mb-3 text-white group-hover:text-blue-400 transition-colors duration-500">
+                                        {/* Contenido del servicio - Flex grow para ocupar espacio disponible */}
+                                        <div className="text-center mb-6 sm:mb-8 flex-grow">
+                                            <h3 className="font-bold text-lg sm:text-xl lg:text-2xl xl:text-3xl mb-3 sm:mb-4 text-white group-hover:text-blue-400 transition-colors duration-500">
                                                 {service.name}
                                             </h3>
-                                            <p className="text-gray-400 text-base leading-relaxed">
+                                            <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
                                                 {service.description}
                                             </p>
                                         </div>
 
-                                        {/* Footer del servicio */}
-                                        <div className="flex items-center justify-between">
-                                            <div className="text-left">
-                                                <p className="text-blue-400 font-bold text-3xl">${service.price}</p>
-                                                <p className="text-gray-500 text-sm">Precio final</p>
-                                            </div>
+                                        {/* Call to action mejorado */}
+                                        <div className="text-center mt-auto">
                                             <Link 
                                                 to="/appointment" 
-                                                className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-red-600/20 to-blue-600/20 hover:from-red-600/40 hover:to-blue-600/40 border border-red-500/30 hover:border-blue-500/50 rounded-full text-red-400 hover:text-blue-400 transition-all duration-500 transform hover:scale-110"
+                                                className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-red-600/20 to-blue-600/20 hover:from-red-600/40 hover:to-blue-600/40 border border-red-500/30 hover:border-blue-500/50 rounded-xl text-red-400 hover:text-blue-400 transition-all duration-500 transform hover:scale-105 shadow-lg shadow-red-500/20 hover:shadow-blue-500/20 font-medium text-sm sm:text-base"
                                             >
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                                        d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                                </svg>
+                                                <span>Reservar ahora</span>
+                                                <ArrowRight className="w-4 h-4 drop-shadow-[0_1px_2px_rgba(239,68,68,0.3)] group-hover:drop-shadow-[0_1px_2px_rgba(96,165,250,0.3)]" />
                                             </Link>
                                         </div>
                                     </div>
@@ -455,32 +474,17 @@ function Home() {
                 </div>
             </section>
 
-            {/* Barbers Section - Rediseñada */}
-            <section className="py-24 sm:py-32 px-4 bg-gradient-to-b from-black via-gray-900 to-black relative overflow-hidden">
-                {/* Background con efectos mejorados */}
-                <div className="absolute inset-0 bg-gradient-to-r from-red-900/10 via-blue-900/10 to-red-900/10"></div>
-                <div className="absolute inset-0 opacity-25" style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dc2626' fill-opacity='0.08'%3E%3Ccircle cx='60' cy='60' r='2'/%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3Ccircle cx='90' cy='30' r='1'/%3E%3Ccircle cx='30' cy='90' r='1'/%3E%3Ccircle cx='90' cy='90' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-                }}></div>
-                
-                <div className="container mx-auto relative">
+            {/* Barbers Section - Rediseñada con glassmorphism */}
+            <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+                <div className="container mx-auto relative max-w-7xl">
                     {/* Header de la sección mejorado */}
-                    <div className="text-center max-w-4xl mx-auto mb-20">
-                        <div className="mb-6">
-                            <span className="inline-block px-4 py-2 bg-gradient-to-r from-blue-600/20 to-red-600/20 border border-blue-500/30 rounded-full text-blue-400 text-sm font-medium uppercase tracking-wider">
-                                Nuestro Equipo
-                            </span>
-                        </div>
-                        <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-8 leading-tight">
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-white to-red-400">
+                    <div className="text-center max-w-3xl lg:max-w-4xl mx-auto mb-12 sm:mb-20">
+                        <div className="space-y-2 sm:space-y-4 mb-6 sm:mb-8">
+                            <GradientText className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
                                 Barberos Expertos
-                            </span>
-                            <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-white to-blue-400">
-                                Maestros del Arte
-                            </span>
-                        </h2>
-                        <p className="text-xl text-gray-300 leading-relaxed max-w-2xl mx-auto">
+                            </GradientText>
+                        </div>
+                        <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 leading-relaxed max-w-xl lg:max-w-2xl mx-auto px-4">
                             Conoce a nuestro equipo de profesionales expertos en el arte de la barbería
                             <span className="block mt-2 text-blue-400 font-medium">
                                 Pasión, técnica y dedicación en cada corte
@@ -490,33 +494,30 @@ function Home() {
 
                     {/* Contenido de barberos mejorado */}
                     {loading ? (
-                        <div className="flex justify-center items-center min-h-[400px]">
+                        <div className="flex justify-center items-center min-h-[300px] sm:min-h-[400px]">
                             <div className="relative">
-                                <div className="w-20 h-20 rounded-full border-4 border-blue-500/20"></div>
-                                <div className="w-20 h-20 rounded-full border-4 border-transparent border-t-blue-500 animate-spin absolute inset-0"></div>
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-blue-500/20"></div>
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-transparent border-t-blue-500 animate-spin absolute inset-0"></div>
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="w-8 h-8 rounded-full bg-blue-500/20"></div>
+                                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-500/20"></div>
                                 </div>
                             </div>
                         </div>
                     ) : barbers.length === 0 ? (
-                        <div className="text-center py-20">
-                            <div className="mb-8 mx-auto w-20 h-20 bg-gradient-to-br from-blue-600/20 to-red-600/20 rounded-2xl flex items-center justify-center border border-blue-500/30">
-                                <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                        <div className="text-center py-16 sm:py-20">
+                            <div className="mb-6 sm:mb-8 mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-600/20 to-red-600/20 rounded-xl lg:rounded-2xl flex items-center justify-center border border-blue-500/30 shadow-xl shadow-blue-500/20">
+                                <Users className="w-8 h-8 sm:w-10 sm:h-10 text-blue-400 drop-shadow-[0_1px_2px_rgba(96,165,250,0.3)]" />
                             </div>
-                            <h3 className="text-2xl font-bold text-gray-300 mb-4">Estamos construyendo nuestro equipo</h3>
-                            <p className="text-gray-400 text-lg max-w-md mx-auto">
+                            <h3 className="text-xl sm:text-2xl font-bold text-gray-300 mb-3 sm:mb-4">Estamos construyendo nuestro equipo</h3>
+                            <p className="text-gray-400 text-sm sm:text-base lg:text-lg max-w-sm sm:max-w-md mx-auto px-4">
                                 Pronto agregaremos nuevos profesionales especializados a nuestro equipo de barberos expertos
                             </p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
                             {barbers.map((barber, index) => (
                                 <div key={barber._id || barber.id} 
-                                    className="transform hover:scale-105 transition-all duration-500"
+                                    className="transform hover:scale-[1.002] hover:-translate-y-1 transition-all duration-500"
                                     style={{ animationDelay: `${index * 150}ms` }}
                                 >
                                     <BarberCard barber={barber} />
@@ -527,163 +528,135 @@ function Home() {
 
                     {/* Call to action adicional */}
                     {barbers.length > 0 && (
-                        <div className="text-center mt-16">
-                            <p className="text-gray-400 mb-6">¿Quieres conocer más sobre nuestros barberos?</p>
+                        <div className="text-center mt-12 sm:mt-16">
+                            <p className="text-gray-400 text-sm sm:text-base mb-4 sm:mb-6">¿Quieres conocer más sobre nuestros barberos?</p>
                             <GradientButton 
-                                variant="outline"
+                                variant="primary"
                                 size="md"
-                                className="px-8 py-3"
+                                className="px-6 sm:px-8 py-2.5 sm:py-3 shadow-xl shadow-blue-500/20"
                                 onClick={() => window.location.href = '/barbers'}
                             >
-                                Ver todos los barberos
-                                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
+                                <span className="flex items-center gap-2">
+                                    Ver todos los barberos
+                                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 drop-shadow-[0_1px_2px_rgba(96,165,250,0.3)]" />
+                                </span>
                             </GradientButton>
                         </div>
                     )}
                 </div>
             </section>
 
-            {/* Contact/Location Section - Rediseñada */}
-            <section className="py-24 sm:py-32 px-4 bg-gradient-to-b from-black to-gray-900 relative overflow-hidden">
-                {/* Background con efectos mejorados */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-900/8 via-red-900/8 to-blue-900/8"></div>
-                <div className="absolute inset-0 opacity-20" style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232563eb' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-                }}></div>
-                
-                <div className="container mx-auto relative">
+            {/* Contact/Location Section - Rediseñada con glassmorphism */}
+            <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+                <div className="container mx-auto relative max-w-7xl">
                     {/* Header de la sección */}
-                    <div className="text-center max-w-4xl mx-auto mb-20">
-                        <div className="mb-6">
-                            <span className="inline-block px-4 py-2 bg-gradient-to-r from-blue-600/20 to-red-600/20 border border-blue-500/30 rounded-full text-blue-400 text-sm font-medium uppercase tracking-wider">
-                                Visítanos
-                            </span>
+                    <div className="text-center max-w-3xl lg:max-w-4xl mx-auto mb-12 sm:mb-20">
+                        <div className="space-y-2 sm:space-y-4 mb-6 sm:mb-8">
+                            <GradientText className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
+                                Encuéntranos, Te esperamos
+                            </GradientText>
                         </div>
-                        <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-8 leading-tight">
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-white to-red-400">
-                                Encuéntranos
-                            </span>
-                            <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-white to-blue-400">
-                                Te Esperamos
-                            </span>
-                        </h2>
-                        <p className="text-xl text-gray-300 leading-relaxed max-w-2xl mx-auto">
-                            Estamos ubicados en el corazón de la ciudad
+                        <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 leading-relaxed max-w-xl lg:max-w-2xl mx-auto px-4">
+                            Conoce nuestra ubicación, visita nuestro espacio
                             <span className="block mt-2 text-blue-400 font-medium">
                                 Ven y experimenta la diferencia por ti mismo
                             </span>
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
                         {/* Información de contacto mejorada */}
                         <div className="relative order-2 lg:order-1">
-                            {/* Efectos de fondo */}
-                            <div className="absolute -inset-4 bg-gradient-to-r from-red-600/20 via-blue-600/20 to-red-600/20 rounded-3xl blur-2xl opacity-30"></div>
-                            <div className="absolute -inset-2 bg-gradient-to-br from-gray-900/50 to-gray-800/50 rounded-2xl blur-xl"></div>
-                            
-                            <div className="relative bg-gradient-to-br from-gray-900/95 to-gray-800/95 border border-gray-700/50 rounded-3xl p-6 backdrop-blur-xl shadow-2xl h-[400px] lg:h-[600px] flex flex-col">
-                                {/* Header de la tarjeta */}
-                                <div className="mb-6">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 bg-gradient-to-br from-blue-600/20 to-red-600/20 rounded-xl flex items-center justify-center border border-blue-500/30">
-                                            <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                            </svg>
+                            <div className="relative backdrop-blur-sm border border-white/10 rounded-2xl lg:rounded-3xl p-4 sm:p-6 shadow-2xl shadow-blue-500/20 bg-white/5 h-[400px] sm:h-[500px] lg:h-[600px] flex flex-col">
+                                {/* Efecto de brillo */}
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full hover:translate-x-full transition-transform duration-1000 rounded-2xl lg:rounded-3xl"></div>
+                                
+                                <div className="relative z-10 flex flex-col h-full">
+                                    {/* Header de la tarjeta */}
+                                    <div className="mb-4 sm:mb-6">
+                                        <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-600/20 to-red-600/20 rounded-lg xl:rounded-xl flex items-center justify-center border border-blue-500/30 shadow-lg shadow-blue-500/20">
+                                                <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 drop-shadow-[0_1px_2px_rgba(96,165,250,0.3)]" />
+                                            </div>
+                                            <h3 className="text-lg sm:text-xl font-bold text-white">Información de Contacto</h3>
                                         </div>
-                                        <h3 className="text-xl font-bold text-white">Información de Contacto</h3>
+                                        <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
+                                            Estamos aquí para atenderte con la mejor experiencia de barbería.
+                                        </p>
                                     </div>
-                                    <p className="text-gray-400 text-sm leading-relaxed">
-                                        Estamos aquí para atenderte con la mejor experiencia de barbería.
-                                    </p>
-                                </div>
 
-                                {/* Lista de contacto mejorada */}
-                                <div className="space-y-4 flex-1">
-                                    <div className="group">
-                                        <div className="flex items-start space-x-3 p-3 rounded-xl bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-gray-600/30 hover:border-blue-500/40 transition-all duration-300">
-                                            <div className="flex-shrink-0">
-                                                <div className="p-2 bg-gradient-to-br from-blue-600/20 to-red-600/20 rounded-lg border border-blue-500/30 group-hover:border-blue-400/50 transition-all duration-300">
-                                                    <svg className="w-4 h-4 text-blue-400 group-hover:text-blue-300 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                                                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                                                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    </svg>
+                                    {/* Lista de contacto mejorada */}
+                                    <div className="space-y-3 sm:space-y-4 flex-1">
+                                        <div className="group">
+                                            <div className="flex items-start space-x-2 sm:space-x-3 p-2 sm:p-3 rounded-lg xl:rounded-xl bg-gradient-to-r from-gray-800/30 to-gray-700/30 border border-gray-600/20 hover:border-blue-500/40 transition-all duration-300 backdrop-blur-sm">
+                                                <div className="flex-shrink-0">
+                                                    <div className="p-1.5 sm:p-2 bg-gradient-to-br from-blue-600/20 to-red-600/20 rounded-md lg:rounded-lg border border-blue-500/30 group-hover:border-blue-400/50 transition-all duration-300 shadow-sm shadow-blue-500/20">
+                                                        <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400 group-hover:text-blue-300 transition-colors duration-300 drop-shadow-[0_1px_2px_rgba(96,165,250,0.3)]" />
+                                                    </div>
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <h4 className="text-sm sm:text-base font-semibold text-white mb-1 group-hover:text-blue-300 transition-colors duration-300">Dirección</h4>
+                                                    <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">Cra 77vBis #52 A - 08</p>
+                                                    <p className="text-xs text-gray-500">Bogotá D.C, Cundinamarca.</p>
                                                 </div>
                                             </div>
-                                            <div>
-                                                <h4 className="text-base font-semibold text-white mb-1 group-hover:text-blue-300 transition-colors duration-300">Dirección</h4>
-                                                <p className="text-gray-400 text-sm leading-relaxed">Cra 77vBis #52 A - 08</p>
-                                                <p className="text-xs text-gray-500">Bogotá D.C, Cundinamarca.</p>
+                                        </div>
+                                        
+                                        <div className="group">
+                                            <div className="flex items-start space-x-2 sm:space-x-3 p-2 sm:p-3 rounded-lg xl:rounded-xl bg-gradient-to-r from-gray-800/30 to-gray-700/30 border border-gray-600/20 hover:border-red-500/40 transition-all duration-300 backdrop-blur-sm">
+                                                <div className="flex-shrink-0">
+                                                    <div className="p-1.5 sm:p-2 bg-gradient-to-br from-red-600/20 to-blue-600/20 rounded-md lg:rounded-lg border border-red-500/30 group-hover:border-red-400/50 transition-all duration-300 shadow-sm shadow-red-500/20">
+                                                        <Phone className="w-3 h-3 sm:w-4 sm:h-4 text-red-400 group-hover:text-red-300 transition-colors duration-300 drop-shadow-[0_1px_2px_rgba(239,68,68,0.3)]" />
+                                                    </div>
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <h4 className="text-sm sm:text-base font-semibold text-white mb-1 group-hover:text-red-300 transition-colors duration-300">Teléfono</h4>
+                                                    <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">+57 311 588 2528</p>
+                                                    <p className="text-xs text-gray-500">WhatsApp disponible</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="group">
+                                            <div className="flex items-start space-x-2 sm:space-x-3 p-2 sm:p-3 rounded-lg xl:rounded-xl bg-gradient-to-r from-gray-800/30 to-gray-700/30 border border-gray-600/20 hover:border-blue-500/40 transition-all duration-300 backdrop-blur-sm">
+                                                <div className="flex-shrink-0">
+                                                    <div className="p-1.5 sm:p-2 bg-gradient-to-br from-blue-600/20 to-red-600/20 rounded-md lg:rounded-lg border border-blue-500/30 group-hover:border-blue-400/50 transition-all duration-300 shadow-sm shadow-blue-500/20">
+                                                        <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400 group-hover:text-blue-300 transition-colors duration-300 drop-shadow-[0_1px_2px_rgba(96,165,250,0.3)]" />
+                                                    </div>
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <h4 className="text-sm sm:text-base font-semibold text-white mb-1 group-hover:text-blue-300 transition-colors duration-300">Horario de Atención</h4>
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-gray-400 text-xs sm:text-sm">Lunes - Sábado: 9:00 AM - 8:00 PM</p>
+                                                        <p className="text-gray-400 text-xs sm:text-sm">Domingo: 10:00 AM - 6:00 PM</p>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500">Reservas recomendadas</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                    
-                                    <div className="group">
-                                        <div className="flex items-start space-x-3 p-3 rounded-xl bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-gray-600/30 hover:border-red-500/40 transition-all duration-300">
-                                            <div className="flex-shrink-0">
-                                                <div className="p-2 bg-gradient-to-br from-red-600/20 to-blue-600/20 rounded-lg border border-red-500/30 group-hover:border-red-400/50 transition-all duration-300">
-                                                    <svg className="w-4 h-4 text-red-400 group-hover:text-red-300 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                                                            d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                                    </svg>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <h4 className="text-base font-semibold text-white mb-1 group-hover:text-red-300 transition-colors duration-300">Teléfono</h4>
-                                                <p className="text-gray-400 text-sm leading-relaxed">+57 311 588 2528</p>
-                                                <p className="text-xs text-gray-500">WhatsApp disponible</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="group">
-                                        <div className="flex items-start space-x-3 p-3 rounded-xl bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-gray-600/30 hover:border-blue-500/40 transition-all duration-300">
-                                            <div className="flex-shrink-0">
-                                                <div className="p-2 bg-gradient-to-br from-blue-600/20 to-red-600/20 rounded-lg border border-blue-500/30 group-hover:border-blue-400/50 transition-all duration-300">
-                                                    <svg className="w-4 h-4 text-blue-400 group-hover:text-blue-300 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <h4 className="text-base font-semibold text-white mb-1 group-hover:text-blue-300 transition-colors duration-300">Horario de Atención</h4>
-                                                <div className="space-y-0.5">
-                                                    <p className="text-gray-400 text-sm">Lunes - Sábado: 9:00 AM - 8:00 PM</p>
-                                                    <p className="text-gray-400 text-sm">Domingo: 10:00 AM - 6:00 PM</p>
-                                                </div>
-                                                <p className="text-xs text-gray-500">Reservas recomendadas</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                {/* Call to action */}
-                                <div className="mt-4 pt-4 border-t border-gray-700/50">
-                                    <GradientButton 
-                                        variant="primary"
-                                        size="md"
-                                        className="w-full py-2.5"
-                                        onClick={() => window.location.href = '/appointment'}
-                                    >
-                                        Reservar una cita
-                                        <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                    </GradientButton>
+                                    {/* Call to action */}
+                                    <div className="mt-4 pt-3 sm:pt-4 border-t border-gray-700/50">
+                                        <GradientButton 
+                                            variant="primary"
+                                            size="md"
+                                            className="w-full py-2 sm:py-2.5 shadow-xl shadow-blue-500/20"
+                                            onClick={() => window.location.href = '/appointment'}
+                                        >
+                                            <span className="flex items-center justify-center gap-2">
+                                                Reservar una cita
+                                                <Calendar className="w-3 h-3 sm:w-4 sm:h-4 drop-shadow-[0_1px_2px_rgba(96,165,250,0.3)]" />
+                                            </span>
+                                        </GradientButton>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Mapa mejorado */}
                         <div className="relative order-1 lg:order-2">
-                            <div className="absolute -inset-2 bg-gradient-to-r from-blue-600/20 via-red-600/20 to-blue-600/20 rounded-3xl blur-xl opacity-50"></div>
-                            <div className="relative h-[400px] lg:h-[600px] rounded-3xl overflow-hidden shadow-[0_0_40px_rgba(37,99,235,0.3)] border border-gray-700/50 backdrop-blur-sm">
+                            <div className="relative h-[400px] sm:h-[500px] lg:h-[600px] rounded-2xl lg:rounded-3xl overflow-hidden shadow-2xl shadow-blue-500/20 border border-white/10 backdrop-blur-sm">
                                 <iframe
                                     src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15907.448844294731!2d-74.16188815134278!3d4.618659698034156!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e3f9fadb32531a3%3A0xad47ce8d546359c!2sThe%20brothers%20barber!5e0!3m2!1ses!2sco!4v1756390613507!5m2!1ses!2sco"
                                     className="w-full h-full"
@@ -694,7 +667,7 @@ function Home() {
                                 ></iframe>
                                 
                                 {/* Overlay decorativo */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/10 pointer-events-none"></div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/10 pointer-events-none rounded-2xl lg:rounded-3xl"></div>
                             </div>
                         </div>
                     </div>

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Utilidad para generar rutas correctas de assets
  * Maneja tanto development (localhost) como production (GitHub Pages)
  */

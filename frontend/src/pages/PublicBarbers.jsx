@@ -3,70 +3,17 @@ import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { PageContainer } from '../components/layout/PageContainer';
-import { Star, Clock, MapPin, Calendar, Users, Award, Scissors } from 'lucide-react';
-
-// Header de página simplificado
-const PageHeader = ({ title, description }) => (
-  <div className="py-16 sm:py-20 px-4 relative bg-gradient-to-b from-black via-gray-900 to-black">
-    {/* Background con efectos de puntos */}
-    <div className="absolute inset-0 bg-gradient-to-r from-red-900/8 via-blue-900/8 to-red-900/8"></div>
-    
-    {/* Pattern de puntos mejorado - más visible */}
-    <div className="absolute inset-0 opacity-40" style={{
-      backgroundImage: `radial-gradient(circle, rgba(59, 130, 246, 0.3) 1px, transparent 1px)`,
-      backgroundSize: '30px 30px',
-      backgroundPosition: '0 0, 15px 15px'
-    }}></div>
-    
-    {/* Pattern de puntos secundario para más densidad */}
-    <div className="absolute inset-0 opacity-20" style={{
-      backgroundImage: `radial-gradient(circle, rgba(239, 68, 68, 0.4) 1px, transparent 1px)`,
-      backgroundSize: '20px 20px',
-      backgroundPosition: '10px 10px'
-    }}></div>
-    
-    {/* Pattern de puntos terciario para efecto de profundidad */}
-    <div className="absolute inset-0 opacity-15" style={{
-      backgroundImage: `radial-gradient(circle, rgba(168, 85, 247, 0.5) 0.8px, transparent 0.8px)`,
-      backgroundSize: '40px 40px',
-      backgroundPosition: '20px 0'
-    }}></div>
-    
-    <div className="container mx-auto relative z-10">
-      <div className="text-center max-w-4xl mx-auto">
-        <div className="mb-4">
-          <span className="inline-block px-4 py-2 bg-gradient-to-r from-red-600/20 to-blue-600/20 border border-red-500/30 rounded-full text-sm font-medium uppercase tracking-wider backdrop-blur-sm">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-blue-400">
-              Nuestro Equipo
-            </span>
-          </span>
-        </div>
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 leading-tight relative">
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-white to-blue-400 relative z-10">
-            {title}
-          </span>
-        </h1>
-        <p className="text-xl leading-relaxed max-w-2xl mx-auto relative z-10">
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-300 via-white to-gray-300">
-            {description}
-          </span>
-        </p>
-      </div>
-    </div>
-  </div>
-);
+import GradientText from '../components/ui/GradientText';
+import { Star, Clock, MapPin, Calendar, Users, Award, Scissors, User } from 'lucide-react';
 
 // Componente de loading mejorado
 const LoadingSpinner = () => (
   <PageContainer>
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-gray-900 via-black to-gray-900">
-      <div className="relative mb-8">
-        <div className="w-20 h-20 rounded-full border-4 border-blue-500/20"></div>
-        <div className="w-20 h-20 rounded-full border-4 border-blue-500 border-t-transparent animate-spin absolute top-0 left-0"></div>
-      </div>
-      <div className="text-center space-y-4">
-        <h3 className="text-2xl font-bold text-white">Cargando barberos...</h3>
-        <p className="text-gray-400 max-w-md">Estamos preparando la mejor selección de profesionales para ti</p>
+    <div className="flex justify-center items-center min-h-[60vh] p-4">
+      <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/40 rounded-2xl p-8 shadow-xl text-center">
+        <div className="w-16 h-16 border-t-4 border-blue-400/40 rounded-full animate-spin mx-auto mb-4"></div>
+        <h3 className="text-xl font-bold text-white mb-2">Cargando barberos...</h3>
+        <p className="text-gray-400">Estamos preparando la mejor selección de profesionales para ti</p>
       </div>
     </div>
   </PageContainer>
@@ -76,7 +23,7 @@ const ErrorMessage = ({ message }) => (
   <PageContainer>
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-md w-full text-center">
-        <div className="bg-gradient-to-br from-red-900/50 to-red-800/30 backdrop-blur-sm border border-red-500/30 rounded-3xl p-8">
+        <div className="bg-red-500/5 backdrop-blur-md border border-red-500/20 rounded-2xl shadow-2xl shadow-red-500/20 p-8">
           <div className="w-16 h-16 bg-red-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -86,7 +33,7 @@ const ErrorMessage = ({ message }) => (
           <p className="text-gray-300 mb-6">{message}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-xl font-medium hover:from-red-500 hover:to-red-400 transition-all duration-300"
+            className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-xl font-medium hover:from-red-500 hover:to-red-400 transition-all duration-300 shadow-xl shadow-red-500/20"
           >
             Reintentar
           </button>
@@ -147,15 +94,18 @@ const BarberCard = ({ barber }) => {
   const isAvailable = barber.isActive && availability.available;
 
   return (
-    <article className="group relative overflow-hidden rounded-3xl transform hover:scale-[1.02] transition-all duration-500 bg-gradient-to-br from-gray-800/40 via-gray-900/60 to-black/40 backdrop-blur-sm border border-gray-700/50 hover:border-blue-500/50 shadow-2xl hover:shadow-blue-500/20 flex flex-col h-full">
+    <article className="group relative overflow-hidden rounded-3xl transition-all duration-300 bg-gradient-to-br from-gray-800/40 via-gray-900/60 to-black/40 backdrop-blur-sm border border-gray-700/50 hover:border-white/30 shadow-2xl shadow-blue-500/20 hover:shadow-white/10 flex flex-col h-full">
+      {/* Efecto de brillo */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-3xl"></div>
+      
       {/* Header con imagen mejorado */}
-      <div className="relative h-80 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent z-10"></div>
-        {barber.photo?.url || barber.user?.photo?.url ? (
+      <div className="relative h-80 overflow-hidden rounded-t-3xl">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent z-10"></div>
+        {barber.photo?.url || barber.user?.profilePicture ? (
           <img
-            src={barber.photo?.url || barber.user?.photo?.url}
+            src={barber.photo?.url || barber.user?.profilePicture}
             alt={barber.user?.name}
-            className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-110"
+            className="w-full h-full object-cover transition-all duration-300"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-700 via-blue-900/50 to-gray-800 flex items-center justify-center">
@@ -210,18 +160,18 @@ const BarberCard = ({ barber }) => {
           </div>
 
           {/* Nombre y especialidad con fondo gradiente mejorado */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-gray-900/95 to-transparent z-20">
-            <h2 className="text-2xl font-bold mb-2 transition-all duration-300">
+          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/95 via-black/85 to-transparent z-20">
+            <h2 className="text-2xl font-bold mb-2 transition-all duration-300 truncate">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-white to-blue-400 
                 group-hover:from-blue-400 group-hover:via-white group-hover:to-red-400">
                 {barber.user?.name}
               </span>
             </h2>
             <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-blue-400 group-hover:text-red-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              <svg className="w-4 h-4 text-blue-400 group-hover:text-red-400 transition-colors duration-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
-              <p className="text-gray-300 group-hover:text-gray-100 transition-colors duration-300 font-medium">
+              <p className="text-gray-300 group-hover:text-white transition-colors duration-300 font-medium truncate">
                 {barber.specialty || 'Barbero Profesional'}
               </p>
             </div>
@@ -233,31 +183,31 @@ const BarberCard = ({ barber }) => {
           {/* Servicios populares con diseño moderno */}
           <div className="flex-grow">
             {barber.services && barber.services.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold flex items-center gap-2">
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold flex items-center gap-2">
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-red-400 
                     group-hover:from-red-400 group-hover:to-blue-400 transition-all duration-300">
                     Servicios destacados
                   </span>
-                  <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </h3>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-1.5">
                 {barber.services.slice(0, 4).map((service, index) => (
                   <div key={`${barber._id}-service-${service._id}-${index}`} 
-                    className="px-4 py-2 bg-gradient-to-br from-gray-800/60 via-gray-700/40 to-gray-800/60 
-                    border border-gray-600/30 rounded-xl text-sm backdrop-blur-sm
+                    className="px-2.5 py-1.5 bg-gradient-to-br from-gray-800/60 via-gray-700/40 to-gray-800/60 
+                    border border-gray-600/30 rounded-lg text-xs backdrop-blur-sm
                     hover:from-gray-700/70 hover:via-gray-600/50 hover:to-gray-700/70 
                     hover:border-blue-500/40 transition-all cursor-default group/service
                     hover:shadow-lg hover:shadow-blue-500/10">
-                    <div className="font-bold mb-1 transition-all duration-300">
+                    <div className="font-medium mb-0.5 transition-all duration-300 leading-tight truncate">
                       <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-white 
-                        group-hover/service:from-white group-hover/service:to-blue-400">
+                        group-hover/service:from-white group-hover/service:to-blue-400 truncate">
                         {service.name}
                       </span>
                     </div>
-                    <div className="font-semibold">
+                    <div className="font-semibold leading-tight whitespace-nowrap">
                       <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400 
                         group-hover/service:from-emerald-300 group-hover/service:to-blue-300 
                         transition-all duration-300">
@@ -381,62 +331,57 @@ const PublicBarbers = () => {
   }, []);
 
   if (loading) return <LoadingSpinner />;
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-900 p-4">
-        <ErrorMessage message={error} />
-      </div>
-    );
-  }
+  if (error) return <ErrorMessage message={error} />;
 
   const filteredBarbers = [...barbers].sort((a, b) => (b.rating?.average || 0) - (a.rating?.average || 0));
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-black via-gray-900 to-black overflow-hidden">
-      {/* Background con efectos de gradientes como el header */}
-      <div className="absolute inset-0 bg-gradient-to-r from-red-900/8 via-blue-900/8 to-red-900/8"></div>
-      
-      {/* Efectos de puntos en toda la página - múltiples capas */}
-      <div className="absolute inset-0 opacity-40" style={{
-        backgroundImage: `radial-gradient(circle, rgba(59, 130, 246, 0.3) 1px, transparent 1px)`,
-        backgroundSize: '30px 30px',
-        backgroundPosition: '0 0, 15px 15px'
-      }}></div>
-      
-      <div className="absolute inset-0 opacity-20" style={{
-        backgroundImage: `radial-gradient(circle, rgba(239, 68, 68, 0.4) 1px, transparent 1px)`,
-        backgroundSize: '20px 20px',
-        backgroundPosition: '10px 10px'
-      }}></div>
-      
-      <div className="absolute inset-0 opacity-15" style={{
-        backgroundImage: `radial-gradient(circle, rgba(168, 85, 247, 0.5) 0.8px, transparent 0.8px)`,
-        backgroundSize: '40px 40px',
-        backgroundPosition: '20px 0'
-      }}></div>
-      
-      {/* Contenido principal con z-index alto */}
-      <div className="relative z-10">
-        <PageHeader
-          title="Nuestros Barberos"
-          description="Conoce a nuestro equipo de profesionales expertos en el arte del cuidado masculino"
-        />
+    <PageContainer>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 space-y-8">
         
-        {/* Sección de tarjetas con el mismo estilo del header */}
-        <div className="py-6 px-4 relative">
-          {/* Background adicional para la sección de tarjetas */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900/30 to-transparent"></div>
-          
-          <div className="container mx-auto relative z-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
-              {filteredBarbers.map(barber => (
-                <BarberCard key={`${barber._id}-${lastUpdate}`} barber={barber} />
-              ))}
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="p-3 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl border border-blue-500/20 shadow-xl shadow-blue-500/20">
+              <User className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400" />
+            </div>
+            <GradientText className="text-2xl sm:text-3xl lg:text-4xl font-bold">
+              Nuestros Barberos
+            </GradientText>
+          </div>
+          <p className="text-gray-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+            Conoce a nuestro equipo de profesionales expertos en el arte del cuidado masculino
+          </p>
+        </div>
+
+        {/* Content */}
+        {barbers.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/40 rounded-2xl p-12 max-w-md mx-auto shadow-xl">
+              <div className="w-16 h-16 bg-gray-700/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <User className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-3">No hay barberos disponibles</h3>
+              <p className="text-gray-400 leading-relaxed">
+                No hay barberos disponibles en este momento. Por favor, vuelve más tarde.
+              </p>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            {filteredBarbers.map((barber, index) => (
+              <div 
+                key={`${barber._id}-${lastUpdate}`}
+                style={{ zIndex: filteredBarbers.length - index }}
+                className="ml-1 mr-1"
+              >
+                <BarberCard barber={barber} />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
+    </PageContainer>
   );
 };
 

@@ -11,6 +11,7 @@ const GradientButton = ({
   onClick,
   type = 'button',
   loadingText = 'Cargando...',
+  as: Component = 'button',
   ...props
 }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -25,8 +26,8 @@ const GradientButton = ({
   const sizeClass = sizes[size];
 
   return (
-    <button
-      type={type}
+    <Component
+      type={Component === 'button' ? type : undefined}
       onClick={onClick}
       disabled={disabled || loading}
       aria-disabled={disabled || loading}
@@ -186,7 +187,7 @@ const GradientButton = ({
           }}
         />
       </span>
-    </button>
+    </Component>
   );
 };
 

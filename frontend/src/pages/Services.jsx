@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   Plus, Edit, Trash2, Clock, DollarSign, 
   AlertTriangle, CheckCircle, ChevronUp, Settings, 
-  Palette, Sparkles, User, Package2, Scissors,
+  Palette, Sparkles, User, Package2, Scissors, Home, Eye, EyeOff
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
@@ -131,6 +131,34 @@ function ServicesPage() {
     }
   };
 
+  const handleToggleShowInHome = async (serviceId, currentShowInHome) => {
+    try {
+      const response = await api.patch(`/services/${serviceId}/show-in-home`, {
+        showInHome: !currentShowInHome
+      });
+
+      if (response.success) {
+        // Actualizar el estado local
+        setServices(prevServices =>
+          prevServices.map(service =>
+            service._id === serviceId
+              ? { ...service, showInHome: !currentShowInHome }
+              : service
+          )
+        );
+
+        setSuccess(response.message || 'Estado actualizado correctamente');
+        setTimeout(() => setSuccess(''), 2500);
+      } else {
+        throw new Error(response.message || 'Error al actualizar estado');
+      }
+    } catch (error) {
+      console.error('Error en handleToggleShowInHome:', error);
+      setError(error.message || 'Error al actualizar estado del servicio');
+      setTimeout(() => setError(''), 2500);
+    }
+  };
+
   const handleNewService = () => {
     setForm({ name: '', description: '', price: 0, duration: 30, category: 'corte' });
     setEditing(null);
@@ -173,6 +201,12 @@ function ServicesPage() {
                   Gestión de Servicios
                 </GradientText>
               </h1>
+              <p className="text-gray-400 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">
+                Administra los servicios de la barbería
+                <span className="block mt-2 text-blue-400 font-medium">
+                  Solo 3 servicios se mostrarán en la página de inicio
+                </span>
+              </p>
             </div>
 
             {/* Mensajes de error y éxito */}
@@ -336,6 +370,12 @@ function ServicesPage() {
                               <GradientText className="text-lg font-semibold">
                                 {service.name}
                               </GradientText>
+                              {service.showInHome && (
+                                <span className="ml-2 inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-600/20 text-green-400 border border-green-500/30 rounded-full">
+                                  <Home className="w-3 h-3" />
+                                  Home
+                                </span>
+                              )}
                             </h4>
                             <p className="text-sm text-gray-400 mt-1 mb-3">{service.description}</p>
                             <div className="flex flex-wrap gap-4">
@@ -356,6 +396,17 @@ function ServicesPage() {
 
                         {/* Acciones */}
                         <div className="flex gap-2">
+                          <button
+                            onClick={() => handleToggleShowInHome(service._id, service.showInHome)}
+                            className={`p-2 rounded-lg transition-colors ${
+                              service.showInHome
+                                ? 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
+                                : 'bg-gray-600/20 text-gray-400 hover:bg-gray-600/30'
+                            }`}
+                            title={service.showInHome ? 'Quitar del Home' : 'Mostrar en Home'}
+                          >
+                            {service.showInHome ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                          </button>
                           <button
                             onClick={() => handleEdit(service)}
                             className="p-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 transition-colors"
