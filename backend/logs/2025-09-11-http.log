@@ -1653,3 +1653,4 @@
 2025-09-11 17:57:06 http: GET /api/v1/users 304 403.300 ms - - - 68befcb6c3b3228f086622fd
 2025-09-11 18:02:16 http: DELETE /api/v1/users/68bfd467ffe1f06f97aeb1f3 401 0.728 ms - 70 - anonymous
 2025-09-11 18:02:16 error: Request error
+2025-09-11 18:04:15 info: ✅ Conexión a la base de datos establecida
