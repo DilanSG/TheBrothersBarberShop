@@ -58,39 +58,39 @@ export const NotificationProvider = ({ children }) => {
   };
 
   // Métodos de conveniencia para diferentes tipos
-  const showSuccess = (message, title = 'Éxito') => {
+  const showSuccess = (message, title = '') => {
     return addNotification({
       type: 'success',
-      title,
+      title: title || (message.length > 50 ? 'Éxito' : ''),
       message,
-      duration: 4000
+      duration: message.length > 100 ? 6000 : 4000
     });
   };
 
-  const showError = (message, title = 'Error') => {
+  const showError = (message, title = '') => {
     return addNotification({
       type: 'error',
-      title,
+      title: title || (message.length > 50 ? 'Error' : ''),
       message,
-      duration: 8000 // Errores duran más tiempo
+      duration: message.length > 100 ? 10000 : 8000 // Errores duran más tiempo
     });
   };
 
-  const showWarning = (message, title = 'Advertencia') => {
+  const showWarning = (message, title = '') => {
     return addNotification({
       type: 'warning',
-      title,
+      title: title || (message.length > 50 ? 'Advertencia' : ''),
       message,
-      duration: 6000
+      duration: message.length > 100 ? 8000 : 6000
     });
   };
 
-  const showInfo = (message, title = 'Información') => {
+  const showInfo = (message, title = '') => {
     return addNotification({
       type: 'info',
-      title,
+      title: title || (message.length > 50 ? 'Información' : ''),
       message,
-      duration: 5000
+      duration: message.length > 100 ? 7000 : 5000
     });
   };
 

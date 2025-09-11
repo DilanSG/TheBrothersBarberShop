@@ -430,122 +430,104 @@ const Inventory = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-black via-gray-900 to-black overflow-hidden">
-      {/* Background con efectos de gradientes */}
-      <div className="absolute inset-0 bg-gradient-to-r from-red-900/8 via-blue-900/8 to-red-900/8"></div>
-      
-      {/* Efectos de puntos en toda la página - múltiples capas */}
-      <div className="absolute inset-0 opacity-40" style={{
-        backgroundImage: `radial-gradient(circle, rgba(59, 130, 246, 0.3) 1px, transparent 1px)`,
-        backgroundSize: '30px 30px',
-        backgroundPosition: '0 0, 15px 15px'
-      }}></div>
-      
-      <div className="absolute inset-0 opacity-20" style={{
-        backgroundImage: `radial-gradient(circle, rgba(239, 68, 68, 0.4) 1px, transparent 1px)`,
-        backgroundSize: '20px 20px',
-        backgroundPosition: '10px 10px'
-      }}></div>
-      
-      <div className="absolute inset-0 opacity-15" style={{
-        backgroundImage: `radial-gradient(circle, rgba(168, 85, 247, 0.5) 0.8px, transparent 0.8px)`,
-        backgroundSize: '40px 40px',
-        backgroundPosition: '20px 0'
-      }}></div>
+    <>
+      <PageContainer>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 space-y-8">
+          {/* Header */}
+          <div className="text-center mb-6">
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="p-3 bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-xl border border-purple-500/20 shadow-xl shadow-blue-500/20">
+                <Package2 className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-purple-400" />
+              </div>
+              <GradientText className="text-xl sm:text-2xl lg:text-3xl font-bold">
+                Gestión de Inventario
+              </GradientText>
+            </div>
+          </div>
 
-      {/* Contenido principal */}
-      <div className="relative z-10">
-        <PageContainer>
-          <div className="space-y-6">
-            {/* Header */}
-            <div className="text-center py-8">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">
-                <GradientText className="text-4xl md:text-5xl font-bold">
-                  <Package2 className="w-10 h-10 mx-auto mb-3" />
-                  Gestión de Inventario
-                </GradientText>
-              </h1>
+        {/* Mensajes de error y éxito */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-2 rounded-xl backdrop-blur-sm flex items-center gap-2 shadow-xl shadow-blue-500/20">
+            <AlertTriangle className="w-4 h-4" />
+            {error}
+          </div>
+        )}
+        
+        {success && (
+          <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-2 rounded-xl backdrop-blur-sm flex items-center gap-2 shadow-xl shadow-blue-500/20">
+            <CheckCircle className="w-4 h-4" />
+            {success}
+          </div>
+        )}        {/* Container principal transparente */}
+        <div className="bg-transparent border border-white/10 rounded-2xl backdrop-blur-sm shadow-2xl shadow-blue-500/20">
+          
+          {/* Header de controles */}
+          <div className="p-4 sm:p-6 border-b border-white/10 space-y-4">
+            {/* Botones de acción - Responsivos */}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center sm:justify-start">
+              {user?.role === 'admin' && (
+                <GradientButton
+                  onClick={handleNewProduct}
+                  className="text-sm px-6 py-3 w-full sm:w-auto min-w-[160px] shadow-xl shadow-blue-500/20"
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    <span>Nuevo Producto</span>
+                  </div>
+                </GradientButton>
+              )}
               
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full sm:w-auto">
+                {user?.role === 'admin' && (
+                  <button
+                    onClick={exportToExcel}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 rounded-lg transition-colors text-sm shadow-xl shadow-blue-500/20"
+                    disabled={filteredInventory.length === 0}
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Exportar Excel</span>
+                  </button>
+                )}
+                
+                {user?.role === 'admin' && (
+                  <button
+                    onClick={() => setShowSnapshotModal(true)}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-lg transition-colors text-sm shadow-xl shadow-blue-500/20"
+                    disabled={filteredInventory.length === 0}
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span className="hidden sm:inline">Guardar</span>
+                    <span className="sm:hidden">Inventario</span>
+                  </button>
+                )}
+                
+                {user?.role === 'admin' && (
+                  <button
+                    onClick={() => setShowSavedInventoriesModal(true)}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30 rounded-lg transition-colors text-sm shadow-xl shadow-blue-500/20"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    <span className="hidden sm:inline">Ver</span>
+                    <span className="sm:hidden">Inventarios</span>
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Mensajes de error y éxito */}
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-2 rounded-xl backdrop-blur-sm flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" />
-                {error}
+            {/* Búsqueda - Centrada en móvil */}
+            <div className="flex justify-center sm:justify-end">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Buscar productos..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="glassmorphism-input pl-9 pr-4 w-full shadow-xl shadow-blue-500/20"
+                />
               </div>
-            )}
-            
-            {success && (
-              <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-2 rounded-xl backdrop-blur-sm flex items-center gap-2">
-                <CheckCircle className="w-4 h-4" />
-                {success}
-              </div>
-            )}
-
-            {/* Container principal transparente */}
-            <div className="bg-transparent border border-white/10 rounded-2xl backdrop-blur-sm shadow-2xl shadow-blue-500/20">
-              
-              {/* Header de controles */}
-              <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div className="flex gap-3">
-                  {user?.role === 'admin' && (
-                    <GradientButton
-                      onClick={handleNewProduct}
-                      className="text-sm px-8 py-2 min-w-[180px]"
-                    >
-                      <div className="flex items-center justify-center gap-2">
-                        <Plus className="w-4 h-4" />
-                        <span>Nuevo Producto</span>
-                      </div>
-                    </GradientButton>
-                  )}
-                  
-                  {user?.role === 'admin' && (
-                    <button
-                      onClick={exportToExcel}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 rounded-lg transition-colors text-sm"
-                      disabled={filteredInventory.length === 0}
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>Exportar Excel</span>
-                    </button>
-                  )}
-                  
-                  {user?.role === 'admin' && (
-                    <button
-                      onClick={() => setShowSnapshotModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-lg transition-colors text-sm"
-                      disabled={filteredInventory.length === 0}
-                    >
-                      <Camera className="w-4 h-4" />
-                      <span>Guardar Inventario</span>
-                    </button>
-                  )}
-                  
-                  {user?.role === 'admin' && (
-                    <button
-                      onClick={() => setShowSavedInventoriesModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30 rounded-lg transition-colors text-sm"
-                    >
-                      <Calendar className="w-4 h-4" />
-                      <span>Ver Inventarios</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* Búsqueda */}
-                <div className="relative w-full sm:w-64">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    placeholder="Buscar productos..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:border-blue-500/50 text-sm backdrop-blur-sm"
-                  />
-                </div>
-              </div>
+            </div>
+          </div>
 
               {/* Formularios expandibles en el lugar correcto - Solo Admin */}
               {expandedSection === 'form' && user?.role === 'admin' && (
@@ -566,34 +548,34 @@ const Inventory = () => {
 
                   <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Nombre</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Nombre</label>
                       <input
                         type="text"
                         value={formData.name}
                         onChange={(e) => setFormData({...formData, name: e.target.value})}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
+                        className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Código</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Código</label>
                       <input
                         type="text"
                         value={formData.code}
                         onChange={(e) => setFormData({...formData, code: e.target.value})}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
+                        className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
                         placeholder="Ej: PRD001"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Categoría</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Categoría</label>
                       <select
                         value={formData.category}
                         onChange={(e) => setFormData({...formData, category: e.target.value})}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
+                        className="glassmorphism-select w-full shadow-xl shadow-blue-500/20"
                       >
                         {categories.map(cat => (
                           <option key={cat} value={cat}>
@@ -604,23 +586,23 @@ const Inventory = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Stock Inicial</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Stock Inicial</label>
                       <input
                         type="number"
                         value={formData.initialStock}
                         onChange={(e) => setFormData({...formData, initialStock: e.target.value})}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
+                        className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
                         min="0"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Stock Mínimo</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Stock Mínimo</label>
                       <input
                         type="number"
                         value={formData.minStock}
                         onChange={(e) => setFormData({...formData, minStock: e.target.value})}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
+                        className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
                         min="0"
                       />
                     </div>
@@ -642,29 +624,29 @@ const Inventory = () => {
                     )}
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Precio</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Precio</label>
                       <input
                         type="number"
                         step="0.01"
                         value={formData.price}
                         onChange={(e) => setFormData({...formData, price: e.target.value})}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
+                        className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
                         min="0"
                       />
                     </div>
 
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Descripción</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Descripción</label>
                       <input
                         type="text"
                         value={formData.description}
                         onChange={(e) => setFormData({...formData, description: e.target.value})}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
+                        className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
                       />
                     </div>
 
-                    <div className="md:col-span-2 lg:col-span-4 flex gap-3 pt-2">
-                      <GradientButton type="submit" className="text-sm px-4 py-2">
+                    <div className="md:col-span-2 lg:col-span-4 flex flex-col sm:flex-row gap-3 pt-4">
+                      <GradientButton type="submit" className="text-sm px-6 py-3 w-full sm:w-auto shadow-xl shadow-blue-500/20">
                         {editingItem ? 'Actualizar' : 'Crear'}
                       </GradientButton>
                       <button
@@ -673,7 +655,7 @@ const Inventory = () => {
                           resetForm();
                           setExpandedSection(null);
                         }}
-                        className="px-4 py-2 bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 transition-colors text-sm backdrop-blur-sm"
+                        className="px-6 py-3 w-full sm:w-auto bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 transition-colors text-sm backdrop-blur-sm shadow-xl shadow-blue-500/20"
                       >
                         Cancelar
                       </button>
@@ -917,18 +899,25 @@ const Inventory = () => {
               )}
 
               {/* Header de tabla tipo Excel */}
-              <div className="px-4 py-2 bg-white/5 border-b border-white/10 backdrop-blur-sm">
-                <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-300">
-                  <div className="col-span-2">PRODUCTO</div>
-                  <div className="col-span-1 text-center">INICIAL</div>
-                  <div className="col-span-1 text-center">ENTRADAS</div>
-                  <div className="col-span-1 text-center">SALIDAS</div>
-                  <div className="col-span-1 text-center">VENTAS</div>
-                  <div className="col-span-1 text-center">ESPERADO</div>
-                  <div className="col-span-1 text-center">REAL</div>
-                  <div className="col-span-1 text-center">DIFERENCIA</div>
-                  <div className="col-span-1 text-center">ESTADO</div>
-                  <div className="col-span-2 text-center">ACCIONES</div>
+              <div className="px-4 py-3 bg-gradient-to-r from-white/10 to-white/5 border-b border-white/20 backdrop-blur-sm shadow-xl shadow-blue-500/20">
+                {/* Desktop Header */}
+                <div className="hidden md:grid grid-cols-12 gap-2 text-xs font-semibold text-gray-200 uppercase tracking-wide">
+                  <div className="col-span-2 text-purple-300">Producto</div>
+                  <div className="col-span-1 text-center text-gray-300">Inicial</div>
+                  <div className="col-span-1 text-center text-green-300">Entradas</div>
+                  <div className="col-span-1 text-center text-red-300">Salidas</div>
+                  <div className="col-span-1 text-center text-orange-300">Ventas</div>
+                  <div className="col-span-1 text-center text-purple-300">Esperado</div>
+                  <div className="col-span-1 text-center text-blue-300">Real</div>
+                  <div className="col-span-1 text-center text-yellow-300">Diferencia</div>
+                  <div className="col-span-1 text-center text-cyan-300">Estado</div>
+                  <div className="col-span-2 text-center text-pink-300">Acciones</div>
+                </div>
+                {/* Mobile Header */}
+                <div className="block md:hidden text-center">
+                  <GradientText className="text-sm font-semibold">
+                    Inventario de Productos
+                  </GradientText>
                 </div>
               </div>
 
@@ -960,12 +949,13 @@ const Inventory = () => {
                     const difference = realStock - expectedStock;
                     
                     return (
-                      <div key={item._id} className="px-4 py-2 hover:bg-white/5 transition-colors backdrop-blur-sm border-b border-white/5">
-                        <div className="grid grid-cols-12 gap-2 items-center text-sm">
+                      <div key={item._id} className="px-4 py-4 md:py-3 hover:bg-white/5 transition-colors backdrop-blur-sm border-b border-white/5 group">
+                        {/* Desktop Layout */}
+                        <div className="hidden md:grid grid-cols-12 gap-2 items-center">
                           {/* Producto */}
                           <div className="col-span-2">
-                            <div>
-                              <GradientText className="font-medium text-sm">
+                            <div className="space-y-1">
+                              <GradientText className="font-semibold text-sm group-hover:text-purple-300 transition-colors">
                                 {item.name}
                               </GradientText>
                               <p className="text-xs text-gray-400 capitalize">
@@ -976,40 +966,40 @@ const Inventory = () => {
                           
                           {/* Stock Inicial */}
                           <div className="col-span-1 text-center">
-                            <span className="text-gray-300 font-medium">{initialStock}</span>
+                            <span className="px-2 py-1 bg-gray-600/20 text-gray-300 font-semibold text-sm rounded-md">{initialStock}</span>
                           </div>
                           
                           {/* Entradas */}
                           <div className="col-span-1 text-center">
-                            <span className="text-green-400 font-medium">{entries}</span>
+                            <span className="px-2 py-1 bg-green-600/20 text-green-400 font-semibold text-sm rounded-md">{entries}</span>
                           </div>
                           
                           {/* Salidas */}
                           <div className="col-span-1 text-center">
-                            <span className="text-red-400 font-medium">{exits}</span>
+                            <span className="px-2 py-1 bg-red-600/20 text-red-400 font-semibold text-sm rounded-md">{exits}</span>
                           </div>
                           
                           {/* Ventas */}
                           <div className="col-span-1 text-center">
-                            <span className="text-orange-400 font-medium">{sales}</span>
+                            <span className="px-2 py-1 bg-orange-600/20 text-orange-400 font-semibold text-sm rounded-md">{sales}</span>
                           </div>
                           
                           {/* Stock Esperado */}
                           <div className="col-span-1 text-center">
-                            <span className="text-purple-400 font-medium">{expectedStock}</span>
+                            <span className="px-2 py-1 bg-purple-600/20 text-purple-400 font-semibold text-sm rounded-md">{expectedStock}</span>
                           </div>
                           
-                          {/* Stock Real - Solo lectura */}
+                          {/* Stock Real */}
                           <div className="col-span-1 text-center">
-                            <span className="text-blue-400 font-medium">
+                            <span className="px-2 py-1 bg-blue-600/20 text-blue-400 font-semibold text-sm rounded-md">
                               {realStock}
                             </span>
                           </div>
                           
                           {/* Diferencia */}
                           <div className="col-span-1 text-center">
-                            <span className={`font-medium ${difference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              {difference}
+                            <span className={`px-2 py-1 font-semibold text-sm rounded-md ${difference >= 0 ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'}`}>
+                              {difference > 0 ? '+' : ''}{difference}
                             </span>
                           </div>
                           
@@ -1027,46 +1017,171 @@ const Inventory = () => {
                               <>
                                 <button
                                   onClick={() => handleEdit(item)}
-                                  className="p-1.5 bg-blue-600/20 text-blue-400 rounded-md hover:bg-blue-600/30 transition-colors"
+                                  className="p-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 transition-all duration-200 shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30"
                                   title="Editar"
                                 >
-                                  <Edit className="w-3.5 h-3.5" />
+                                  <Edit className="w-4 h-4" />
                                 </button>
                                 
                                 <button
                                   onClick={() => handleMovement(item)}
-                                  className="p-1.5 bg-purple-600/20 text-purple-400 rounded-md hover:bg-purple-600/30 transition-colors"
+                                  className="p-2 bg-purple-600/20 text-purple-400 rounded-lg hover:bg-purple-600/30 transition-all duration-200 shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30"
                                   title="Movimiento"
                                 >
-                                  <RotateCcw className="w-3.5 h-3.5" />
+                                  <RotateCcw className="w-4 h-4" />
                                 </button>
                                 
                                 <button
                                   onClick={() => handleSale(item)}
-                                  className="p-1.5 bg-green-600/20 text-green-400 rounded-md hover:bg-green-600/30 transition-colors"
+                                  className="p-2 bg-green-600/20 text-green-400 rounded-lg hover:bg-green-600/30 transition-all duration-200 shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30"
                                   title="Venta"
                                 >
-                                  <ShoppingCart className="w-3.5 h-3.5" />
+                                  <ShoppingCart className="w-4 h-4" />
                                 </button>
                                 
                                 <button
                                   onClick={() => handleDelete(item._id)}
-                                  className="p-1.5 bg-red-600/20 text-red-400 rounded-md hover:bg-red-600/30 transition-colors"
+                                  className="p-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition-all duration-200 shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30"
                                   title="Eliminar"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-4 h-4" />
                                 </button>
                               </>
                             ) : (
-                              // Solo mostrar conteo para barberos
                               <button
                                 onClick={() => handleCount(item)}
-                                className="p-1.5 bg-yellow-600/20 text-yellow-400 rounded-md hover:bg-yellow-600/30 transition-colors"
+                                className="p-2 bg-yellow-600/20 text-yellow-400 rounded-lg hover:bg-yellow-600/30 transition-all duration-200 shadow-lg shadow-yellow-500/20 hover:shadow-xl hover:shadow-yellow-500/30"
                                 title="Conteo de Stock"
                               >
-                                <Calculator className="w-3.5 h-3.5" />
+                                <Calculator className="w-4 h-4" />
                               </button>
                             )}
+                          </div>
+                        </div>
+
+                        {/* Mobile Layout - Card Style */}
+                        <div className="block md:hidden space-y-4">
+                          {/* Producto Header */}
+                          <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                            <div className="flex-1">
+                              <GradientText className="font-semibold text-base group-hover:text-purple-300 transition-colors">
+                                {item.name}
+                              </GradientText>
+                              <p className="text-sm text-gray-400 capitalize mt-1">
+                                {item.category?.replace('_', ' ')}
+                              </p>
+                            </div>
+                            <div className="ml-4">
+                              <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${stockStatus.bgColor} ${stockStatus.color}`}>
+                                {stockStatus.status === 'out' ? 'Sin Stock' : 
+                                 stockStatus.status === 'low' ? 'Stock Bajo' : 'En Stock'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Stock Information Grid */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-3">
+                              <div>
+                                <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Inicial</label>
+                                <div className="mt-1">
+                                  <span className="px-3 py-2 bg-gray-600/20 text-gray-300 font-semibold text-sm rounded-lg block text-center">{initialStock}</span>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-green-400 uppercase tracking-wide">Entradas</label>
+                                <div className="mt-1">
+                                  <span className="px-3 py-2 bg-green-600/20 text-green-400 font-semibold text-sm rounded-lg block text-center">{entries}</span>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-red-400 uppercase tracking-wide">Salidas</label>
+                                <div className="mt-1">
+                                  <span className="px-3 py-2 bg-red-600/20 text-red-400 font-semibold text-sm rounded-lg block text-center">{exits}</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-3">
+                              <div>
+                                <label className="text-xs font-medium text-orange-400 uppercase tracking-wide">Ventas</label>
+                                <div className="mt-1">
+                                  <span className="px-3 py-2 bg-orange-600/20 text-orange-400 font-semibold text-sm rounded-lg block text-center">{sales}</span>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-purple-400 uppercase tracking-wide">Esperado</label>
+                                <div className="mt-1">
+                                  <span className="px-3 py-2 bg-purple-600/20 text-purple-400 font-semibold text-sm rounded-lg block text-center">{expectedStock}</span>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-blue-400 uppercase tracking-wide">Real</label>
+                                <div className="mt-1">
+                                  <span className="px-3 py-2 bg-blue-600/20 text-blue-400 font-semibold text-sm rounded-lg block text-center">{realStock}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Difference Row */}
+                          <div className="pt-3 border-t border-white/10">
+                            <label className="text-xs font-medium text-yellow-400 uppercase tracking-wide">Diferencia</label>
+                            <div className="mt-2">
+                              <span className={`px-4 py-2 font-semibold text-sm rounded-lg block text-center ${difference >= 0 ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'}`}>
+                                {difference > 0 ? '+' : ''}{difference}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="pt-4 border-t border-white/10">
+                            <label className="text-xs font-medium text-pink-400 uppercase tracking-wide mb-3 block">Acciones</label>
+                            <div className="flex flex-wrap gap-3">
+                              {user?.role === 'admin' ? (
+                                <>
+                                  <button
+                                    onClick={() => handleEdit(item)}
+                                    className="flex-1 min-w-0 px-4 py-3 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 transition-all duration-200 shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 flex items-center justify-center gap-2"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Editar</span>
+                                  </button>
+                                  
+                                  <button
+                                    onClick={() => handleMovement(item)}
+                                    className="flex-1 min-w-0 px-4 py-3 bg-purple-600/20 text-purple-400 rounded-lg hover:bg-purple-600/30 transition-all duration-200 shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 flex items-center justify-center gap-2"
+                                  >
+                                    <RotateCcw className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Movimiento</span>
+                                  </button>
+                                  
+                                  <button
+                                    onClick={() => handleSale(item)}
+                                    className="flex-1 min-w-0 px-4 py-3 bg-green-600/20 text-green-400 rounded-lg hover:bg-green-600/30 transition-all duration-200 shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 flex items-center justify-center gap-2"
+                                  >
+                                    <ShoppingCart className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Venta</span>
+                                  </button>
+                                  
+                                  <button
+                                    onClick={() => handleDelete(item._id)}
+                                    className="flex-1 min-w-0 px-4 py-3 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition-all duration-200 shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30 flex items-center justify-center gap-2"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Eliminar</span>
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => handleCount(item)}
+                                  className="w-full px-4 py-3 bg-yellow-600/20 text-yellow-400 rounded-lg hover:bg-yellow-600/30 transition-all duration-200 shadow-lg shadow-yellow-500/20 hover:shadow-xl hover:shadow-yellow-500/30 flex items-center justify-center gap-2"
+                                >
+                                  <Calculator className="w-4 h-4" />
+                                  <span className="text-sm font-medium">Conteo de Stock</span>
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1076,24 +1191,23 @@ const Inventory = () => {
               )}
             </div>
           </div>
-        </PageContainer>
+      </PageContainer>
 
-        {/* Modal de Snapshot */}
-        <InventorySnapshot
-          isOpen={showSnapshotModal}
-          onClose={() => setShowSnapshotModal(false)}
-          inventory={inventory}
-          onSnapshotCreated={handleSnapshotCreated}
-          onInventoryReset={loadInventory} // Recargar inventario después del reset
-        />
+      {/* Modal de Snapshot */}
+      <InventorySnapshot
+        isOpen={showSnapshotModal}
+        onClose={() => setShowSnapshotModal(false)}
+        inventory={inventory}
+        onSnapshotCreated={handleSnapshotCreated}
+        onInventoryReset={loadInventory}
+      />
 
-        {/* Modal de Inventarios Guardados */}
-        <SavedInventoriesModal
-          isOpen={showSavedInventoriesModal}
-          onClose={() => setShowSavedInventoriesModal(false)}
-        />
-      </div>
-    </div>
+      {/* Modal de Inventarios Guardados */}
+      <SavedInventoriesModal
+        isOpen={showSavedInventoriesModal}
+        onClose={() => setShowSavedInventoriesModal(false)}
+      />
+    </>
   );
 };
 

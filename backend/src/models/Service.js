@@ -33,6 +33,10 @@ const serviceSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  showInHome: {
+    type: Boolean,
+    default: false
+  },
   image: {
     public_id: String,
     url: String

@@ -372,7 +372,7 @@ export const useBarberStats = () => {
                 });
               }
               
-              // Cortes/walk-ins
+              // Cortes
               if (salesData.cortes && Array.isArray(salesData.cortes)) {
                 salesData.cortes.forEach(c => {
                   totalCortes += c.total || 0;
@@ -505,7 +505,7 @@ export const useBarberStats = () => {
           countProductos = salesResponse.data.count || 0;
         }
         
-        // Procesar cortes (walk-ins)
+        // Procesar cortes
         let cortesCount = 0;
         let cortesTotal = 0;
         if (salesResponse.data && Array.isArray(salesResponse.data.cortes)) {

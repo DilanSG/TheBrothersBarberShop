@@ -262,6 +262,21 @@ class ServiceOfferedService {
       throw new AppError('Error al obtener estadísticas', 500);
     }
   }
+
+  static async getServicesForHome() {
+    try {
+      const services = await Service.find({ 
+        isActive: true, 
+        showInHome: true 
+      }).sort({ createdAt: -1 });
+      
+      logger.debug(`Recuperados ${services.length} servicios para el Home`);
+      return services;
+    } catch (error) {
+      logger.error('Error obteniendo servicios para Home:', error);
+      throw new AppError('Error al obtener servicios para el Home', 500);
+    }
+  }
 }
 
 export default ServiceOfferedService;

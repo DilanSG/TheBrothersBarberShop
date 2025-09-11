@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\ADMIN\\Desktop\\TheBrothersBarberShop\\backend\\logs\\.955b579e975f934f58a7e01fc07bb79a27847082-audit.json",
+    "files": [
+        {
+            "date": 1757510457619,
+            "name": "C:\\Users\\ADMIN\\Desktop\\TheBrothersBarberShop\\backend\\logs\\2025-09-10-http.log",
+            "hash": "742a0060d3992f2c350aaad8c3d999e981671fda969f46f4da798e288a832524"
+        },
+        {
+            "date": 1757578864799,
+            "name": "C:\\Users\\ADMIN\\Desktop\\TheBrothersBarberShop\\backend\\logs\\2025-09-11-http.log",
+            "hash": "3a914e5a1123fc4d93c1cdf5d1cd6e41469da8b37266a72952555a177750a990"
+        }
+    ],
+    "hashType": "sha256"
+}

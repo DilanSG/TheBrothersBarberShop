@@ -634,6 +634,80 @@ export const api = {
     }
   },
 
+  patch: async (endpoint, data) => {
+    try {
+      const token = getValidToken();
+      const response = await fetchWithRetry(`${API_URL}${endpoint}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify(data),
+      });
+
+      const responseData = await response.json();
+
+      // Manejar errores de autenticación
+      handleAuthError(response, responseData, endpoint);
+
+      // Invalidar caché relacionado
+      if (response.ok) {
+        try {
+          const cachePattern = new RegExp(endpoint.split('/')[1]);
+          const cache = await safeCache.open('api-cache');
+          if (cache) {
+            const keys = await cache.keys();
+            for (const key of keys) {
+              if (cachePattern.test(key.url)) {
+                await cache.delete(key);
+              }
+            }
+          }
+        } catch (cacheError) {
+          console.warn('Error al invalidar caché:', cacheError);
+        }
+      }
+
+      return responseData;
+    } catch (error) {
+      console.log('🚨 Error en api.patch:', error);
+      
+      // Si el error tiene información de respuesta HTTP, manejar específicamente
+      if (error.response && error.data) {
+        try {
+          handleAuthError(error.response, error.data, endpoint);
+        } catch (authError) {
+          throw authError;
+        }
+        
+        // Si llegamos aquí, no es un error de autenticación
+        // Para errores 400 (validación), mostrar mensaje específico sin duplicar
+        if (error.response.status === 400 && notificationContext) {
+          const errorData = error.data;
+          let message = 'Error de validación';
+          
+          // Si hay detalles de validación específicos, mostrarlos
+          if (errorData?.details && Array.isArray(errorData.details)) {
+            const fieldErrors = errorData.details.map(detail => 
+              `${detail.field}: ${detail.message}`
+            ).join(', ');
+            message = `Error de validación: ${fieldErrors}`;
+          } else if (errorData?.message) {
+            message = errorData.message;
+          }
+          
+          notificationContext.showError(message, 'Error de Validación');
+          throw new Error(message);
+        }
+      }
+      
+      // Para otros tipos de errores, usar el manejador general
+      handleConnectionError(error);
+      throw error;
+    }
+  },
+
   // Método específico para subir archivos
   upload: async (endpoint, formData) => {
     try {
@@ -791,7 +865,7 @@ export const salesService = {
   // Crear venta de productos
   createSale: (saleData) => api.post('/sales', saleData),
   
-  // Crear venta de servicio walk-in  
+  // Crear venta de servicio de corte  
   createWalkInSale: (walkInData) => api.post('/sales/walk-in', walkInData)
 };
 

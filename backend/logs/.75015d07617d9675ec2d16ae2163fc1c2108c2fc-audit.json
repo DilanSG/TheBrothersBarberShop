@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\ADMIN\\Desktop\\TheBrothersBarberShop\\backend\\logs\\.75015d07617d9675ec2d16ae2163fc1c2108c2fc-audit.json",
+    "files": [
+        {
+            "date": 1757510457628,
+            "name": "C:\\Users\\ADMIN\\Desktop\\TheBrothersBarberShop\\backend\\logs\\2025-09-10-exceptions.log",
+            "hash": "9bfa1230c473794aba449943ea0a00642e0878b56fe9f3e4ef34df4fa3bdf7ca"
+        },
+        {
+            "date": 1757583376215,
+            "name": "C:\\Users\\ADMIN\\Desktop\\TheBrothersBarberShop\\backend\\logs\\2025-09-11-exceptions.log",
+            "hash": "8a9254ed72f65103c9c5bab7c1972b4ad17671049b3fe664f62ed461d33c4cae"
+        }
+    ],
+    "hashType": "sha256"
+}

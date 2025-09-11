@@ -21,7 +21,7 @@ export default class BarberService {
       })
       .populate({
         path: 'user',
-        select: 'name email phone photo role',
+        select: 'name email phone profilePicture role',
         match: { isActive: true, role: 'barber' }
       })
       .select('specialty experience description services schedule rating isActive photo')
@@ -49,7 +49,7 @@ export default class BarberService {
       })
       .populate({
         path: 'user',
-        select: 'name email phone photo role',
+        select: 'name email phone profilePicture role',
         match: { isActive: true, role: 'barber' }
       })
       .populate('services', 'name price duration')
@@ -115,7 +115,7 @@ export default class BarberService {
       }
 
       await barber.save();
-      await barber.populate('user', 'name email phone photo');
+      await barber.populate('user', 'name email phone profilePicture');
       
       logger.debug(`Perfil de barbero ${barberId} actualizado exitosamente`);
       return barber;

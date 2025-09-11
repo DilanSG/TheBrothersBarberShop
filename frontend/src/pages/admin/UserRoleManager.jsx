@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { PageContainer } from '../../components/layout/PageContainer';
+import GradientText from '../../components/ui/GradientText';
 import { api } from '../../services/api';
 
 function UserRoleManager() {
@@ -135,119 +136,178 @@ function UserRoleManager() {
 
   return (
     <PageContainer>
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 py-8 px-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-8">
-          <div className="bg-blue-600/20 w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center">
-            <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 space-y-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="p-4 bg-gradient-to-r from-blue-600/20 to-blue-600/20 rounded-xl border border-blue-500/20 shadow-xl shadow-blue-500/20 w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+            <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-blue-400">Gestión de roles de usuarios</h2>
-          <p className="mt-2 text-gray-400 text-sm sm:text-base">
+          <div className="bg-gradient-to-r from-blue-400 to-blue-400 bg-clip-text text-transparent">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">Gestión de Usuarios</h2>
+          </div>
+          <p className="text-gray-400 text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed">
             Administra los roles y permisos de los usuarios de la plataforma
           </p>
         </div>
 
         {loading ? (
-          <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700">
+          <div className="bg-white/5 border border-white/10 rounded-2xl backdrop-blur-sm shadow-2xl shadow-blue-500/20 p-12">
             <div className="flex flex-col items-center justify-center">
-              <div className="relative w-16 h-16">
+              <div className="relative w-16 h-16 mb-6">
                 <div className="absolute inset-0">
                   <div className="w-full h-full border-4 border-blue-500/20 rounded-full"></div>
                   <div className="w-full h-full border-4 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
                 </div>
               </div>
-              <p className="mt-4 text-lg text-blue-400">Cargando usuarios...</p>
+              <div className="bg-gradient-to-r from-blue-400 to-blue-400 bg-clip-text text-transparent">
+                <p className="text-xl font-semibold">Cargando usuarios...</p>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <div className="inline-block min-w-full align-middle">
-              <div className="bg-gray-800/50 backdrop-blur-sm overflow-hidden border border-gray-700 rounded-xl shadow-xl">
-                <table className="min-w-full divide-y divide-gray-700">
-                  <thead>
-                    <tr>
-                      <th className="px-4 py-3.5 text-left text-sm font-semibold text-blue-400">
-                        <div className="flex items-center gap-2">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                          Usuario
-                        </div>
-                      </th>
-                      <th className="px-4 py-3.5 text-left text-sm font-semibold text-blue-400 hidden sm:table-cell">
-                        <div className="flex items-center gap-2">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                              d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                          </svg>
-                          Email
-                        </div>
-                      </th>
-                      <th className="px-4 py-3.5 text-left text-sm font-semibold text-blue-400">
-                        <div className="flex items-center gap-2">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                          </svg>
-                          Rol
-                        </div>
-                      </th>
-                      <th className="px-4 py-3.5 text-right text-sm font-semibold text-blue-400">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {users.map(u => (
-                      <tr key={u._id} className="hover:bg-gray-700/30 transition-colors">
-                        <td className="px-4 py-4 text-sm sm:text-base whitespace-nowrap text-white">
-                          {u.name || u.email}
-                        </td>
-                        <td className="px-4 py-4 text-sm sm:text-base whitespace-nowrap text-gray-300 hidden sm:table-cell">
-                          {u.email}
-                        </td>
-                        <td className="px-4 py-4 text-sm sm:text-base whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                            ${u.role === 'admin' ? 'bg-purple-900/50 text-purple-200 border border-purple-700' :
-                              u.role === 'barber' ? 'bg-blue-900/50 text-blue-200 border border-blue-700' :
-                              'bg-green-900/50 text-green-200 border border-green-700'}`}>
-                            {u.role}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm">
-                          <div className="flex items-center justify-end gap-2">
-                            <select
-                              value={u.role}
-                              onChange={e => handleRoleChange(u._id, e.target.value)}
-                              className="block w-32 px-3 py-1.5 text-sm text-white bg-gray-700/50 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          <div className="bg-white/5 border border-white/10 rounded-2xl backdrop-blur-sm shadow-2xl shadow-blue-500/20 overflow-hidden">
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-white/10">
+                <thead className="bg-gradient-to-r from-white/10 to-white/5">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-blue-400">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        Usuario
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-blue-400">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                        </svg>
+                        Email
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-green-400">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        Rol
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-pink-400">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {users.map(u => (
+                    <tr key={u._id} className="hover:bg-white/5 transition-colors group">
+                      <td className="px-6 py-4 text-base whitespace-nowrap text-white font-medium">
+                        {u.name || u.email}
+                      </td>
+                      <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-300">
+                        {u.email}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                          ${u.role === 'admin' ? 'bg-blue-900/50 text-blue-300 border border-blue-500/30' :
+                            u.role === 'barber' ? 'bg-green-900/50 text-green-300 border border-green-500/30' :
+                            'bg-gray-900/50 text-gray-300 border border-gray-500/30'}`}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className="flex items-center justify-end gap-3">
+                          <select
+                            value={u.role}
+                            onChange={e => handleRoleChange(u._id, e.target.value)}
+                            className="block px-3 py-2 text-sm text-white bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm shadow-xl shadow-blue-500/20"
+                          >
+                            <option value="user">Usuario</option>
+                            <option value="barber">Barbero</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                          
+                          {u._id !== (user._id || user.id) && u.role !== 'admin' && (
+                            <button
+                              onClick={() => handleDeleteUser(u._id)}
+                              className="inline-flex items-center p-2 border border-red-500/30 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-all duration-200 shadow-xl shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30"
+                              title="Eliminar usuario"
                             >
-                              <option value="user">Usuario</option>
-                              <option value="barber">Barbero</option>
-                              <option value="admin">Admin</option>
-                            </select>
-                            
-                            {u._id !== (user._id || user.id) && u.role !== 'admin' && (
-                              <button
-                                onClick={() => handleDeleteUser(u._id)}
-                                className="inline-flex items-center p-1.5 border border-red-600/30 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                                title="Eliminar usuario"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Layout - Card Style */}
+            <div className="block md:hidden divide-y divide-white/10">
+              {users.map(u => (
+                <div key={u._id} className="p-6 hover:bg-white/5 transition-colors group">
+                  {/* User Info */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex-1">
+                      <GradientText className="text-lg font-semibold">
+                        {u.name || u.email}
+                      </GradientText>
+                      <p className="text-sm text-gray-400 mt-1">{u.email}</p>
+                    </div>
+                    <div className="ml-4">
+                      <span className={`inline-flex items-center px-3 py-2 rounded-full text-sm font-medium
+                        ${u.role === 'admin' ? 'bg-blue-900/50 text-blue-300 border border-blue-500/30' :
+                          u.role === 'barber' ? 'bg-green-900/50 text-green-300 border border-green-500/30' :
+                          'bg-gray-900/50 text-gray-300 border border-gray-500/30'}`}>
+                        {u.role === 'admin' ? 'Administrador' :
+                         u.role === 'barber' ? 'Barbero' : 'Usuario'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="space-y-3 pt-4 border-t border-white/10">
+                    <div>
+                      <label className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2 block">
+                        Cambiar Rol
+                      </label>
+                      <select
+                        value={u.role}
+                        onChange={e => handleRoleChange(u._id, e.target.value)}
+                        className="w-full px-4 py-3 text-white bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm shadow-xl shadow-blue-500/20"
+                      >
+                        <option value="user">Usuario</option>
+                        <option value="barber">Barbero</option>
+                        <option value="admin">Administrador</option>
+                      </select>
+                    </div>
+                    
+                    {u._id !== (user._id || user.id) && u.role !== 'admin' && (
+                      <button
+                        onClick={() => handleDeleteUser(u._id)}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-red-500/30 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-all duration-200 shadow-xl shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span className="font-medium">Eliminar Usuario</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -267,52 +327,54 @@ function UserRoleManager() {
             {/* Modal */}
             <div className="absolute inset-0 overflow-y-auto">
               <div className="flex min-h-full items-end sm:items-center justify-center p-4">
-                <div className="relative bg-gray-800 border border-gray-700 rounded-xl shadow-xl w-full max-w-md transform transition-all animate-modal">
+                <div className="relative bg-white/10 border border-white/20 rounded-2xl backdrop-blur-md shadow-2xl shadow-blue-500/20 w-full max-w-md transform transition-all animate-modal">
                   {/* Header */}
-                  <div className="border-b border-gray-700 px-6 py-4">
+                  <div className="border-b border-white/10 px-6 py-6">
                     <div className="flex items-center">
-                      <div className="mr-3 flex-shrink-0">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-900/50 border border-red-700">
-                          <svg className="h-6 w-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="mr-4 flex-shrink-0">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-600/20 border border-red-500/30 shadow-xl shadow-red-500/20">
+                          <svg className="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                           </svg>
                         </div>
                       </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-red-400">Confirmar eliminación</h3>
-                        <p className="mt-1 text-sm text-gray-400">Esta acción no se puede deshacer</p>
+                      <div className="flex-1">
+                        <div className="bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">
+                          <h3 className="text-xl font-bold">Confirmar eliminación</h3>
+                        </div>
+                        <p className="mt-2 text-gray-400">Esta acción no se puede deshacer</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Content */}
-                  <div className="px-6 py-4">
-                    <p className="text-gray-300">
+                  <div className="px-6 py-6">
+                    <p className="text-gray-300 text-lg leading-relaxed">
                       ¿Estás seguro que deseas eliminar al usuario{' '}
-                      <span className="font-semibold text-blue-400">
+                      <span className="font-semibold bg-gradient-to-r from-blue-400 to-blue-400 bg-clip-text text-transparent">
                         {userToDelete?.name || userToDelete?.email}
                       </span>?
                     </p>
                   </div>
 
                   {/* Footer */}
-                  <div className="border-t border-gray-700 px-6 py-4">
-                    <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+                  <div className="border-t border-white/10 px-6 py-6">
+                    <div className="flex flex-col-reverse sm:flex-row justify-end gap-4">
                       <button
                         onClick={() => {
                           setShowDeleteModal(false);
                           setUserToDelete(null);
                         }}
-                        className="w-full sm:w-auto px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500/50 text-sm"
+                        className="w-full sm:w-auto px-6 py-3 rounded-lg bg-white/10 border border-white/20 text-gray-300 hover:bg-white/20 transition-all duration-200 backdrop-blur-sm shadow-xl shadow-blue-500/20"
                       >
                         Cancelar
                       </button>
                       <button
                         onClick={confirmDelete}
-                        className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/50 text-sm"
+                        className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-lg bg-red-600/80 border border-red-500/50 text-white hover:bg-red-600 transition-all duration-200 shadow-xl shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/50"
                       >
-                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
@@ -325,25 +387,24 @@ function UserRoleManager() {
             </div>
           </div>
         )}
-      </div>
 
-      <style>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.5s ease;
-        }
+        <style>{`
+          @keyframes fade-in {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-fade-in {
+            animation: fade-in 0.5s ease;
+          }
 
-        @keyframes modal {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        .animate-modal {
-          animation: modal 0.2s ease-out;
-        }
-      `}</style>
+          @keyframes modal {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+          }
+          .animate-modal {
+            animation: modal 0.2s ease-out;
+          }
+        `}</style>
       </div>
     </PageContainer>
   );

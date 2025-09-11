@@ -149,3 +149,29 @@ export const getServiceStats = asyncHandler(async (req, res) => {
     data: stats
   });
 });
+
+// @desc    Actualizar estado showInHome de un servicio
+// @route   PATCH /api/services/:id/show-in-home
+// @access  Privado/Admin
+export const toggleShowInHome = asyncHandler(async (req, res) => {
+  const { showInHome } = req.body;
+  
+  if (typeof showInHome !== 'boolean') {
+    throw new AppError('El campo showInHome debe ser un valor booleano', 400);
+  }
+
+  // Si se intenta activar showInHome, verificar que no haya más de 3 servicios activos
+  if (showInHome === true) {
+    const currentActiveServices = await ServiceOfferedService.getServicesForHome();
+    if (currentActiveServices.length >= 3) {
+      throw new AppError('Solo se pueden mostrar máximo 3 servicios en el Home. Desactiva otro servicio primero.', 400);
+    }
+  }
+
+  const service = await ServiceOfferedService.updateService(req.params.id, { showInHome });
+  res.json({
+    success: true,
+    message: showInHome ? 'Servicio agregado al Home' : 'Servicio removido del Home',
+    data: service
+  });
+});

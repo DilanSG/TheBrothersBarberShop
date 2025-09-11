@@ -340,7 +340,7 @@ const AdminBarbers = () => {
 
     <!-- CORTES SIN CITA -->
     <div class="section">
-        <div class="section-title">CORTES SIN CITA (WALK-INS)</div>
+        <div class="section-title">CORTES SIN CITA</div>
         ${walkIns.length === 0 ? '<div>No hay cortes sin cita registrados</div>' : ''}
         ${walkIns.map(walkIn => `
             <div class="item">
@@ -350,7 +350,7 @@ const AdminBarbers = () => {
         `).join('')}
         ${walkIns.length > 0 ? `
             <div class="subtotal">
-                <div>SUBTOTAL WALK-INS:</div>
+                <div>SUBTOTAL CORTES:</div>
                 <div>${formatCurrency(totals.walkInTotal)}</div>
             </div>
         ` : ''}

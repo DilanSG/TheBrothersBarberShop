@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { api, barberService, serviceService } from '../../services/api';
 import { useNotification } from '../../contexts/NotificationContext';
 import GradientButton from '../../components/ui/GradientButton';
+import GradientText from '../../components/ui/GradientText';
 import { 
   User, 
   Camera, 
@@ -18,7 +19,11 @@ import {
   Phone,
   Calendar,
   Settings,
-  FileText
+  ChevronDown,
+  FileText,
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 const daysInSpanish = {
@@ -32,16 +37,14 @@ const daysInSpanish = {
 };
 
 const defaultSchedule = {
-  monday: { start: '07:00', end: '19:00', available: true },
-  tuesday: { start: '07:00', end: '19:00', available: true },
-  wednesday: { start: '07:00', end: '19:00', available: true },
-  thursday: { start: '07:00', end: '19:00', available: true },
-  friday: { start: '07:00', end: '19:00', available: true },
-  saturday: { start: '07:00', end: '19:00', available: true },
-  sunday: { start: '07:00', end: '19:00', available: false }
-};
-
-const BarberProfileEdit = () => {
+  monday: { start: '07:00', end: '22:00', available: true },
+  tuesday: { start: '07:00', end: '22:00', available: true },
+  wednesday: { start: '07:00', end: '22:00', available: true },
+  thursday: { start: '07:00', end: '22:00', available: true },
+  friday: { start: '07:00', end: '22:00', available: true },
+  saturday: { start: '07:00', end: '22:00', available: true },
+  sunday: { start: '07:00', end: '22:00', available: false }
+};const BarberProfileEdit = () => {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError } = useNotification();
@@ -53,15 +56,16 @@ const BarberProfileEdit = () => {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
   const [previewImage, setPreviewImage] = useState(null);
+const [scheduleLoaded, setScheduleLoaded] = useState(false);
   
   // Estados para el formulario del usuario
   const [userFormData, setUserFormData] = useState({
     name: '',
-    phone: '',
+        phone: '',
     birthdate: ''
   });
   
-  // Estados para el formulario del barbero
+// Estados para el formulario del barbero
   const [barberFormData, setBarberFormData] = useState({
     specialty: '',
     experience: '',
@@ -69,10 +73,23 @@ const BarberProfileEdit = () => {
     services: []
   });
   
-  // Estados para servicios y horarios
+// Estados para servicios y horarios
   const [availableServices, setAvailableServices] = useState([]);
   const [schedule, setSchedule] = useState(defaultSchedule);
-
+  
+  // Estados para contraseñas
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+  
   const formatDateForInput = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -83,6 +100,11 @@ const BarberProfileEdit = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Debug: Monitorear cambios en el schedule
+  useEffect(() => {
+    console.log('Schedule actualizado:', schedule);
+  }, [schedule]);
 
   // Sincronizar el formulario del usuario cuando el contexto cambie
   useEffect(() => {
@@ -102,6 +124,7 @@ const BarberProfileEdit = () => {
 
   const fetchData = async () => {
     setLoading(true);
+    setScheduleLoaded(false);
     try {
       const [barberData, servicesData] = await Promise.all([
         barberService.getBarberProfile(),
@@ -131,8 +154,26 @@ const BarberProfileEdit = () => {
         }
         
         if (barberInfo.schedule) {
-          setSchedule(barberInfo.schedule);
+          console.log('Cargando horario desde BD:', barberInfo.schedule);
+          // Validar que el schedule tenga la estructura correcta
+          const validSchedule = { ...defaultSchedule };
+          Object.keys(validSchedule).forEach(day => {
+            if (barberInfo.schedule[day]) {
+              validSchedule[day] = {
+                start: barberInfo.schedule[day].start || validSchedule[day].start,
+                end: barberInfo.schedule[day].end || validSchedule[day].end,
+                available: barberInfo.schedule[day].available !== undefined 
+                  ? barberInfo.schedule[day].available 
+                  : validSchedule[day].available
+              };
+            }
+          });
+          setSchedule(validSchedule);
+        } else {
+          console.log('No hay horario en BD, usando horario por defecto');
+          setSchedule(defaultSchedule);
         }
+        setScheduleLoaded(true);
       }
       
       if (servicesData.success) {
@@ -172,21 +213,201 @@ const BarberProfileEdit = () => {
     }));
   };
 
-  const handleScheduleChange = (day, field, value) => {
-    setSchedule(prev => ({
-      ...prev,
-      [day]: {
-        ...prev[day],
-        [field]: value
+  // Función para generar opciones de tiempo
+  const generateTimeOptions = () => {
+    const options = [];
+    for (let hour = 7; hour <= 22; hour++) {
+      options.push({
+        value: `${hour.toString().padStart(2, '0')}:00`,
+        label: `${hour === 12 ? 12 : hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`
+      });
+    }
+    return options;
+  };
+
+  const timeOptions = generateTimeOptions();
+
+  // Componente de selector personalizado
+  const CustomTimeSelector = ({ value, onChange, options, placeholder, dayKey, field }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const dropdownRef = useRef(null);
+    const buttonRef = useRef(null);
+
+    const filteredOptions = options.filter(option => 
+      option.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const selectedOption = options.find(option => option.value === value);
+
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
+            buttonRef.current && !buttonRef.current.contains(event.target)) {
+          setIsOpen(false);
+          setSearchTerm('');
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+// Agregar clase al contenedor padre cuando se abre
+    useEffect(() => {
+      const dayContainer = document.querySelector(`[data-day="${dayKey}"]`);
+      if (dayContainer) {
+        if (isOpen) {
+          dayContainer.style.zIndex = '99998';
+          dayContainer.style.position = 'relative';
+          dayContainer.style.overflow = 'visible';
+        } else {
+          dayContainer.style.zIndex = '';
+          dayContainer.style.position = '';
+          dayContainer.style.overflow = '';
+        }
       }
-    }));
+    }, [isOpen, dayKey]);
+
+    const handleSelect = (option) => {
+      onChange(option.value);
+      setIsOpen(false);
+      setSearchTerm('');
+    };
+
+    return (
+      <div className="relative w-full" style={{ zIndex: 1000 }}>
+        <button
+          ref={buttonRef}
+          type="button"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 hover:border-blue-500/50 transition-all duration-300 text-left flex items-center justify-between shadow-xl shadow-blue-500/20"
+        >
+          <span>{selectedOption ? selectedOption.label : placeholder}</span>
+          <ChevronDown 
+            size={16} 
+            className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
+          />
+        </button>
+
+        {isOpen && (
+          <div 
+            ref={dropdownRef}
+            className="absolute w-full mt-1 bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-xl border border-red-500/30 rounded-2xl shadow-2xl shadow-red-500/10 max-h-64 overflow-visible"
+            style={{ zIndex: 99999, position: 'absolute' }}
+          >
+{/* Barra de búsqueda */}
+            <div className="p-3 border-b border-gray-700/50">
+              <input
+                type="text"
+                placeholder="Buscar hora..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500/50 text-sm shadow-xl shadow-blue-500/20"
+              />
+            </div>
+            
+{/* Lista de opciones */}
+            <div className="max-h-48 overflow-y-auto custom-scrollbar pr-1">
+              {filteredOptions.length > 0 ? (
+                filteredOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => handleSelect(option)}
+                    className={`w-full px-4 py-3 text-left hover:bg-gradient-to-r hover:from-red-600/20 hover:to-blue-600/20 transition-all duration-200 text-sm font-medium border-b border-gray-700/30 last:border-b-0 flex items-center justify-between group ${
+                      value === option.value 
+                        ? 'bg-gradient-to-r from-red-600/30 to-blue-600/30 text-white' 
+                        : 'text-gray-300 hover:text-white'
+                    }`}
+                  >
+                    <span>{option.label}</span>
+                    {value === option.value && (
+                      <div className="w-2 h-2 bg-gradient-to-r from-red-400 to-blue-400 rounded-full"></div>
+                    )}
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-6 text-center text-gray-400 text-sm">
+No se encontraron opciones
+</div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Función para ajustar horarios a intervalos de 1 hora
+  const adjustTimeToInterval = (timeString) => {
+    const [hours] = timeString.split(':').map(Number);
+    return `${hours.toString().padStart(2, '0')}:00`;
+  };
+
+  // Función para validar que el horario sea lógico (hora de fin después de inicio)
+  const validateTimeRange = (timeString, field, currentSchedule) => {
+    // Solo ajustar a intervalos de 30 minutos, sin restricciones de rango
+    return timeString;
+  };
+
+  const handleScheduleChange = (day, field, value) => {
+    if (field === 'available') {
+      // Cambiar disponibilidad del día
+      setSchedule(prev => ({
+        ...prev,
+        [day]: {
+          ...prev[day],
+          available: value
+        }
+      }));
+      return;
+    }
+
+    // Ajustar a intervalos de 30 minutos
+    let adjustedValue = adjustTimeToInterval(value);
+    
+    setSchedule(prev => {
+      const currentDaySchedule = prev[day];
+      let newSchedule = {
+        ...prev,
+        [day]: {
+          ...currentDaySchedule,
+          [field]: adjustedValue
+        }
+      };
+
+      // Validar que la hora de fin sea después de la hora de inicio
+      const startTime = field === 'start' ? adjustedValue : currentDaySchedule.start;
+      const endTime = field === 'end' ? adjustedValue : currentDaySchedule.end;
+      
+      // Convertir a minutos para comparar
+      const getMinutes = (timeStr) => {
+        const [hours] = timeStr.split(':').map(Number);
+        return hours * 60;
+      };
+      
+      const startMinutes = getMinutes(startTime);
+      const endMinutes = getMinutes(endTime);
+      const timeDifference = endMinutes - startMinutes;
+      
+      // Si la diferencia es menor a 1 hora o negativa, desmarcar el día
+      if (timeDifference < 60) {
+        newSchedule[day].available = false;
+      } else {
+        // Si había una diferencia válida, asegurar que el día esté marcado como disponible
+        newSchedule[day].available = true;
+      }
+      
+      return newSchedule;
+    });
   };
 
   // Manejo de foto de perfil
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
+if (file.size > 5 * 1024 * 1024) {
         showError('La imagen no puede ser mayor a 5MB');
         return;
       }
@@ -273,7 +494,7 @@ const BarberProfileEdit = () => {
         setPreviewImage(profilePictureUrl);
       } else {
         setPreviewImage(null);
-      }
+        }
       
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -283,12 +504,12 @@ const BarberProfileEdit = () => {
     } catch (error) {
       console.error('Error al actualizar información personal:', error);
       showError(error.message || 'Error al actualizar la información personal');
-    } finally {
+          } finally {
       setSaving(false);
     }
   };
 
-  // Guardar información profesional
+// Guardar información profesional
   const handleProfessionalSave = async () => {
     try {
       setSaving(true);
@@ -302,7 +523,7 @@ const BarberProfileEdit = () => {
       
       if (response.success) {
         showSuccess('Información profesional actualizada exitosamente');
-        
+      
         // Actualizar el estado local sin necesidad de recargar todo
         setBarber(prev => ({
           ...prev,
@@ -317,21 +538,21 @@ const BarberProfileEdit = () => {
     } catch (error) {
       console.error('Error updating professional info:', error);
       showError('Error al actualizar la información profesional');
-    } finally {
+          } finally {
       setSaving(false);
     }
   };
 
-  // Guardar horarios
+// Guardar horarios
   const handleScheduleSave = async () => {
     try {
       setSaving(true);
       
-      const response = await barberService.updateMyProfile({ schedule });
+const response =       await barberService.updateMyProfile({ schedule });
       
       if (response.success) {
         showSuccess('Horarios actualizados exitosamente');
-        
+      
         // Actualizar el estado local
         setBarber(prev => ({
           ...prev,
@@ -346,6 +567,54 @@ const BarberProfileEdit = () => {
     } catch (error) {
       console.error('Error updating schedule:', error);
       showError('Error al actualizar los horarios');
+          } finally {
+      setSaving(false);
+    }
+  };
+
+  // Funciones para manejar contraseñas
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handlePasswordSave = async () => {
+    try {
+      if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+        showError('Todos los campos de contraseña son obligatorios');
+        return;
+      }
+
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        showError('Las contraseñas nuevas no coinciden');
+        return;
+      }
+
+      if (passwordData.newPassword.length < 6) {
+        showError('La nueva contraseña debe tener al menos 6 caracteres');
+        return;
+      }
+
+      setSaving(true);
+
+      await api.put('/users/change-password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
+
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+
+      showSuccess('Contraseña actualizada correctamente');
+    } catch (error) {
+      console.error('Error al cambiar contraseña:', error);
+      showError(error.message || 'Error al cambiar la contraseña');
     } finally {
       setSaving(false);
     }
@@ -366,142 +635,170 @@ const BarberProfileEdit = () => {
   }
 
   return (
-    <PageContainer>
-      <div className="relative py-6">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-          {/* Header compacto con estilo de barbería */}
-          <div className="text-center mb-12">
-            <button
+    <div className="relative min-h-screen bg-gradient-to-b from-black via-gray-900 to-black overflow-hidden">
+      {/* Background con efectos de gradientes */}
+      <div className="absolute inset-0 bg-gradient-to-r from-red-900/8 via-blue-900/8 to-red-900/8"></div>
+      
+      {/* Efectos de puntos en toda la página - múltiples capas */}
+      <div className="absolute inset-0 opacity-40" style={{
+        backgroundImage: `radial-gradient(circle, rgba(59, 130, 246, 0.3) 1px, transparent 1px)`,
+        backgroundSize: '30px 30px',
+        backgroundPosition: '0 0, 15px 15px'
+      }}></div>
+      
+      <div className="absolute inset-0 opacity-20" style={{
+        backgroundImage: `radial-gradient(circle, rgba(239, 68, 68, 0.4) 1px, transparent 1px)`,
+        backgroundSize: '20px 20px',
+        backgroundPosition: '10px 10px'
+      }}></div>
+      
+      <div className="absolute inset-0 opacity-15" style={{
+        backgroundImage: `radial-gradient(circle, rgba(168, 85, 247, 0.5) 0.8px, transparent 0.8px)`,
+        backgroundSize: '40px 40px',
+        backgroundPosition: '20px 0'
+      }}></div>
+
+      {/* Contenido principal */}
+      <div className="relative z-10">
+        <PageContainer>
+          <div className="relative py-6">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* Header compacto con estilo de barbería */}
+        <div className="text-center py-8">
+          <button
               onClick={() => navigate('/profile')}
               className="group inline-flex items-center gap-2 mb-10 px-4 py-2 bg-white/10 backdrop-blur-lg border border-white/20 rounded-full text-white hover:bg-white/20 hover:border-white/40 transition-all duration-300 shadow-lg hover:scale-105"
-            >
-              <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform duration-300" />
+          >
+            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform duration-300" />
               <span className="font-medium text-sm">Volver al Perfil</span>
             </button>
             
-            <h1 className="text-2xl md:text-3xl font-bold mb-3 text-white leading-tight drop-shadow-lg">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              <GradientText className="text-4xl md:text-5xl font-bold">
+                <User className="w-10 h-10 mx-auto mb-3" />
                 Editar Perfil de Barbero
-              </span>
+              </GradientText>
             </h1>
-            <p className="text-blue-200 text-sm max-w-2xl mx-auto leading-relaxed">
+            <p className="text-gray-300 text-sm max-w-2xl mx-auto leading-relaxed">
               Gestiona tu información profesional y destaca tus habilidades como barbero
             </p>
-          </div>
+        </div>
 
-          {/* Navegación por pestañas */}
-          <div className="flex justify-center mb-8">
-            <div className="bg-gray-900/80 backdrop-blur-xl border border-red-500/20 rounded-xl p-1.5 flex flex-col sm:flex-row gap-1 shadow-xl w-full max-w-lg">
-              {[
-                { id: 'personal', label: 'Personal', icon: User, gradient: 'from-blue-600 to-blue-700' },
-                { id: 'professional', label: 'Profesional', icon: Star, gradient: 'from-red-600 to-red-700' },
-                { id: 'services', label: 'Servicios', icon: Scissors, gradient: 'from-red-500 to-blue-500' },
-                { id: 'schedule', label: 'Horarios', icon: Clock, gradient: 'from-blue-500 to-red-500' }
-              ].map(({ id, label, icon: Icon, gradient }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setActiveTab(id)}
-                  className={`group relative px-3 py-2.5 rounded-lg font-medium text-xs transition-all duration-300 flex items-center justify-center gap-1.5 transform hover:scale-105 flex-1 ${
-                    activeTab === id
-                      ? `bg-gradient-to-r ${gradient} text-white shadow-md border border-white/20`
-                      : 'text-blue-200 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/20'
-                  }`}
-                >
-                  <Icon size={14} className="transition-all duration-300 drop-shadow-sm" />
-                  <span className="hidden sm:inline drop-shadow-sm">{label}</span>
-                  <span className="sm:hidden drop-shadow-sm">{label.substring(0, 4)}</span>
-                </button>
-              ))}
-            </div>
+        {/* Navegación por pestañas */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm shadow-lg p-1 flex flex-col sm:flex-row gap-1 w-full max-w-xs sm:max-w-lg">
+            {[
+              { id: 'personal', label: 'Personal', icon: User },
+              { id: 'security', label: 'Seguridad', icon: Lock },
+              { id: 'professional', label: 'Profesional', icon: Star },
+              { id: 'services', label: 'Servicios', icon: Scissors },
+              { id: 'schedule', label: 'Horarios', icon: Clock }
+            ].map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setActiveTab(id)}
+                className={`group relative px-3 py-2.5 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 overflow-hidden backdrop-blur-sm flex-1 flex items-center justify-center gap-1.5 ${
+                  activeTab === id
+                    ? 'border-blue-500/50 bg-blue-500/10 shadow-xl shadow-blue-500/20'
+                    : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
+                }`}
+              >
+                <Icon size={14} className={`transition-all duration-300 ${
+                  activeTab === id ? 'text-blue-300' : 'text-white'
+                }`} />
+                <span className={`font-medium text-xs sm:text-xs whitespace-nowrap ${
+                  activeTab === id ? 'text-blue-300' : 'text-white'
+                }`}>{label}</span>
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* Content */}
-          <div className="space-y-6">
+        {/* Content */}
+        <div className="bg-transparent border border-white/10 rounded-2xl backdrop-blur-sm shadow-2xl shadow-blue-500/20">
+          <div className="divide-y divide-white/10">
               
             {/* Tab: Información Personal */}
             {activeTab === 'personal' && (
-              <div className="space-y-6">
-                
-                {/* Foto de Perfil con estilo barbería */}
-                <div className="bg-gray-900/80 backdrop-blur-xl border border-red-500/30 rounded-2xl p-4 shadow-2xl hover:bg-gray-900/90 hover:border-red-500/50 transition-all duration-300">
-                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                    <div className="p-2 bg-gradient-to-r from-red-600/20 to-blue-600/20 rounded-xl border border-red-500/20 hover:border-blue-500/40 transition-all duration-500">
-                      <Upload size={18} className="text-red-400 hover:text-blue-400 transition-colors duration-500" />
-                    </div>
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400 drop-shadow-sm">Foto de Perfil</span>
-                  </h3>
-                  
-                  <div className="flex flex-col items-center space-y-3">
-                    <div className="relative group">
-                      <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-blue-900 border-2 border-red-500/30 shadow-xl hover:border-red-500/60 transition-all duration-300">
-                        <img
-                          src={previewImage || user?.profilePicture || '/images/default-avatar.png'}
-                          alt="Foto de perfil"
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                        />
-                        
-                        {/* Overlay de hover con estilo barbería */}
-                        <div 
-                          className="absolute inset-0 bg-gradient-to-t from-black/60 via-red-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center cursor-pointer"
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          <div className="p-2 bg-red-600/80 rounded-full backdrop-blur-sm border border-white/30">
-                            <Camera size={16} className="text-white drop-shadow-lg" />
+              <div className="group relative px-4 py-4 transition-colors backdrop-blur-sm border-b border-white/5 overflow-hidden rounded-lg">
+                {/* Efecto de brillo en hover */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-lg"></div>
+                <div className="relative p-2">
+                  {/* Foto de Perfil con estilo barbería */}
+                  <div className="mb-8">
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                      <div className="p-2 bg-gradient-to-r from-red-600/20 to-blue-600/20 rounded-xl border border-red-500/20 group-hover:border-blue-500/40 transition-all duration-500">
+                        <Upload size={18} className="text-red-400 group-hover:text-blue-400 transition-colors duration-500" />
+                      </div>
+                      <GradientText className="text-lg font-bold">Foto de Perfil</GradientText>
+                    </h3>
+                    
+                    <div className="flex flex-col items-center space-y-3">
+                      <div className="relative group">
+                        <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-blue-900 border-2 border-red-500/30 shadow-xl hover:border-red-500/60 transition-all duration-300">
+                          <img
+                            src={previewImage || user?.profilePicture || '/images/default-avatar.png'}
+                            alt="Foto de perfil"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          />
+                          
+                          {/* Overlay de hover con estilo barbería */}
+                          <div 
+                            className="absolute inset-0 bg-gradient-to-t from-black/60 via-red-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center cursor-pointer"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <div className="p-2 bg-red-600/80 rounded-full backdrop-blur-sm border border-white/30">
+                              <Camera size={16} className="text-white drop-shadow-lg" />
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={saving}
-                        className="group relative p-2 bg-gradient-to-r from-blue-600/20 to-red-600/20 rounded-lg border border-blue-500/30 hover:border-red-500/40 transition-all duration-300 backdrop-blur-sm hover:bg-gradient-to-r hover:from-blue-600/30 hover:to-red-600/30 transform hover:scale-110"
-                        title="Subir foto"
-                      >
-                        <Upload size={16} className="text-blue-400 group-hover:text-red-400 transition-colors duration-300" />
-                      </button>
                       
-                      {(user?.profilePicture || previewImage) && (
+                      <div className="flex gap-2">
                         <button
-                          onClick={handleRemoveProfilePicture}
+                          onClick={() => fileInputRef.current?.click()}
                           disabled={saving}
-                          className="group relative p-2 bg-gradient-to-r from-red-600/20 to-blue-600/20 rounded-lg border border-red-500/30 hover:border-blue-500/40 transition-all duration-300 backdrop-blur-sm hover:bg-gradient-to-r hover:from-red-600/30 hover:to-blue-600/30 transform hover:scale-110"
-                          title="Eliminar foto"
+                          className="group relative p-2 bg-gradient-to-r from-blue-600/20 to-red-600/20 rounded-lg border border-blue-500/30 hover:border-red-500/40 transition-all duration-300 backdrop-blur-sm hover:bg-gradient-to-r hover:from-blue-600/30 hover:to-red-600/30 transform hover:scale-110 shadow-xl shadow-blue-500/20"
+                          title="Subir foto"
                         >
-                          <X size={16} className="text-red-400 group-hover:text-blue-400 transition-colors duration-300" />
+                          <Upload size={16} className="text-blue-400 group-hover:text-red-400 transition-colors duration-300" />
                         </button>
-                      )}
+                        
+                        {(user?.profilePicture || previewImage) && (
+                          <button
+                            onClick={handleRemoveProfilePicture}
+                            disabled={saving}
+                            className="group relative p-2 bg-gradient-to-r from-red-600/20 to-blue-600/20 rounded-lg border border-red-500/30 hover:border-blue-500/40 transition-all duration-300 backdrop-blur-sm hover:bg-gradient-to-r hover:from-red-600/30 hover:to-blue-600/30 transform hover:scale-110 shadow-xl shadow-blue-500/20"
+                            title="Eliminar foto"
+                          >
+                            <X size={16} className="text-red-400 group-hover:text-blue-400 transition-colors duration-300" />
+                          </button>
+                        )}
+                      </div>
+                      
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
                     </div>
-                    
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
                   </div>
-                </div>
 
-                {/* Campos del formulario con estilo barbería */}
-                <div className="group relative overflow-hidden bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-sm rounded-3xl border border-gray-700/50 hover:border-blue-500/40 transition-all duration-700 transform hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(59,130,246,0.25)]">
-                  {/* Efecto de brillo en hover */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                  
-                  <div className="relative p-8">
+                  {/* Campos del formulario con estilo barbería */}
+                  <div className="mt-8">
                     <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
                       <div className="p-3 bg-gradient-to-r from-blue-600/20 to-red-600/20 rounded-xl border border-blue-500/20 group-hover:border-red-500/40 transition-all duration-500">
                         <User size={20} className="text-blue-400 group-hover:text-red-400 transition-colors duration-500" />
                       </div>
-                      <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-white to-red-400 drop-shadow-sm">Información Personal</span>
+                      <GradientText className="text-xl font-bold">Información Personal</GradientText>
                     </h3>
-                  
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       <div className="space-y-3">
-                        <label className="block text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400 flex items-center gap-2">
+                        <label className="block text-xs font-medium text-gray-300 mb-1 flex items-center gap-2">
                           <User size={16} className="text-red-400" />
                           Nombre Completo
                         </label>
@@ -510,13 +807,13 @@ const BarberProfileEdit = () => {
                           name="name"
                           value={userFormData.name}
                           onChange={handleUserInputChange}
-                          className="w-full px-4 py-2 bg-gradient-to-r from-red-600/25 to-blue-600/25 border border-red-500/30 rounded-full text-gray-100 placeholder-red-200/70 focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500/40 hover:border-red-500/40 hover:bg-gradient-to-r hover:from-red-600/35 hover:to-blue-600/35 transition-all duration-300 text-sm font-medium tracking-wider backdrop-blur-sm shadow-inner"
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 shadow-xl shadow-blue-500/20"
                           placeholder="Tu nombre completo"
                         />
                       </div>
 
                       <div className="space-y-3">
-                        <label className="block text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-white to-red-400 flex items-center gap-2">
+                        <label className="block text-xs font-medium text-gray-300 mb-1 flex items-center gap-2">
                           <Phone size={16} className="text-blue-400" />
                           Teléfono
                         </label>
@@ -525,13 +822,13 @@ const BarberProfileEdit = () => {
                           name="phone"
                           value={userFormData.phone}
                           onChange={handleUserInputChange}
-                          className="w-full px-4 py-2 bg-gradient-to-r from-blue-600/25 to-red-600/25 border border-blue-500/30 rounded-full text-gray-100 placeholder-blue-200/70 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 hover:border-blue-500/40 hover:bg-gradient-to-r hover:from-blue-600/35 hover:to-red-600/35 transition-all duration-300 text-sm font-medium tracking-wider backdrop-blur-sm shadow-inner"
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 shadow-xl shadow-blue-500/20"
                           placeholder="+57 300 123 4567"
                         />
                       </div>
 
                       <div className="space-y-3 lg:col-span-2">
-                        <label className="block text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400 flex items-center gap-2">
+                        <label className="block text-xs font-medium text-gray-300 mb-1 flex items-center gap-2">
                           <Calendar size={16} className="text-red-400" />
                           Fecha de Nacimiento
                         </label>
@@ -540,7 +837,7 @@ const BarberProfileEdit = () => {
                           name="birthdate"
                           value={userFormData.birthdate}
                           onChange={handleUserInputChange}
-                          className="w-full px-4 py-2 bg-gradient-to-r from-red-600/25 to-blue-600/25 border border-red-500/30 rounded-full text-gray-100 placeholder-red-200/70 focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500/40 hover:border-red-500/40 hover:bg-gradient-to-r hover:from-red-600/35 hover:to-blue-600/35 transition-all duration-300 text-sm font-medium tracking-wider backdrop-blur-sm shadow-inner"
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 shadow-xl shadow-blue-500/20"
                         />
                       </div>
                     </div>
@@ -553,6 +850,7 @@ const BarberProfileEdit = () => {
                         loadingText="Guardando..."
                         variant="primary"
                         size="md"
+                        className="shadow-xl shadow-blue-500/20"
                       >
                         <div className="flex items-center gap-2">
                           <Save size={18} />
@@ -565,23 +863,129 @@ const BarberProfileEdit = () => {
               </div>
             )}
 
+            {/* Tab: Seguridad */}
+            {activeTab === 'security' && (
+              <div className="group relative px-4 py-4 transition-colors backdrop-blur-sm border-b border-white/5 overflow-hidden rounded-lg">
+                {/* Efecto de brillo en hover */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-lg"></div>
+                <div className="relative p-2">
+                  <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+                    <div className="p-3 bg-gradient-to-r from-red-600/20 to-blue-600/20 rounded-xl border border-red-500/20 hover:border-blue-500/40 transition-all duration-500">
+                      <Lock size={20} className="text-red-400 hover:text-blue-400 transition-colors duration-500" />
+                    </div>
+                    <GradientText className="text-xl font-bold">Cambiar Contraseña</GradientText>
+                  </h3>
+                  
+                  <div className="space-y-6">
+                    <div className="space-y-3">
+                      <label className="block text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400 flex items-center gap-2">
+                        <Lock size={16} className="text-red-400" />
+                        Contraseña Actual
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPasswords.current ? 'text' : 'password'}
+                          name="currentPassword"
+                          value={passwordData.currentPassword}
+                          onChange={handlePasswordChange}
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 shadow-xl shadow-blue-500/20 pr-12"
+                          placeholder="Tu contraseña actual"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-red-300 hover:text-red-400 transition-colors duration-300"
+                        >
+                          {showPasswords.current ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="block text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-white to-red-400 flex items-center gap-2">
+                        <Lock size={16} className="text-blue-400" />
+                        Nueva Contraseña
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPasswords.new ? 'text' : 'password'}
+                          name="newPassword"
+                          value={passwordData.newPassword}
+                          onChange={handlePasswordChange}
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 shadow-xl shadow-blue-500/20 pr-12"
+                          placeholder="Tu nueva contraseña"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-blue-300 hover:text-blue-400 transition-colors duration-300"
+                        >
+                          {showPasswords.new ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="block text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400 flex items-center gap-2">
+                        <Lock size={16} className="text-red-400" />
+                        Confirmar Nueva Contraseña
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPasswords.confirm ? 'text' : 'password'}
+                          name="confirmPassword"
+                          value={passwordData.confirmPassword}
+                          onChange={handlePasswordChange}
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 shadow-xl shadow-blue-500/20 pr-12"
+                          placeholder="Confirma tu nueva contraseña"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-red-300 hover:text-red-400 transition-colors duration-300"
+                        >
+                          {showPasswords.confirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end mt-6">
+                      <GradientButton
+                        onClick={handlePasswordSave}
+                        disabled={saving}
+                        loading={saving}
+                        loadingText="Actualizando..."
+                        variant="primary"
+                        size="md"
+                        className="shadow-xl shadow-blue-500/20"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Save size={18} />
+                          <span>Cambiar Contraseña</span>
+                        </div>
+                      </GradientButton>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Tab: Información Profesional */}
             {activeTab === 'professional' && (
-              <div className="group relative overflow-hidden bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-sm rounded-3xl border border-gray-700/50 hover:border-red-500/40 transition-all duration-700 transform hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(239,68,68,0.25)]">
+              <div className="group relative px-4 py-4 transition-colors backdrop-blur-sm border-b border-white/5 overflow-hidden rounded-lg">
                 {/* Efecto de brillo en hover */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                
-                <div className="relative p-8">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-lg"></div>
+                <div className="relative p-2">
                   <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
                     <div className="p-3 bg-gradient-to-r from-red-600/20 to-blue-600/20 rounded-xl border border-red-500/20 group-hover:border-blue-500/40 transition-all duration-500">
                       <Star size={20} className="text-red-400 group-hover:text-blue-400 transition-colors duration-500" />
                     </div>
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400 drop-shadow-sm">Información Profesional</span>
+                    <GradientText className="text-xl font-bold">Información Profesional</GradientText>
                   </h3>
-                
+
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div className="space-y-3">
-                      <label className="block text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400 flex items-center gap-2">
+                      <label className="block text-xs font-medium text-gray-300 mb-1 flex items-center gap-2">
                         <Scissors size={16} className="text-red-400" />
                         Especialidad
                       </label>
@@ -590,13 +994,13 @@ const BarberProfileEdit = () => {
                         name="specialty"
                         value={barberFormData.specialty}
                         onChange={handleBarberInputChange}
-                        className="w-full px-4 py-2 bg-gradient-to-r from-red-600/25 to-blue-600/25 border border-red-500/30 rounded-full text-gray-100 placeholder-red-200/70 focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500/40 hover:border-red-500/40 hover:bg-gradient-to-r hover:from-red-600/35 hover:to-blue-600/35 transition-all duration-300 text-sm font-medium tracking-wider backdrop-blur-sm shadow-inner"
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 shadow-xl shadow-blue-500/20"
                         placeholder="Ej: Cortes clásicos, barbas, etc."
                       />
                     </div>
 
                     <div className="space-y-3">
-                      <label className="block text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-white to-red-400 flex items-center gap-2">
+                      <label className="block text-xs font-medium text-gray-300 mb-1 flex items-center gap-2">
                         <Star size={16} className="text-blue-400" />
                         Años de Experiencia
                       </label>
@@ -606,13 +1010,13 @@ const BarberProfileEdit = () => {
                         min="0"
                         value={barberFormData.experience}
                         onChange={handleBarberInputChange}
-                        className="w-full px-4 py-2 bg-gradient-to-r from-blue-600/25 to-red-600/25 border border-blue-500/30 rounded-full text-gray-100 placeholder-blue-200/70 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 hover:border-blue-500/40 hover:bg-gradient-to-r hover:from-blue-600/35 hover:to-red-600/35 transition-all duration-300 text-sm font-medium tracking-wider backdrop-blur-sm shadow-inner"
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 shadow-xl shadow-blue-500/20"
                         placeholder="0"
                       />
                     </div>
 
                     <div className="space-y-3 lg:col-span-2">
-                      <label className="block text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400 flex items-center gap-2">
+                      <label className="block text-xs font-medium text-gray-300 mb-1 flex items-center gap-2">
                         <FileText size={16} className="text-red-400" />
                         Descripción
                       </label>
@@ -621,7 +1025,7 @@ const BarberProfileEdit = () => {
                         value={barberFormData.description}
                         onChange={handleBarberInputChange}
                         rows={3}
-                        className="w-full px-4 py-2 bg-gradient-to-r from-red-600/25 to-blue-600/25 border border-red-500/30 rounded-xl text-gray-100 placeholder-red-200/70 focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500/40 hover:border-red-500/40 hover:bg-gradient-to-r hover:from-red-600/35 hover:to-blue-600/35 transition-all duration-300 text-sm font-medium tracking-wider backdrop-blur-sm shadow-inner resize-none"
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 resize-none shadow-xl shadow-blue-500/20"
                         placeholder="Cuéntanos sobre tu experiencia y estilo de trabajo..."
                       />
                     </div>
@@ -635,6 +1039,7 @@ const BarberProfileEdit = () => {
                       loadingText="Guardando..."
                       variant="primary"
                       size="md"
+                      className="shadow-xl shadow-blue-500/20"
                     >
                       <div className="flex items-center gap-2">
                         <Save size={18} />
@@ -648,33 +1053,27 @@ const BarberProfileEdit = () => {
 
             {/* Tab: Servicios */}
             {activeTab === 'services' && (
-              <div className="group relative overflow-hidden bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-sm rounded-3xl border border-gray-700/50 hover:border-red-500/40 transition-all duration-700 transform hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(239,68,68,0.25)]">
+              <div className="group relative px-4 py-4 transition-colors backdrop-blur-sm border-b border-white/5 overflow-hidden rounded-lg">
                 {/* Efecto de brillo en hover */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                
-                <div className="relative p-8">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-lg"></div>
+                <div className="relative p-2">
                   <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
                     <div className="p-3 bg-gradient-to-r from-red-600/20 to-blue-600/20 rounded-xl border border-red-500/20 group-hover:border-blue-500/40 transition-all duration-500">
                       <Scissors size={20} className="text-red-400 group-hover:text-blue-400 transition-colors duration-500" />
                     </div>
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400 drop-shadow-sm">Servicios que Ofreces</span>
+                    <GradientText className="text-xl font-bold">Servicios que Ofreces</GradientText>
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                     {availableServices.map((service) => (
-                      <label
-                        key={service._id}
-                        className={`group relative p-4 rounded-2xl border-2 cursor-pointer transition-all duration-500 hover:scale-105 overflow-hidden ${
-                          barberFormData.services.includes(service._id)
-                            ? 'border-transparent bg-gradient-to-br from-red-500/30 via-white/10 to-blue-500/30 shadow-xl shadow-red-500/30'
-                            : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
+                        <label
+                          key={service._id}
+                          className={`group relative p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 overflow-hidden backdrop-blur-sm ${
+                            barberFormData.services.includes(service._id)
+                              ? 'border-blue-500/50 bg-blue-500/10 shadow-xl shadow-blue-500/20'
+                              : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
                         }`}
                       >
-                        {/* Efecto de brillo para servicios seleccionados */}
-                        {barberFormData.services.includes(service._id) && (
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                        )}
-                        
                         <input
                           type="checkbox"
                           checked={barberFormData.services.includes(service._id)}
@@ -684,27 +1083,27 @@ const BarberProfileEdit = () => {
                         
                         <div className="relative z-10 flex flex-col space-y-3">
                           <div className="flex items-center justify-between">
-                            <h4 className={`font-bold text-base group-hover:scale-105 transition-transform duration-300 ${
+                            <h4 className={`font-medium text-base group-hover:scale-105 transition-transform duration-300 ${
                               barberFormData.services.includes(service._id)
-                                ? 'bg-clip-text text-transparent bg-gradient-to-r from-red-300 via-white to-blue-300'
+                                ? 'text-blue-300'
                                 : 'text-white'
                             }`}>
-                              {service.name}
+                              <GradientText className="font-medium text-base">{service.name}</GradientText>
                             </h4>
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
                               barberFormData.services.includes(service._id)
-                                ? 'border-red-400 bg-gradient-to-r from-red-500 to-blue-500 shadow-lg'
+                                ? 'border-blue-400 bg-blue-500 shadow-lg'
                                 : 'border-gray-400 group-hover:border-white'
                             }`}>
-                              {barberFormData.services.includes(service._id) && (
-                                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                              )}
-                            </div>
+                            {barberFormData.services.includes(service._id) && (
+                              <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                            )}
                           </div>
-                          
+                        </div>
+                      
                           <p className={`text-sm leading-relaxed ${
                             barberFormData.services.includes(service._id)
-                              ? 'text-gray-200'
+                              ? 'text-blue-200'
                               : 'text-gray-300'
                           }`}>
                             {service.description}
@@ -713,7 +1112,7 @@ const BarberProfileEdit = () => {
                           <div className="flex justify-between items-center pt-2 border-t border-white/20">
                             <span className={`font-bold text-base ${
                               barberFormData.services.includes(service._id)
-                                ? 'bg-clip-text text-transparent bg-gradient-to-r from-red-400 to-blue-400'
+                                ? 'text-blue-400'
                                 : 'text-blue-400'
                             }`}>
                               ${service.price}
@@ -739,6 +1138,7 @@ const BarberProfileEdit = () => {
                       loadingText="Guardando..."
                       variant="primary"
                       size="md"
+                      className="shadow-xl shadow-blue-500/20"
                     >
                       <div className="flex items-center gap-2">
                         <Save size={18} />
@@ -752,25 +1152,28 @@ const BarberProfileEdit = () => {
 
             {/* Tab: Horarios */}
             {activeTab === 'schedule' && (
-              <div className="group relative overflow-hidden bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-sm rounded-3xl border border-gray-700/50 hover:border-blue-500/40 transition-all duration-700 transform hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(59,130,246,0.25)]">
+              <div className="group relative px-4 py-4 transition-colors backdrop-blur-sm border-b border-white/5 rounded-lg overflow-hidden">
                 {/* Efecto de brillo en hover */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                
-                <div className="relative p-8">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-lg"></div>
+                <div className="relative p-2" style={{ overflow: 'visible', zIndex: 10 }}>
                   <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
                     <div className="p-3 bg-gradient-to-r from-blue-600/20 to-red-600/20 rounded-xl border border-blue-500/20 group-hover:border-red-500/40 transition-all duration-500">
                       <Clock size={20} className="text-blue-400 group-hover:text-red-400 transition-colors duration-500" />
                     </div>
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-white to-red-400 drop-shadow-sm">Horarios de Trabajo</span>
+                    <GradientText className="text-xl font-bold">Horarios de Trabajo</GradientText>
                   </h3>
-                  
-                  <div className="space-y-3 mb-6">
-                    {Object.entries(schedule).map(([day, daySchedule]) => (
+
+                  <div className="space-y-3 mb-6 relative" style={{ zIndex: 100 }}>
+                    {Object.entries(schedule).map(([day, daySchedule], index) => (
                       <div
                         key={day}
-                        className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4"
+                        data-day={day}
+                        className="group relative px-4 py-4 transition-colors backdrop-blur-sm border border-white/10 rounded-lg shadow-lg hover:shadow-xl overflow-hidden"
+                        style={{ zIndex: 100 + index, position: 'relative' }}
                       >
-                        <div className="flex flex-col md:flex-row md:items-center gap-3">
+                        {/* Efecto de brillo en hover para cada día */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-lg"></div>
+                        <div className="relative flex flex-col md:flex-row md:items-center gap-3">
                           <div className="flex items-center gap-3 min-w-0 md:w-40">
                             <input
                               type="checkbox"
@@ -782,23 +1185,25 @@ const BarberProfileEdit = () => {
                               {daysInSpanish[day]}
                             </span>
                           </div>
-                          
-                          {daySchedule.available && (
-                            <div className="flex items-center gap-3 flex-1">
-                              <input
-                                type="time"
-                                step="1800"
-                                value={daySchedule.start}
-                                onChange={(e) => handleScheduleChange(day, 'start', e.target.value)}
-                                className="px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+
+                        {daySchedule.available && (
+                          <div className="flex items-center gap-3 flex-1">
+                              <CustomTimeSelector
+                                value={daySchedule.start || '07:00'}
+                                onChange={(value) => handleScheduleChange(day, 'start', value)}
+                                options={timeOptions}
+                                placeholder="Hora de inicio"
+                                dayKey={day}
+                                field="start"
                               />
-                              <span className="text-gray-300 font-medium text-sm">a</span>
-                              <input
-                                type="time"
-                                step="1800"
-                                value={daySchedule.end}
-                                onChange={(e) => handleScheduleChange(day, 'end', e.target.value)}
-                                className="px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            <span className="text-gray-300 font-medium text-sm px-2">a</span>
+                              <CustomTimeSelector
+                                value={daySchedule.end || '19:00'}
+                                onChange={(value) => handleScheduleChange(day, 'end', value)}
+                                options={timeOptions}
+                                placeholder="Hora de fin"
+                                dayKey={day}
+                                field="end"
                               />
                             </div>
                           )}
@@ -813,7 +1218,18 @@ const BarberProfileEdit = () => {
                     ))}
                   </div>
 
-                  <div className="flex justify-end">
+                  <div className="flex justify-between items-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSchedule(defaultSchedule);
+                        showSuccess('Horarios restablecidos a 7AM-10PM');
+                      }}
+                      className="px-4 py-2 bg-gradient-to-r from-yellow-600/20 to-orange-600/20 border border-yellow-500/50 rounded-lg text-yellow-400 hover:from-yellow-600/30 hover:to-orange-600/30 transition-all duration-300 text-sm font-medium shadow-xl shadow-blue-500/20"
+                    >
+                      🔄 Restablecer a 7AM-10PM
+                    </button>
+                    
                     <GradientButton
                       onClick={handleScheduleSave}
                       disabled={saving}
@@ -821,6 +1237,7 @@ const BarberProfileEdit = () => {
                       loadingText="Guardando..."
                       variant="primary"
                       size="md"
+                      className="shadow-xl shadow-blue-500/20"
                     >
                       <div className="flex items-center gap-2">
                         <Save size={18} />
@@ -833,8 +1250,11 @@ const BarberProfileEdit = () => {
             )}
           </div>
         </div>
+            </div>
+          </div>
+        </PageContainer>
       </div>
-    </PageContainer>
+    </div>
   );
 };
 

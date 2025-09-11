@@ -416,114 +416,23 @@ export const getBarberAvailability = asyncHandler(async (req, res) => {
   const { barberId } = req.params;
   const { date } = req.query;
 
+  console.log(`🔍 getBarberAvailability llamado: barberId=${barberId}, date=${date}`);
+
   if (!date) {
     throw new AppError('La fecha es requerida', 400);
   }
 
-  const targetDate = new Date(date);
-  if (isNaN(targetDate.getTime())) {
-    throw new AppError('Fecha inválida', 400);
+  // Validar formato de fecha
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new AppError('Formato de fecha inválido. Use YYYY-MM-DD', 400);
   }
 
-  // Obtener el barbero
-  const barber = await Barber.findById(barberId);
-  if (!barber || !barber.isActive) {
-    throw new AppError('Barbero no encontrado o no disponible', 404);
-  }
+  // Usar el servicio corregido que maneja zona horaria
+  const availableTimes = await AppointmentService.getAvailableTimes(barberId, date);
 
-  // Obtener citas del barbero para esa fecha
-  const startOfDay = new Date(targetDate);
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const endOfDay = new Date(targetDate);
-  endOfDay.setHours(23, 59, 59, 999);
-
-  const appointments = await Appointment.find({
-    barber: barberId,
-    date: { $gte: startOfDay, $lte: endOfDay },
-    status: { $in: ['pending', 'confirmed'] }
-  }).sort({ date: 1 });
-
-  // Verificar si el barbero trabaja ese día
-  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const dayOfWeek = dayNames[targetDate.getDay()];
-  
-  if (!barber.schedule || !barber.schedule[dayOfWeek] || !barber.schedule[dayOfWeek].available) {
-    return res.json({
-      success: true,
-      data: {
-        barber: barber.name,
-        date: targetDate.toISOString().split('T')[0],
-        slots: [],
-        reason: 'El barbero no trabaja este día'
-      }
-    });
-  }
-
-  const daySchedule = barber.schedule[dayOfWeek];
-  
-  // Parsear horarios del barbero
-  const [startHour, startMinute] = daySchedule.start.split(':').map(Number);
-  const [endHour, endMinute] = daySchedule.end.split(':').map(Number);
-
-  // Generar horarios disponibles basados en el schedule del barbero
-  const availableSlots = [];
-  const slotDuration = 30; // minutos
-
-  // Crear fecha de inicio y fin basada en el schedule
-  const startTime = new Date(targetDate);
-  startTime.setHours(startHour, startMinute, 0, 0);
-  
-  const endTime = new Date(targetDate);
-  endTime.setHours(endHour, endMinute, 0, 0);
-
-  // Generar slots cada 30 minutos
-  let currentTime = new Date(startTime);
-  
-  while (currentTime < endTime) {
-    // Verificar si el horario está en el pasado
-    if (currentTime <= new Date()) {
-      currentTime = new Date(currentTime.getTime() + slotDuration * 60000);
-      continue;
-    }
-
-    // Verificar si el horario está ocupado
-    const isOccupied = appointments.some(appointment => {
-      const appointmentTime = new Date(appointment.date);
-      const appointmentEnd = new Date(appointmentTime.getTime() + appointment.duration * 60000);
-
-      return currentTime >= appointmentTime && currentTime < appointmentEnd;
-    });
-
-    if (!isOccupied) {
-      // Formatear la hora para el frontend
-      const timeString = currentTime.toLocaleTimeString('es-CO', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-        timeZone: 'America/Bogota'
-      });
-      
-      // Asegurar que la fecha esté en el timezone de Colombia
-      const colombiaDate = new Date(currentTime.toLocaleString("en-US", {timeZone: "America/Bogota"}));
-      
-      availableSlots.push({
-        time: timeString,
-        datetime: colombiaDate.toISOString()
-      });
-    }
-
-    // Mover al siguiente slot
-    currentTime = new Date(currentTime.getTime() + slotDuration * 60000);
-  }
-
-  res.json({
+  res.status(200).json({
     success: true,
-    data: {
-      barber: barber.name,
-      date: targetDate.toISOString().split('T')[0],
-      slots: availableSlots
-    }
+    data: availableTimes
   });
 });
 
