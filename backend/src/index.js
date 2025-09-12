@@ -4,6 +4,7 @@ import { connectDB } from './config/database.js';
 import { logger } from './utils/logger.js';
 import mongoose from 'mongoose';
 
+// Last update: 11/09/2025 - Gitignore fixed and project cleaned
 console.log('🚀 Starting server...');
 console.log('📍 Port:', process.env.PORT || 5000);
 console.log('🌍 Environment:', process.env.NODE_ENV || 'development');
