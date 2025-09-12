@@ -1,0 +1,48 @@
+2025-09-12 00:05:59 info: 
+🚀 Servidor iniciado en modo development
+📡 API escuchando en:
+   - http://localhost:5000
+   - http://localhost:5000
+📚 Documentación API: http://localhost:5000/api/docs
+      
+2025-09-12 00:06:01 info: ✅ Conexión a la base de datos establecida
+2025-09-12 04:14:52 info: 
+🚀 Servidor iniciado en modo development
+📡 API escuchando en:
+   - http://localhost:5000
+   - http://localhost:5000
+📚 Documentación API: http://localhost:5000/api/docs
+      
+2025-09-12 04:14:55 info: ✅ Conexión a la base de datos establecida
+2025-09-12 04:18:22 info: Inicio de sesión exitoso: pedro@email.com
+2025-09-12 04:18:22 http: POST /api/v1/auth/login 200 661.284 ms - 717 - anonymous
+2025-09-12 04:18:23 http: GET /api/v1/barbers/by-user/68c2263fcb9ab8c23792b3b2 200 962.003 ms - - - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:18:23 warn: Tiempo de respuesta alto detectado
+2025-09-12 04:18:23 http: GET /api/v1/barbers/by-user/68c2263fcb9ab8c23792b3b2 304 194.859 ms - - - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:18:28 http: GET /api/v1/services 200 187.351 ms - - - anonymous
+2025-09-12 04:18:28 http: GET /api/v1/services 304 1.516 ms - - - anonymous
+2025-09-12 04:18:28 http: GET /api/v1/inventory?_t=1757668708267 200 651.795 ms - - - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:18:29 http: GET /api/v1/inventory?_t=1757668708268 200 594.760 ms - - - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:18:33 http: GET /api/v1/appointments/barber/68c292da18f48e2ba92f1553 200 1076.614 ms - 874 - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:18:33 warn: Tiempo de respuesta alto detectado
+2025-09-12 04:18:34 http: GET /api/v1/appointments/barber/68c292da18f48e2ba92f1553 304 990.039 ms - - - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:18:36 http: GET /api/v1/inventory?_t=1757668715914 200 917.705 ms - - - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:18:37 http: GET /api/v1/inventory?_t=1757668715914 304 459.078 ms - - - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:23:57 http: GET /api/v1/services 304 1453.291 ms - - - anonymous
+2025-09-12 04:23:57 warn: Tiempo de respuesta alto detectado
+2025-09-12 04:23:57 http: GET /api/v1/services 304 1.973 ms - - - anonymous
+2025-09-12 04:23:58 http: GET /api/v1/inventory?_t=1757669035954 200 2405.023 ms - - - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:23:58 warn: Tiempo de respuesta alto detectado
+2025-09-12 04:23:59 http: GET /api/v1/inventory?_t=1757669035954 304 450.792 ms - - - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:26:05 http: GET /api/v1/barbers/by-user/68c2263fcb9ab8c23792b3b2 304 1151.323 ms - - - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:26:05 warn: Tiempo de respuesta alto detectado
+2025-09-12 04:26:06 http: GET /api/v1/barbers/by-user/68c2263fcb9ab8c23792b3b2 304 220.656 ms - - - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:26:14 http: GET /api/v1/inventory?_t=1757669173922 200 606.707 ms - - - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:26:14 http: GET /api/v1/inventory?_t=1757669173923 200 581.815 ms - - - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:26:17 http: GET /api/v1/appointments/barber/68c292da18f48e2ba92f1553 304 2285.565 ms - - - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:26:17 warn: Tiempo de respuesta alto detectado
+2025-09-12 04:26:18 http: GET /api/v1/appointments/barber/68c292da18f48e2ba92f1553 304 1167.774 ms - - - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:26:18 warn: Tiempo de respuesta alto detectado
+2025-09-12 04:26:23 http: POST /api/v1/auth/logout 200 210.941 ms - 43 - 68c2263fcb9ab8c23792b3b2
+2025-09-12 04:26:29 info: Inicio de sesión exitoso: admin@barber.com
+2025-09-12 04:26:29 http: POST /api/v1/auth/login 200 360.167 ms - 519 - anonymous

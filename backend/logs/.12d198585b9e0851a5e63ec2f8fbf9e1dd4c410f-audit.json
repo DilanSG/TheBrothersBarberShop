@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\ADMIN\\Desktop\\thebrothersbarbershop\\backend\\logs\\.12d198585b9e0851a5e63ec2f8fbf9e1dd4c410f-audit.json",
+    "files": [
+        {
+            "date": 1757648717662,
+            "name": "C:\\Users\\ADMIN\\Desktop\\thebrothersbarbershop\\backend\\logs\\2025-09-11-rejections.log",
+            "hash": "1927ce5db2e3ae3e28e995d72f103a8f0340240568657ff3cf86d83764eac603"
+        }
+    ],
+    "hashType": "sha256"
+}

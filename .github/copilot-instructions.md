@@ -215,36 +215,110 @@ The Brothers Barber Shop es un sistema integral para la gestión de barberías, 
 
 ---
 
-## 🚨 Reglas de Ramas y Workflow
+## 🚨 Reglas de Ramas y Workflow Actualizado
 
-1. **Identifica el tipo de cambio:**
-   - 🎨 **Frontend** (UI, assets, componentes, estilos) → Rama `gh-pages`
-   - 🔧 **Backend** (API, validaciones, servicios, base de datos) → Rama `develop`
+### 🏗️ **ESTRUCTURA DE RAMAS:**
 
-2. **Cambia a la rama correcta:**
-   ```bash
-   # Frontend
-   git checkout gh-pages
-   # Backend
-   cd backend && git checkout develop
-   ```
+- � **Rama `local-development`**: Rama principal de desarrollo (CONTIENE TODO)
+- 🎨 **Rama `gh-pages`**: Solo frontend compilado para GitHub Pages
+- 🔧 **Rama `develop`**: Solo backend para deploy en Render
 
-3. **Workflow de commits:**
-   ```bash
-   # Frontend
-   git add .
-   git commit -m "feat: descripción del cambio"
-   git push origin gh-pages
-   # Backend
-   cd backend
-   git add .
-   git commit -m "feat: descripción del cambio"
-   git push origin develop
-   ```
+### 📋 **WORKFLOW DE DESARROLLO DIARIO:**
 
-4. **Deployment:**
-   - Frontend: Cambios en `gh-pages` → GitHub Pages
-   - Backend: Cambios en `develop` → Render
+**PASO 1: Desarrollo Local (SIEMPRE)**
+```bash
+# Trabajar SIEMPRE en local-development
+git checkout local-development
+
+# Hacer cambios en backend/ o frontend/
+
+# Probar con npm run dev (localhost:5173 + localhost:3001)
+# Guardar trabajo
+git add .
+git commit -m "feat: descripción del cambio"
+```
+
+### 🚀 **COMANDOS DE DEPLOY AUTOMÁTICO:**
+
+**COMANDO 1: "Subir Frontend" - Cuando el usuario diga:**
+- "sube todo a las páginas"
+- "deploy frontend" 
+- "actualiza github pages"
+- "sube el frontend"
+
+```bash
+# 1. Compilar frontend
+cd frontend
+npm run build
+cd ..
+
+# 2. Ir a rama frontend
+git checkout gh-pages
+
+# 3. Limpiar y copiar build
+Remove-Item docs/* -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item frontend/dist/* docs/ -Recurse -Force
+
+# 4. Commit y push
+git add docs/
+git commit -m "deploy: frontend update $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
+git push origin gh-pages
+
+# 5. Volver a desarrollo
+git checkout local-development
+```
+
+**COMANDO 2: "Subir Backend" - Cuando el usuario diga:**
+- "deploy backend"
+- "actualiza render"
+- "sube el backend"
+- "push a develop"
+
+```bash
+# 1. Ir a rama backend
+git checkout develop
+
+# 2. Limpiar rama develop (mantener solo .git)
+Get-ChildItem -Path . -Exclude .git | Remove-Item -Recurse -Force
+
+# 3. Copiar contenido del backend
+Copy-Item backend/* . -Recurse -Force
+
+# 4. Commit y push
+git add .
+git commit -m "deploy: backend update $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
+git push origin develop
+
+# 5. Volver a desarrollo
+git checkout local-development
+```
+
+**COMANDO 3: "Subir Todo" - Cuando el usuario diga:**
+- "sube todo a producción"
+- "deploy completo"
+- "actualiza todo"
+
+```bash
+# Ejecutar COMANDO 1 seguido de COMANDO 2
+# Frontend primero, luego backend
+```
+
+### ⚡ **COMANDOS RÁPIDOS PARA COPILOT:**
+
+Cuando el usuario solicite deploy, ejecutar automáticamente:
+
+1. **Verificar rama actual**: `git branch --show-current`
+2. **Si no está en local-development**: `git checkout local-development`
+3. **Ejecutar comando de deploy correspondiente**
+4. **Confirmar éxito**: "✅ Deploy completado - Sitio actualizado en X minutos"
+
+### 🛡️ **REGLAS DE SEGURIDAD:**
+
+1. **NUNCA** desarrollar directamente en `gh-pages` o `develop`
+2. **SIEMPRE** verificar que estás en `local-development` antes de codificar
+3. **LIMPIAR** ramas de deploy antes de copiar nuevos archivos
+4. **VERIFICAR** que el build del frontend sea exitoso antes del deploy
+5. **CONFIRMAR** que no hay errores de sintaxis antes del deploy del backend
 
 ### 🎯 Breakpoints Estándar
 - **Mobile First**: Diseño base para `320px+`
@@ -477,11 +551,70 @@ npm test        # Tests
 
 ## 📝 Buenas Prácticas y Problemas Comunes
 
-1. **NO** commitear frontend en `develop` ni backend en `gh-pages`
-2. **NO** usar rutas absolutas para assets en frontend (usa `getAssetUrl()`)
-3. **NO** hardcodear puertos en backend (usa `process.env.PORT`)
-4. **NO** ignorar timezone en validaciones de fecha (usa `America/Bogota`)
-5. **CORS:** Backend debe permitir dominio del frontend en producción
+### 🚨 **REGLAS CRÍTICAS DE WORKFLOW:**
+
+1. **NO** desarrollar directamente en `gh-pages` o `develop`
+2. **NO** commitear frontend en `develop` ni backend en `gh-pages`  
+3. **SIEMPRE** trabajar en `local-development` para desarrollo
+4. **VERIFICAR** rama actual antes de hacer cambios importantes
+5. **LIMPIAR** directorios de destino antes de deploy
+
+### 🤖 **COMANDOS AUTOMÁTICOS DE COPILOT:**
+
+Cuando el usuario diga estas frases, ejecutar automáticamente:
+
+**"Sube todo a las páginas" / "Deploy frontend" / "Actualiza github pages":**
+```powershell
+# Verificar rama actual
+git checkout local-development
+
+# Compilar frontend
+cd frontend
+npm run build
+cd ..
+
+# Deploy a gh-pages
+git checkout gh-pages
+Remove-Item docs/* -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item frontend/dist/* docs/ -Recurse -Force
+git add docs/
+git commit -m "deploy: frontend update $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
+git push origin gh-pages
+git checkout local-development
+
+Write-Host "✅ Frontend desplegado en GitHub Pages"
+```
+
+**"Deploy backend" / "Sube el backend" / "Actualiza render":**
+```powershell
+# Verificar rama actual  
+git checkout local-development
+
+# Deploy a develop
+git checkout develop
+Get-ChildItem -Path . -Exclude .git | Remove-Item -Recurse -Force
+Copy-Item backend/* . -Recurse -Force
+git add .
+git commit -m "deploy: backend update $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
+git push origin develop
+git checkout local-development
+
+Write-Host "✅ Backend desplegado en Render"
+```
+
+**"Sube todo" / "Deploy completo" / "Actualiza todo":**
+```powershell
+# Ejecutar ambos comandos en secuencia
+# Frontend primero, luego backend
+```
+
+### 🛠️ **OTRAS REGLAS TÉCNICAS:**
+
+6. **NO** usar rutas absolutas para assets en frontend (usa `getAssetUrl()`)
+7. **NO** hardcodear puertos en backend (usa `process.env.PORT`)
+8. **NO** ignorar timezone en validaciones de fecha (usa `America/Bogota`)
+9. **CORS:** Backend debe permitir dominio del frontend en producción
+10. **BUILDS:** Verificar que `npm run build` sea exitoso antes del deploy
 
 ---
 
