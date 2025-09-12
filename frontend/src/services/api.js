@@ -2,8 +2,15 @@ import ErrorLogger from '../utils/errorLogger.js';
 
 const API_URL = import.meta.env.VITE_API_URL;
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0';
+const BASE_URL = import.meta.env.BASE_URL || '/';
 
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper para redirecciones que respeta la base URL
+const redirectToLogin = () => {
+  const loginUrl = BASE_URL.endsWith('/') ? `${BASE_URL}login` : `${BASE_URL}/login`;
+  window.location.href = loginUrl;
+};
 
 // Variable para almacenar el contexto de notificaciones
 let notificationContext = null;
@@ -218,7 +225,7 @@ export const handleSessionExpired = () => {
   // Redirigir después de un breve delay
   setTimeout(() => {
     console.log('🔄 Redirigiendo a login...');
-    window.location.href = '/login';
+    redirectToLogin();
   }, 2000);
 };
 
@@ -270,7 +277,7 @@ const handleAuthError = (response, data, endpoint = '') => {
       localStorage.removeItem('user');
       // Redirigir a login
       setTimeout(() => {
-        window.location.href = '/login';
+        redirectToLogin();
       }, 2000);
       throw new Error('Se requiere autenticación. Redirigiendo al inicio de sesión...');
     } else {
@@ -285,7 +292,7 @@ const handleAuthError = (response, data, endpoint = '') => {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       setTimeout(() => {
-        window.location.href = '/login';
+        redirectToLogin();
       }, 2000);
       throw new Error('Error de autenticación. Redirigiendo al inicio de sesión...');
     }

@@ -201,13 +201,13 @@ class UserService {
         description: `Barbero profesional ${user.name}`,
         isActive: true,
         schedule: {
-          monday: { start: '09:00', end: '18:00', available: true },
-          tuesday: { start: '09:00', end: '18:00', available: true },
-          wednesday: { start: '09:00', end: '18:00', available: true },
-          thursday: { start: '09:00', end: '18:00', available: true },
-          friday: { start: '09:00', end: '18:00', available: true },
-          saturday: { start: '09:00', end: '14:00', available: true },
-          sunday: { start: '09:00', end: '14:00', available: false }
+          monday: { start: '07:00', end: '19:00', available: true },
+          tuesday: { start: '07:00', end: '19:00', available: true },
+          wednesday: { start: '07:00', end: '19:00', available: true },
+          thursday: { start: '07:00', end: '19:00', available: true },
+          friday: { start: '07:00', end: '19:00', available: true },
+          saturday: { start: '07:00', end: '19:00', available: true },
+          sunday: { start: '07:00', end: '19:00', available: false }
         }
       });
 
