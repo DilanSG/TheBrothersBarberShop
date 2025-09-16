@@ -2,14 +2,20 @@
   "name": "the-brothers-barber-shop",
   "version": "1.0.0",
   "description": "Sistema de gestión integral para barbería con backend Node.js/Express y frontend React",
-  "main": "index.js",
+  "main": "dev-launcher.js",
+  "bin": {
+    "dev-launcher": "./dev-launcher.js"
+  },
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "dev": "node dev-launcher.js",
     "start": "npm start --prefix backend",
     "build": "npm run build --prefix frontend",
+    "build:exe": "pkg dev-launcher.js --output dev-launcher.exe --targets node18-win-x64",
     "install:all": "npm install --prefix backend && npm install --prefix frontend",
     "install:backend": "npm install --prefix backend",
     "install:frontend": "npm install --prefix frontend",
+    "backend": "npm run dev --prefix backend",
+    "frontend": "npm run dev --prefix frontend",
     "test": "npm test --prefix backend",
     "lint": "npm run lint --prefix backend && npm run lint --prefix frontend",
     "seed": "npm run seed --prefix backend"
@@ -41,7 +47,8 @@
   },
   "homepage": "https://github.com/DilanSG/TheBrothersBarberShop#readme",
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "pkg": "^5.8.1"
   },
   "engines": {
     "node": ">=16.0.0",

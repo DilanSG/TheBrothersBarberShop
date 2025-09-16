@@ -2,7 +2,7 @@ import React from 'react';
 
 export const PageContainer = ({ children, className = '' }) => {
   return (
-    <div className={`relative min-h-screen w-full pt-10 sm:pt-12 bg-gradient-to-b from-black via-gray-900 to-black overflow-hidden ${className}`} style={{ isolation: 'isolate' }}>
+    <div className={`relative min-h-screen w-full pt-10 sm:pt-12 bg-gradient-to-b from-black via-gray-900 to-black overflow-auto ${className}`} style={{ isolation: 'isolate' }}>
       {/* Background con efectos de gradientes sutiles */}
       <div className="absolute inset-0 bg-gradient-to-r from-red-900/3 via-blue-900/3 to-red-900/3"></div>
       

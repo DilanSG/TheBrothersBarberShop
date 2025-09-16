@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const NotificationContext = createContext();
 
@@ -12,6 +12,26 @@ export const useNotification = () => {
 
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
+  const [recentNotifications, setRecentNotifications] = useState(new Map()); // Para rastrear notificaciones recientes
+
+  // Limpiar notificaciones recientes expiradas cada 30 segundos
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      setRecentNotifications(prev => {
+        const updated = new Map();
+        prev.forEach((timestamp, key) => {
+          // Mantener solo las notificaciones de los últimos 15 segundos
+          if (now - timestamp < 15000) {
+            updated.set(key, timestamp);
+          }
+        });
+        return updated;
+      });
+    }, 30000); // Limpiar cada 30 segundos
+
+    return () => clearInterval(cleanupInterval);
+  }, []);
 
   const addNotification = (notification) => {
     const id = Date.now() + Math.random(); // Agregar random para evitar duplicados
@@ -25,17 +45,44 @@ export const NotificationProvider = ({ children }) => {
       ...notification
     };
 
-    // Protección contra duplicados: verificar si existe una notificación similar reciente
-    const isDuplicate = notifications.some(existing => 
-      existing.message === newNotification.message && 
-      existing.type === newNotification.type &&
-      (Date.now() - existing.id) < 1000 // Dentro de 1 segundo
-    );
+    // Crear una clave única para la notificación basada en su contenido
+    const notificationKey = `${newNotification.type}-${newNotification.message.trim()}-${(newNotification.title || '').trim()}`;
     
-    if (isDuplicate) {
-      console.log('Notificación duplicada ignorada:', newNotification.message);
+    // Verificar si hay una notificación idéntica activa
+    const isDuplicateActive = notifications.some(existing => {
+      const existingKey = `${existing.type}-${existing.message.trim()}-${(existing.title || '').trim()}`;
+      return existingKey === notificationKey;
+    });
+
+    // Verificar si hay una notificación reciente (dentro del tiempo de vida)
+    const now = Date.now();
+    const isDuplicateRecent = recentNotifications.has(notificationKey);
+
+    if (isDuplicateActive || isDuplicateRecent) {
+      console.log('Notificación duplicada ignorada:', {
+        message: newNotification.message,
+        type: newNotification.type,
+        title: newNotification.title,
+        reason: isDuplicateActive ? 'notificación activa' : 'notificación reciente'
+      });
       return id; // Retorna un ID pero no agrega la notificación
     }
+
+    // Agregar a la lista de notificaciones recientes
+    setRecentNotifications(prev => {
+      const updated = new Map(prev);
+      updated.set(notificationKey, now);
+      return updated;
+    });
+
+    // Limpiar notificaciones recientes después del tiempo de vida + buffer
+    setTimeout(() => {
+      setRecentNotifications(prev => {
+        const updated = new Map(prev);
+        updated.delete(notificationKey);
+        return updated;
+      });
+    }, newNotification.duration + 1000); // Buffer adicional de 1 segundo
 
     setNotifications(prev => [...prev, newNotification]);
 

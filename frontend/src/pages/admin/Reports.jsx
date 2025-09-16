@@ -1,362 +1,509 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Package, DollarSign, TrendingUp, BarChart3, Scissors, ShoppingCart, Filter } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+  Plus, 
+  DollarSign, 
+  TrendingUp, 
+  Calendar, 
+  Filter,
+  Download,
+  RefreshCw,
+  CreditCard,
+  PieChart,
+  BarChart3
+} from 'lucide-react';
 import { PageContainer } from '../../components/layout/PageContainer';
+import GradientText from '../../components/ui/GradientText';
+import GradientButton from '../../components/ui/GradientButton';
+import { FinancialDashboard } from '../../components/common/FinancialDashboard';
+import { DateRangeFilter, CategoryFilter, PaymentMethodFilter } from '../../components/common/ReportFilters';
+import { ExpenseModal, RecurringExpensesList } from '../../components/common/ExpenseManagement';
+import useFinancialReports from '../../hooks/useFinancialReports';
+import useExpenses from '../../hooks/useExpenses';
 
 /**
- * Componente de reportes para administradores
- * Muestra ventas de productos y servicios por barbero
- * Soporta reportes diarios, semanales y mensuales
+ * Página de reportes financieros completa
+ * Sistema integral de análisis financiero y gestión de gastos
  */
 const Reports = () => {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [reportType, setReportType] = useState('daily');
-  const [reportData, setReportData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [reportInfo, setReportInfo] = useState({
-    period: '',
-    dateRange: ''
-  });
-  const [summary, setSummary] = useState({
-    totalRevenue: 0,
-    totalCuts: 0,
-    totalProducts: 0,
-    activeBarbers: 0
-  });
+  // Estados principales
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
 
-  const reportTypes = [
-    { value: 'daily', label: 'Diario', icon: Calendar },
-    { value: 'weekly', label: 'Semanal', icon: BarChart3 },
-    { value: 'monthly', label: 'Mensual', icon: TrendingUp }
+  // Hooks principales
+  const {
+    data: financialData,
+    loading: financialLoading,
+    error: financialError,
+    dateRange,
+    datePresets,
+    setDateRangePreset,
+    setCustomDateRange,
+    refreshData,
+    calculations,
+    formatCurrency,
+    formatDate
+  } = useFinancialReports();
+
+  const {
+    expenses,
+    recurringExpenses,
+    loading: expensesLoading,
+    error: expensesError,
+    expenseCategories,
+    paymentMethods,
+    frequencies,
+    createExpense,
+    createRecurringExpense,
+    updateExpense,
+    deleteExpense,
+    toggleRecurringExpense,
+    processAutomaticExpenses,
+    formatCurrency: formatExpenseCurrency,
+    getNextRecurringDate
+  } = useExpenses();
+
+  // Estados para filtros
+  const [categoryFilters, setCategoryFilters] = useState([]);
+  const [paymentMethodFilters, setPaymentMethodFilters] = useState([]);
+
+  // Tabs de navegación
+  const tabs = [
+    { 
+      id: 'dashboard', 
+      label: 'Dashboard', 
+      icon: BarChart3,
+      description: 'Métricas financieras principales'
+    },
+    { 
+      id: 'expenses', 
+      label: 'Gastos', 
+      icon: DollarSign,
+      description: 'Gestión de gastos únicos y recurrentes'
+    },
+    { 
+      id: 'analysis', 
+      label: 'Análisis', 
+      icon: PieChart,
+      description: 'Análisis detallado y tendencias'
+    }
   ];
 
-  useEffect(() => {
-    loadReport();
-  }, [selectedDate, reportType]);
-
-  const loadReport = async () => {
+  // Handlers para gastos
+  const handleSaveExpense = async (expenseData) => {
     try {
-      setLoading(true);
-      setError('');
-      
-      const response = await fetch(`/api/v1/sales/reports?type=${reportType}&date=${selectedDate}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al cargar el reporte');
+      if (expenseData.isRecurring) {
+        await createRecurringExpense(expenseData);
+      } else {
+        await createExpense(expenseData);
       }
-
-      const data = await response.json();
-      setReportData(data.data || []);
-      setReportInfo({
-        period: data.period || '',
-        dateRange: data.dateRange || ''
-      });
-      
-      // Calcular resumen
-      const summary = (data.data || []).reduce((acc, barber) => {
-        acc.totalRevenue += barber.totalRevenue;
-        acc.totalCuts += barber.totalCuts;
-        acc.totalProducts += barber.totalProducts;
-        acc.activeBarbers = data.data?.length || 0;
-        return acc;
-      }, { totalRevenue: 0, totalCuts: 0, totalProducts: 0, activeBarbers: 0 });
-      
-      setSummary(summary);
+      setShowExpenseModal(false);
+      setEditingExpense(null);
+      refreshData();
     } catch (error) {
-      console.error('Error al cargar reporte:', error);
-      setError(`Error al cargar el reporte ${reportTypes.find(t => t.value === reportType)?.label?.toLowerCase()}`);
-    } finally {
-      setLoading(false);
+      console.error('Error saving expense:', error);
     }
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP'
-    }).format(amount);
+  const handleEditExpense = (expense) => {
+    setEditingExpense(expense);
+    setShowExpenseModal(true);
   };
 
-  const formatDate = (date) => {
-    // Crear la fecha con la zona horaria local para evitar problemas de UTC
-    const localDate = new Date(date + 'T00:00:00');
-    return localDate.toLocaleDateString('es-CO', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  // Función para calcular y mostrar el rango de fechas según el tipo de reporte
-  const getDateRangeText = () => {
-    const date = new Date(selectedDate + 'T00:00:00'); // Evitar problemas de zona horaria
-    
-    switch (reportType) {
-      case 'daily':
-        return `Reporte del día: ${formatDate(selectedDate)}`;
-        
-      case 'weekly':
-        const weekStart = new Date(date);
-        weekStart.setDate(weekStart.getDate() - 6);
-        const weekStartStr = weekStart.toISOString().split('T')[0];
-        return `Reporte semanal: ${formatDate(weekStartStr)} - ${formatDate(selectedDate)}`;
-        
-      case 'monthly':
-        const monthStart = new Date(date);
-        monthStart.setDate(monthStart.getDate() - 29);
-        const monthStartStr = monthStart.toISOString().split('T')[0];
-        return `Reporte mensual: ${formatDate(monthStartStr)} - ${formatDate(selectedDate)}`;
-        
-      default:
-        return `Reporte: ${formatDate(selectedDate)}`;
+  const handleDeleteExpense = async (expenseId) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este gasto?')) {
+      try {
+        await deleteExpense(expenseId);
+        refreshData();
+      } catch (error) {
+        console.error('Error deleting expense:', error);
+      }
     }
   };
 
-  if (loading) {
-    return (
-      <PageContainer>
-        <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-          <div className="relative z-10 text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-400 mx-auto mb-4"></div>
-            <p className="text-white text-lg">Cargando reporte...</p>
-          </div>
-        </div>
-      </PageContainer>
+  const handleToggleRecurring = async (expenseId, isActive) => {
+    try {
+      await toggleRecurringExpense(expenseId, isActive);
+    } catch (error) {
+      console.error('Error toggling recurring expense:', error);
+    }
+  };
+
+  // Handlers para filtros
+  const handleCategoryToggle = (category) => {
+    setCategoryFilters(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
     );
-  }
+  };
+
+  const handlePaymentMethodToggle = (method) => {
+    setPaymentMethodFilters(prev => 
+      prev.includes(method) 
+        ? prev.filter(m => m !== method)
+        : [...prev, method]
+    );
+  };
+
+  const handleRefreshAll = async () => {
+    try {
+      await Promise.all([
+        refreshData(),
+        processAutomaticExpenses()
+      ]);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    }
+  };
+
+  // Renderizar contenido por tab
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return (
+          <div className="space-y-8">
+            {/* Dashboard principal */}
+            <FinancialDashboard
+              data={financialData}
+              calculations={calculations}
+              formatCurrency={formatCurrency}
+              loading={financialLoading}
+            />
+
+            {/* Datos adicionales */}
+            {!financialLoading && financialData.dailyData?.length > 0 && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+                {/* Gráfico de tendencias diarias */}
+                <div className="group relative bg-white/5 border border-white/10 rounded-2xl p-6 lg:p-8 backdrop-blur-sm shadow-2xl shadow-blue-500/20 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-2xl"></div>
+                  
+                  <div className="relative">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-3 bg-gradient-to-r from-green-600/20 to-blue-600/20 rounded-xl border border-green-500/20 shadow-xl shadow-blue-500/20">
+                        <TrendingUp className="w-6 h-6 text-green-400" />
+                      </div>
+                      <h3 className="text-xl font-bold text-white">Tendencias Diarias</h3>
+                    </div>
+                    
+                    <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                      {financialData.dailyData.slice(0, 10).map((day, index) => (
+                        <div key={day.date} className="flex justify-between items-center p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                          <span className="text-gray-300 text-sm">{formatDate(day.date)}</span>
+                          <span className="text-green-400 font-semibold">{formatCurrency(day.totalRevenue)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Top servicios/productos */}
+                <div className="group relative bg-white/5 border border-white/10 rounded-2xl p-6 lg:p-8 backdrop-blur-sm shadow-2xl shadow-blue-500/20 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-2xl"></div>
+                  
+                  <div className="relative">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-3 bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-xl border border-purple-500/20 shadow-xl shadow-blue-500/20">
+                        <BarChart3 className="w-6 h-6 text-purple-400" />
+                      </div>
+                      <h3 className="text-xl font-bold text-white">Top Servicios</h3>
+                    </div>
+                    
+                    <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                      {financialData.serviceBreakdown?.slice(0, 10).map((service, index) => (
+                        <div key={service.serviceId || index} className="flex justify-between items-center p-3 bg-purple-500/5 border border-purple-500/20 rounded-lg">
+                          <span className="text-gray-300 text-sm">{service.serviceName}</span>
+                          <span className="text-purple-400 font-semibold">{formatCurrency(service.totalRevenue)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'expenses':
+        return (
+          <div className="space-y-8">
+            {/* Header de gastos */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-2">Gestión de Gastos</h2>
+                <p className="text-gray-400">Administra gastos únicos y recurrentes de la barbería</p>
+              </div>
+              
+              <div className="flex gap-3">
+                <GradientButton
+                  variant="secondary"
+                  size="md"
+                  onClick={processAutomaticExpenses}
+                  disabled={expensesLoading}
+                  className="shadow-xl shadow-blue-500/20"
+                >
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4" />
+                    <span>Procesar Automáticos</span>
+                  </div>
+                </GradientButton>
+                
+                <GradientButton
+                  variant="primary"
+                  size="md"
+                  onClick={() => {
+                    setEditingExpense(null);
+                    setShowExpenseModal(true);
+                  }}
+                  className="shadow-xl shadow-blue-500/20"
+                >
+                  <div className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    <span>Nuevo Gasto</span>
+                  </div>
+                </GradientButton>
+              </div>
+            </div>
+
+            {/* Lista de gastos recurrentes */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-r from-orange-600/20 to-red-600/20 rounded-xl border border-orange-500/20 shadow-xl shadow-blue-500/20">
+                  <Calendar className="w-6 h-6 text-orange-400" />
+                </div>
+                <GradientText className="text-xl font-bold">
+                  Gastos Recurrentes
+                </GradientText>
+              </div>
+
+              <RecurringExpensesList
+                expenses={recurringExpenses}
+                onEdit={handleEditExpense}
+                onToggle={handleToggleRecurring}
+                onDelete={handleDeleteExpense}
+                formatCurrency={formatExpenseCurrency}
+                getNextRecurringDate={getNextRecurringDate}
+                loading={expensesLoading}
+              />
+            </div>
+
+            {/* Lista de gastos recientes */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl border border-blue-500/20 shadow-xl shadow-blue-500/20">
+                  <DollarSign className="w-6 h-6 text-blue-400" />
+                </div>
+                <GradientText className="text-xl font-bold">
+                  Gastos Recientes
+                </GradientText>
+              </div>
+
+              <div className="space-y-4">
+                {expensesLoading ? (
+                  [...Array(5)].map((_, i) => (
+                    <div key={i} className="animate-pulse bg-white/5 border border-white/10 rounded-lg p-4 h-20"></div>
+                  ))
+                ) : expenses.length === 0 ? (
+                  <div className="text-center py-12">
+                    <DollarSign className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-400 mb-2">No hay gastos registrados</h3>
+                    <p className="text-gray-500">Crea el primer gasto para comenzar</p>
+                  </div>
+                ) : (
+                  expenses.slice(0, 10).map((expense) => (
+                    <div
+                      key={expense._id}
+                      className="group relative bg-white/5 border border-white/10 rounded-lg p-4 backdrop-blur-sm shadow-xl shadow-blue-500/20 hover:bg-white/10 transition-all duration-300 overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-lg"></div>
+                      
+                      <div className="relative flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h4 className="font-semibold text-white">{expense.description}</h4>
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                              {expenseCategories.find(c => c.value === expense.category)?.label || expense.category}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-4 text-sm text-gray-300">
+                            <span className="font-medium text-red-400">
+                              {formatExpenseCurrency(expense.amount)}
+                            </span>
+                            <span>{formatDate(expense.date)}</span>
+                            <span className="text-gray-400">
+                              {paymentMethods.find(p => p.value === expense.paymentMethod)?.label || expense.paymentMethod}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'analysis':
+        return (
+          <div className="space-y-8">
+            {/* Análisis avanzado */}
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-white mb-2">Análisis Financiero Avanzado</h2>
+              <p className="text-gray-400">Próximamente: Gráficos interactivos y análisis predictivo</p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+              {/* Placeholder para gráficos */}
+              <div className="group relative bg-white/5 border border-white/10 rounded-2xl p-6 lg:p-8 backdrop-blur-sm shadow-2xl shadow-blue-500/20 overflow-hidden min-h-64 flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-2xl"></div>
+                
+                <div className="relative text-center">
+                  <PieChart className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-400 mb-2">Gráficos Interactivos</h3>
+                  <p className="text-gray-500">Análisis visual de tendencias y patrones</p>
+                </div>
+              </div>
+
+              <div className="group relative bg-white/5 border border-white/10 rounded-2xl p-6 lg:p-8 backdrop-blur-sm shadow-2xl shadow-blue-500/20 overflow-hidden min-h-64 flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-2xl"></div>
+                
+                <div className="relative text-center">
+                  <TrendingUp className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-400 mb-2">Análisis Predictivo</h3>
+                  <p className="text-gray-500">Proyecciones y recomendaciones</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <PageContainer>
-      <div className="min-h-screen bg-gray-900 text-white">
-        {/* Background decorativo */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-green-500/10 rounded-full blur-3xl"></div>
-          <div className="absolute top-3/4 left-3/4 w-64 h-64 bg-purple-500/10 rounded-full blur-2xl"></div>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 space-y-8">
+        {/* Header principal */}
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <div className="p-3 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl border border-blue-500/20 shadow-xl shadow-blue-500/20">
+              <BarChart3 className="w-6 h-6 text-blue-400" />
+            </div>
+            <GradientText className="text-xl lg:text-2xl font-bold">
+              Centro de Reportes Financieros
+            </GradientText>
+          </div>
+          <p className="text-gray-400 text-sm lg:text-base">
+            Sistema integral de análisis financiero y gestión de gastos
+          </p>
         </div>
 
-        <div className="relative z-10 container mx-auto px-4 py-8">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-green-400 to-purple-400 bg-clip-text text-transparent mb-2">
-              Reportes
-            </h1>
-            <p className="text-gray-300 text-lg">Análisis de ventas y servicios por barbero</p>
-            <p className="text-blue-400 mt-2 font-medium">{getDateRangeText()}</p>
-            {reportInfo.dateRange && (
-              <p className="text-gray-500 text-sm mt-1">Datos del servidor: {reportInfo.dateRange}</p>
-            )}
-          </div>
+        {/* Filtros de fecha */}
+        <DateRangeFilter
+          dateRange={dateRange}
+          datePresets={datePresets}
+          onPresetChange={setDateRangePreset}
+          onCustomDateChange={setCustomDateRange}
+          loading={financialLoading}
+        />
 
-          {/* Controles de filtro */}
-          <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Selector de tipo de reporte */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Filter className="h-5 w-5 text-blue-400" />
-                <label className="text-gray-300 font-medium">Tipo:</label>
-              </div>
-              <div className="flex gap-2">
-                {reportTypes.map((type) => {
-                  const IconComponent = type.icon;
-                  return (
-                    <button
-                      key={type.value}
-                      onClick={() => setReportType(type.value)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                        reportType === type.value
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
-                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      }`}
-                    >
-                      <IconComponent className="h-4 w-4" />
-                      {type.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Selector de fecha */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-blue-400" />
-                <label className="text-gray-300 font-medium">
-                  {reportType === 'daily' ? 'Fecha:' : 'Fecha final:'}
-                </label>
-              </div>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-4 py-2 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-              />
-              <span className="text-gray-400">({formatDate(selectedDate)})</span>
-              {(reportType === 'weekly' || reportType === 'monthly') && (
-                <span className="text-xs text-gray-500 italic">
-                  {reportType === 'weekly' ? '(7 días hacia atrás)' : '(30 días hacia atrás)'}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-900/30 border border-red-500/50 rounded-lg text-red-300">
-              {error}
-            </div>
-          )}
-
-          {/* Resumen general */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Ingresos Totales</p>
-                  <p className="text-2xl font-bold text-green-400">{formatCurrency(summary.totalRevenue)}</p>
-                </div>
-                <DollarSign className="h-8 w-8 text-green-400" />
-              </div>
-            </div>
-
-            <div className="bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Total Cortes</p>
-                  <p className="text-2xl font-bold text-blue-400">{summary.totalCuts}</p>
-                </div>
-                <Scissors className="h-8 w-8 text-blue-400" />
-              </div>
-            </div>
-
-            <div className="bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Productos Vendidos</p>
-                  <p className="text-2xl font-bold text-purple-400">{summary.totalProducts}</p>
-                </div>
-                <ShoppingCart className="h-8 w-8 text-purple-400" />
-              </div>
-            </div>
-
-            <div className="bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Barberos Activos</p>
-                  <p className="text-2xl font-bold text-orange-400">{summary.activeBarbers}</p>
-                </div>
-                <Users className="h-8 w-8 text-orange-400" />
-              </div>
-            </div>
-          </div>
-
-          {/* Reportes por barbero */}
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white mb-4">Detalle por Barbero</h2>
-            
-            {reportData.length === 0 ? (
-              <div className="text-center py-12">
-                <BarChart3 className="h-16 w-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-400 mb-2">No hay datos</h3>
-                <p className="text-gray-500">No se registraron ventas ni servicios para esta fecha</p>
-              </div>
-            ) : (
-              reportData.map((barber, index) => (
-                <div
-                  key={barber.barberId}
-                  className="bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6 hover:bg-gray-800/60 transition-all duration-200"
+        {/* Navegación por tabs */}
+        <div className="flex justify-center mb-6">
+          <div className="bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm shadow-lg p-1 flex gap-1 overflow-x-auto">
+            {tabs.map((tab) => {
+              const IconComponent = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`group relative px-4 sm:px-6 py-3 rounded-xl border transition-all duration-300 backdrop-blur-sm flex items-center gap-2 whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? 'border-blue-500/50 bg-blue-500/10 shadow-xl shadow-blue-500/20'
+                      : 'border-white/20 bg-white/5 hover:border-blue-500/30 hover:bg-blue-500/5'
+                  }`}
                 >
-                  {/* Header del barbero */}
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center">
-                        <span className="text-xl font-bold text-blue-400">#{index + 1}</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-xl"></div>
+                  
+                  <div className="relative flex items-center gap-2">
+                    <IconComponent className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors duration-300 ${
+                      activeTab === tab.id ? 'text-blue-300' : 'text-white'
+                    }`} />
+                    <div className="text-left">
+                      <div className={`font-medium text-sm transition-colors duration-300 ${
+                        activeTab === tab.id ? 'text-blue-300' : 'text-white'
+                      }`}>
+                        {tab.label}
                       </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-white">{barber.barberName}</h3>
-                        <p className="text-gray-400">Total: {formatCurrency(barber.totalRevenue)}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-4 text-sm">
-                      <div className="text-center">
-                        <div className="text-blue-400 font-semibold">{barber.totalCuts}</div>
-                        <div className="text-gray-400">Cortes</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-purple-400 font-semibold">{barber.totalProducts}</div>
-                        <div className="text-gray-400">Productos</div>
+                      <div className="text-xs text-gray-400 hidden sm:block">
+                        {tab.description}
                       </div>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Servicios/Cortes */}
-                    <div>
-                      <h4 className="text-lg font-semibold text-blue-400 mb-3 flex items-center gap-2">
-                        <Scissors className="h-5 w-5" />
-                        Servicios ({barber.totalCuts})
-                      </h4>
-                      {barber.cuts.length === 0 ? (
-                        <p className="text-gray-500 text-sm">No se registraron cortes</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {barber.cuts.map((cut, idx) => (
-                            <div key={idx} className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <p className="font-medium text-blue-300">{cut.serviceName}</p>
-                                  <p className="text-gray-400 text-sm">{cut.customerName}</p>
-                                </div>
-                                <span className="text-blue-400 font-semibold">{formatCurrency(cut.servicePrice)}</span>
-                              </div>
-                            </div>
-                          ))}
-                          <div className="text-right pt-2 border-t border-blue-500/30">
-                            <span className="text-blue-400 font-bold">Subtotal: {formatCurrency(barber.totalCutsRevenue)}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Productos */}
-                    <div>
-                      <h4 className="text-lg font-semibold text-purple-400 mb-3 flex items-center gap-2">
-                        <Package className="h-5 w-5" />
-                        Productos ({barber.totalProducts})
-                      </h4>
-                      {barber.productSales.length === 0 ? (
-                        <p className="text-gray-500 text-sm">No se vendieron productos</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {barber.productSales.map((sale, idx) => (
-                            <div key={idx} className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <p className="font-medium text-purple-300">{sale.productName}</p>
-                                  <p className="text-gray-400 text-sm">
-                                    {sale.quantity} x {formatCurrency(sale.unitPrice)}
-                                    {sale.customerName && ` - ${sale.customerName}`}
-                                  </p>
-                                </div>
-                                <span className="text-purple-400 font-semibold">{formatCurrency(sale.totalAmount)}</span>
-                              </div>
-                            </div>
-                          ))}
-                          <div className="text-right pt-2 border-t border-purple-500/30">
-                            <span className="text-purple-400 font-bold">Subtotal: {formatCurrency(barber.totalProductRevenue)}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
+                </button>
+              );
+            })}
           </div>
         </div>
+
+        {/* Botones de acción globales */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            {(financialError || expensesError) && (
+              <div className="px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-sm">
+                {financialError || expensesError}
+              </div>
+            )}
+          </div>
+          
+          <div className="flex gap-3">
+            <GradientButton
+              variant="secondary"
+              size="md"
+              onClick={handleRefreshAll}
+              disabled={financialLoading || expensesLoading}
+              className="shadow-xl shadow-blue-500/20"
+            >
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4" />
+                <span>Actualizar</span>
+              </div>
+            </GradientButton>
+            
+            <GradientButton
+              variant="primary"
+              size="md"
+              onClick={() => {/* TODO: Implementar exportación */}}
+              className="shadow-xl shadow-blue-500/20"
+            >
+              <div className="flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                <span>Exportar</span>
+              </div>
+            </GradientButton>
+          </div>
+        </div>
+
+        {/* Contenido de la tab activa */}
+        {renderTabContent()}
+
+        {/* Modal de gastos */}
+        <ExpenseModal
+          isOpen={showExpenseModal}
+          onClose={() => {
+            setShowExpenseModal(false);
+            setEditingExpense(null);
+          }}
+          expense={editingExpense}
+          expenseCategories={expenseCategories}
+          paymentMethods={paymentMethods}
+          frequencies={frequencies}
+          onSave={handleSaveExpense}
+          loading={expensesLoading}
+        />
       </div>
     </PageContainer>
   );

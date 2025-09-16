@@ -7,6 +7,7 @@ import appointmentRoutes from './appointment.js';
 import inventoryRoutes from './inventory.js';
 import salesRoutes from './sales.js';
 import inventorySnapshotRoutes from './inventorySnapshot.js';
+import expenseRoutes from './expenseRoutes.js';
 import monitoringRoutes from './monitoring.js';
 import debugRoutes from './debug.js';
 import { errorHandler, monitoringMiddleware } from '../middleware/index.js';
@@ -25,6 +26,7 @@ router.use('/appointments', appointmentRoutes);
 router.use('/inventory', inventoryRoutes);
 router.use('/inventory-snapshots', inventorySnapshotRoutes);
 router.use('/sales', salesRoutes);
+router.use('/expenses', expenseRoutes);
 router.use('/monitoring', monitoringRoutes);
 
 // Solo montar rutas de debug en desarrollo

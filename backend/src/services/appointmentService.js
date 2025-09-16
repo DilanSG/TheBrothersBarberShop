@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { Appointment, Barber, Service } from '../models/index.js';
+import { reportsCacheService } from './reportsCacheService.js';
 import { AppError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 
@@ -574,13 +575,47 @@ class AppointmentService {
   /**
    * Obtener estadísticas de citas por barbero
    */
-  static async getBarberAppointmentStats(barberId) {
+  static async getBarberAppointmentStats(barberId, dateFilter = {}) {
     try {
+      // Construir filtros de fecha
+      const matchConditions = {
+        barber: new mongoose.Types.ObjectId(barberId)
+      };
+
+      // Aplicar filtros de fecha
+      if (dateFilter.date) {
+        // Filtro por fecha específica - ajustar por zona horaria
+        const targetDate = new Date(dateFilter.date + 'T00:00:00.000-05:00'); // Colombia UTC-5
+        const startOfDay = new Date(targetDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(targetDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        matchConditions.date = {
+          $gte: startOfDay,
+          $lte: endOfDay
+        };
+      } else if (dateFilter.startDate && dateFilter.endDate) {
+        // Filtro por rango de fechas - ajustar por zona horaria
+        const startDate = new Date(dateFilter.startDate + 'T00:00:00.000-05:00'); // Colombia UTC-5
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(dateFilter.endDate + 'T23:59:59.999-05:00'); // Colombia UTC-5
+        endDate.setHours(23, 59, 59, 999);
+        
+        matchConditions.date = {
+          $gte: startDate,
+          $lte: endDate
+        };
+      }
+
+      console.log(`📅 Filtros aplicados para citas del barbero ${barberId}:`, {
+        matchConditions,
+        dateFilter
+      });
+
       const stats = await Appointment.aggregate([
         {
-          $match: {
-            barber: new mongoose.Types.ObjectId(barberId)
-          }
+          $match: matchConditions
         },
         {
           $group: {
@@ -607,6 +642,11 @@ class AppointmentService {
         result.total += stat.count;
         result[stat._id] = stat.count;
         result.revenue += stat.revenue;
+      });
+
+      console.log(`📅 Stats de citas para barbero ${barberId} con filtros:`, {
+        result,
+        filteredBy: dateFilter
       });
 
       return result;
@@ -689,6 +729,128 @@ class AppointmentService {
     } catch (error) {
       console.error('Error obteniendo fechas disponibles de citas:', error);
       return [];
+    }
+  }
+
+  /**
+   * Obtener detalles de citas completadas agrupadas por día
+   */
+  static async getCompletedDetails(barberId, startDate, endDate) {
+    try {
+      console.log(`🔍 Obteniendo detalles de citas completadas - Barbero: ${barberId}, Desde: ${startDate || 'SIN LIMITE'}, Hasta: ${endDate || 'SIN LIMITE'}`);
+      
+      // Buscar barbero
+      const barber = await Barber.findById(barberId).populate('user');
+      if (!barber) {
+        // Intentar buscar por user ID
+        const barberByUser = await Barber.findOne({ user: barberId }).populate('user');
+        if (!barberByUser) {
+          throw new AppError('Barbero no encontrado', 404);
+        }
+        barberId = barberByUser._id;
+      }
+      
+      let start, end;
+      let dateQuery = {};
+      
+      if (startDate && endDate) {
+        // Usar la misma lógica que getBarberAppointmentStats (que funciona correctamente)
+        start = new Date(startDate + 'T00:00:00.000-05:00'); // Colombia UTC-5
+        start.setHours(0, 0, 0, 0);
+        end = new Date(endDate + 'T23:59:59.999-05:00'); // Colombia UTC-5
+        end.setHours(23, 59, 59, 999);
+        
+        dateQuery = { date: { $gte: start, $lte: end } };
+        console.log(`📅 Rango de fechas procesado con zona horaria Colombia: ${start.toISOString()} - ${end.toISOString()}`);
+      } else {
+        console.log(`📅 Sin filtro de fechas - obteniendo todos los registros`);
+      }
+
+      // Usar cache inteligente
+      return await reportsCacheService.withCache(
+        'completed-appointments',
+        barberId.toString(),
+        start || new Date(0),
+        end || new Date(),
+        async () => {
+          console.log(`📊 Generando detalles de citas completadas desde DB`);
+          
+          const appointments = await Appointment.find({
+            barber: barberId,
+            ...dateQuery,
+            status: 'completed'
+          })
+          .populate('user', 'name phone email')
+          .populate('service', 'name price duration')
+          .sort({ date: 1 });
+
+          console.log(`🔍 Citas encontradas en DB: ${appointments.length} registros para barbero ${barberId}`);
+          
+          // Debug: Verificar si hay citas con datos faltantes
+          const appointmentsWithMissingData = appointments.filter(apt => !apt.user || !apt.service);
+          if (appointmentsWithMissingData.length > 0) {
+            console.log(`⚠️ CITAS CON DATOS FALTANTES: ${appointmentsWithMissingData.length}/${appointments.length}`);
+            appointmentsWithMissingData.slice(0, 3).forEach((apt, index) => {
+              console.log(`   Cita ${index + 1}: ID=${apt._id}, user=${!!apt.user}, service=${!!apt.service}, date=${apt.date}`);
+            });
+          }
+
+      // Agrupar por día
+      const appointmentsByDay = {};
+      appointments.forEach(appointment => {
+        const dayKey = appointment.date.toISOString().split('T')[0];
+        
+        if (!appointmentsByDay[dayKey]) {
+          appointmentsByDay[dayKey] = {
+            date: dayKey,
+            appointments: [],
+            totalAmount: 0,
+            totalAppointments: 0
+          };
+        }
+
+        const appointmentDetail = {
+          _id: appointment._id,
+          date: appointment.date,
+          startTime: appointment.startTime,
+          endTime: appointment.endTime,
+          total: appointment.price,
+          notes: appointment.notes,
+          client: {
+            _id: appointment.user._id,
+            name: appointment.user.name,
+            phone: appointment.user.phone,
+            email: appointment.user.email
+          },
+          service: appointment.service ? {
+            _id: appointment.service._id,
+            name: appointment.service.name,
+            price: appointment.service.price,
+            duration: appointment.service.duration
+          } : {
+            _id: null,
+            name: 'Servicio no disponible',
+            price: appointment.price || 0,
+            duration: null
+          },
+          price: appointment.price
+        };
+
+        appointmentsByDay[dayKey].appointments.push(appointmentDetail);
+        appointmentsByDay[dayKey].totalAmount += appointment.price || 0;
+        appointmentsByDay[dayKey].totalAppointments += 1;
+      });
+
+      const result = Object.values(appointmentsByDay).sort((a, b) => new Date(a.date) - new Date(b.date));
+      
+      console.log(`✅ Detalles de citas completadas generados: ${result.length} días con citas`);
+      return result;
+        }
+      );
+
+    } catch (error) {
+      console.error('Error obteniendo detalles de citas completadas:', error);
+      throw error;
     }
   }
 }

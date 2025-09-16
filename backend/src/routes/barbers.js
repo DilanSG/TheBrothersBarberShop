@@ -93,4 +93,19 @@ router.put('/:id/profile',
 // Remover barbero (cambiar a rol user) - solo admin
 router.put('/:id/remove', validateIdParam, adminAuth, removeBarber);
 
+// Actualizar estado de barbero principal - solo admin
+router.patch('/:id/main-status', 
+  validateIdParam, 
+  adminAuth, 
+  invalidateCacheMiddleware(CACHE_PATTERNS),
+  async (req, res, next) => {
+    try {
+      const { updateMainBarberStatus } = await import('../controllers/barberController.js');
+      await updateMainBarberStatus(req, res);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 export default router;

@@ -2,10 +2,11 @@ import cors from 'cors';
 
 // Lista de dominios permitidos
 const allowedOrigins = [
+               
   'http://192.168.0.106:5173',
   'http://192.168.0.106:5173',           // Desarrollo local
-  'http://localhost:3000',           // Desarrollo frontend
-  'http://localhost:3001',           // Desarrollo alternativo
+  'http://10.152.109.104:5173',
+  'http://10.152.109.104:5173',        // Desarrollo alternativo
   'http://192.168.64.104:5173',     // Vite server
   'http://192.168.64.104:5174',     // Vite server alternativo
   'http://localhost:5173',          // Vite local

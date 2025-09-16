@@ -10,13 +10,17 @@ import {
   X,
   Search,
   Filter,
-  User
+  User,
+  Edit3,
+  CreditCard,
+  Banknote,
+  Smartphone
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { PageContainer } from '../../components/layout/PageContainer';
 import GradientText from '../../components/ui/GradientText';
-import { inventoryService, salesService, serviceService } from '../../services/api';
+import { inventoryService, salesService, serviceService, barberService } from '../../services/api';
 import { useInventoryRefresh } from '../../contexts/InventoryContext';
 
 /**
@@ -32,6 +36,7 @@ const BarberSales = () => {
   const [products, setProducts] = useState([]);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingInventory, setLoadingInventory] = useState(true);
   const [error, setError] = useState('');
 
   // Estados del carrito
@@ -46,12 +51,42 @@ const BarberSales = () => {
   const [processingSale, setProcessingSale] = useState(false);
   const [saleCompleted, setSaleCompleted] = useState(false);
 
+  // Estados para métodos de pago
+  const [paymentMethodModal, setPaymentMethodModal] = useState({ show: false, item: null });
+
+  // Estados para selección de barbero (solo para admins)
+  const [selectedBarberId, setSelectedBarberId] = useState(null);
+  const [availableBarbers, setAvailableBarbers] = useState([]);
+  const [loadingBarbers, setLoadingBarbers] = useState(false);
+
+  // Configuración de métodos de pago
+  const paymentMethods = [
+    { id: 'efectivo', name: 'Efectivo', icon: Banknote, color: 'green' },
+    { id: 'nequi', name: 'Nequi', icon: Smartphone, color: 'purple' },
+    { id: 'nu', name: 'Nu', icon: CreditCard, color: 'violet' },
+    { id: 'daviplata', name: 'Daviplata', icon: Smartphone, color: 'red' },
+    { id: 'tarjeta', name: 'Tarjeta', icon: CreditCard, color: 'blue' },
+    { id: 'transferencia', name: 'Otra Transferencia', icon: CreditCard, color: 'gray' }
+  ];
+
   // Obtener barberId correctamente
   const getBarberId = () => {
     console.log('🔍 Datos del usuario:', user);
     console.log('🔍 Role:', user.role);
     console.log('🔍 user._id:', user._id);
     console.log('🔍 user.barberId:', user.barberId);
+    console.log('🔍 selectedBarberId:', selectedBarberId);
+    
+    // Si el usuario es admin, usar el barbero seleccionado
+    if (user.role === 'admin') {
+      if (selectedBarberId) {
+        console.log('👤 Usuario admin usando barbero seleccionado:', selectedBarberId);
+        return selectedBarberId;
+      } else {
+        console.log('⚠️ Usuario admin sin barbero seleccionado');
+        return null;
+      }
+    }
     
     // Si el usuario es barbero, necesitamos obtener el ID del perfil de barbero
     if (user.role === 'barber') {
@@ -64,18 +99,49 @@ const BarberSales = () => {
       console.log('⚠️ No hay barberId, usando user._id:', user._id);
       return user._id;
     }
-    // Si es admin, usar su ID (por ahora)
-    console.log('👤 Usuario admin, usando user._id:', user._id);
-    return user._id;
+    
+    console.log('❌ Tipo de usuario no reconocido');
+    return null;
   };
 
   // Cargar datos iniciales
   useEffect(() => {
     loadInitialData();
-  }, []);
+    // Si el usuario es admin, cargar la lista de barberos
+    if (user?.role === 'admin') {
+      loadBarbers();
+    }
+  }, [user]);
+
+  // Cargar lista de barberos disponibles (solo para admins)
+  const loadBarbers = async () => {
+    setLoadingBarbers(true);
+    try {
+      console.log('👥 Cargando lista de barberos...');
+      const response = await barberService.getAllBarbers();
+      console.log('👥 Respuesta de barberos:', response);
+      
+      if (response.success && response.data) {
+        setAvailableBarbers(response.data);
+        console.log('👥 Barberos disponibles:', response.data.length);
+        
+        // Seleccionar el primer barbero por defecto
+        if (response.data.length > 0 && !selectedBarberId) {
+          setSelectedBarberId(response.data[0]._id);
+          console.log('👥 Barbero seleccionado por defecto:', response.data[0]._id);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error cargando barberos:', error);
+      showError('Error al cargar la lista de barberos');
+    } finally {
+      setLoadingBarbers(false);
+    }
+  };
 
   const loadInitialData = async () => {
     setLoading(true);
+    setLoadingInventory(true);
     setError('');
     
     try {
@@ -138,6 +204,7 @@ const BarberSales = () => {
       showError('Error al cargar los datos iniciales');
     } finally {
       setLoading(false);
+      setLoadingInventory(false);
     }
   };
 
@@ -188,7 +255,8 @@ const BarberSales = () => {
         name: product.name,
         price: product.price,
         quantity: quantity,
-        stock: availableStock
+        stock: availableStock,
+        paymentMethod: 'efectivo' // Método de pago por defecto
       }]);
     }
     
@@ -214,7 +282,8 @@ const BarberSales = () => {
       name: selectedService.name,
       serviceId: selectedService._id,
       price: price,
-      quantity: 1
+      quantity: 1,
+      paymentMethod: 'efectivo' // Método de pago por defecto
     }]);
 
     setSelectedService(null);
@@ -247,6 +316,48 @@ const BarberSales = () => {
     }));
   };
 
+  // Obtener cantidad de un producto en el carrito
+  const getCartQuantity = (itemId, itemType) => {
+    const cartItem = cart.find(item => item.id === itemId && item.type === itemType);
+    return cartItem ? cartItem.quantity : 0;
+  };
+
+  // Funciones para métodos de pago
+  const openPaymentMethodModal = (item) => {
+    setPaymentMethodModal({ show: true, item });
+  };
+
+  const closePaymentMethodModal = () => {
+    setPaymentMethodModal({ show: false, item: null });
+  };
+
+  const updatePaymentMethod = (paymentMethodId) => {
+    const { item } = paymentMethodModal;
+    setCart(cart.map(cartItem => 
+      cartItem.id === item.id && cartItem.type === item.type
+        ? { ...cartItem, paymentMethod: paymentMethodId }
+        : cartItem
+    ));
+    closePaymentMethodModal();
+    showInfo('Método de pago actualizado');
+  };
+
+  // Calcular totales por método de pago
+  const getPaymentMethodSummary = () => {
+    const summary = {};
+    cart.forEach(item => {
+      const method = item.paymentMethod || 'efectivo';
+      const total = item.price * item.quantity;
+      summary[method] = (summary[method] || 0) + total;
+    });
+    return summary;
+  };
+
+  // Obtener información del método de pago
+  const getPaymentMethodInfo = (methodId) => {
+    return paymentMethods.find(method => method.id === methodId) || paymentMethods[0];
+  };
+
   // Calcular total del carrito
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 
@@ -257,83 +368,67 @@ const BarberSales = () => {
       return;
     }
 
+    // Validar que se haya seleccionado un barbero (especialmente para admins)
+    const barberId = getBarberId();
+    if (!barberId) {
+      if (user.role === 'admin') {
+        showError('Selecciona un barbero para realizar la venta');
+      } else {
+        showError('Error: No se pudo determinar el barbero');
+      }
+      return;
+    }
+
     setProcessingSale(true);
 
     try {
-      // Separar productos y servicios
-      const productSales = cart.filter(item => item.type === 'product');
-      const walkInServices = cart.filter(item => item.type === 'walkIn');
+      // Enviar todo el carrito con métodos de pago a la nueva API
+      const cartSaleData = {
+        cart: cart.map(item => ({
+          id: item.id,
+          type: item.type,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          paymentMethod: item.paymentMethod || 'efectivo',
+          serviceId: item.serviceId // Para servicios walk-in
+        })),
+        barberId: barberId,
+        notes: `Venta desde carrito - ${cart.length} items`
+      };
 
-      const salePromises = [];
+      console.log('🛒 Enviando datos del carrito:', cartSaleData);
 
-      // Procesar venta de productos si hay
-      if (productSales.length > 0) {
-        const productSaleData = {
-          barberId: getBarberId(),
-          items: productSales.map(item => ({
-            productId: item.id,
-            quantity: item.quantity,
-            price: item.price
-          })),
-          total: productSales.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-          type: 'product'
-        };
-
-        salePromises.push(salesService.createSale(productSaleData));
-      }
-
-      // Procesar servicios de corte si hay
-      if (walkInServices.length > 0) {
-        for (const service of walkInServices) {
-          const walkInData = {
-            barberId: getBarberId(),
-            serviceId: service.serviceId,
-            serviceName: service.name,
-            price: service.price,
-            total: service.price,
-            type: 'walkIn'
-          };
-
-          salePromises.push(salesService.createWalkInSale(walkInData));
-        }
-      }
-
-      await Promise.all(salePromises);
-
-      // Obtener detalles de la venta para el mensaje
-      const totalItems = cart.length;
-      const productCount = cart.filter(item => item.type === 'product').length;
-      const serviceCount = cart.filter(item => item.type === 'service').length;
+      const result = await salesService.createCartSale(cartSaleData);
 
       // Mensaje detallado de éxito
+      const paymentSummary = getPaymentMethodSummary();
       let successMessage = `✅ Venta completada exitosamente\n`;
-      successMessage += `💰 Total: $${cartTotal.toLocaleString()}\n`;
-      successMessage += `📦 Items vendidos: ${totalItems}`;
+      successMessage += `💰 Total: ${formatPrice(cartTotal)}\n`;
+      successMessage += `📦 Items vendidos: ${cart.length}\n`;
       
-      if (productCount > 0) {
-        successMessage += `\n🛍️ Productos: ${productCount}`;
-      }
-      if (serviceCount > 0) {
-        successMessage += `\n✂️ Servicios: ${serviceCount}`;
-      }
-      
-      successMessage += `\n📊 Inventario actualizado automáticamente`;
+      // Mostrar resumen por método de pago
+      Object.entries(paymentSummary).forEach(([methodId, total]) => {
+        if (total > 0) {
+          const methodInfo = getPaymentMethodInfo(methodId);
+          successMessage += `💳 ${methodInfo.name}: ${formatPrice(total)}\n`;
+        }
+      });
 
       showSuccess(successMessage);
-      
-      // Mostrar estado de venta completada temporalmente
-      setSaleCompleted(true);
-      setTimeout(() => setSaleCompleted(false), 3000); // Ocultar después de 3 segundos
-      
-      // Limpiar carrito y formulario completamente
+
+      // Limpiar carrito
       setCart([]);
-      setSelectedService(null);
-      setServicePrice('');
-      setSaleType('product');
-      
-      // Notificar que se hizo una venta para que otros componentes recarguen
+      setSaleCompleted(true);
+
+      // Reiniciar estado después de 3 segundos
+      setTimeout(() => {
+        setSaleCompleted(false);
+      }, 3000);
+
+      // Notificar cambios de inventario para actualizar la lista
       notifySale();
-      
+
       // Recargar productos para mostrar stock actualizado
       console.log('🔄 Recargando inventario para mostrar stock actualizado...');
       setTimeout(async () => {
@@ -344,11 +439,11 @@ const BarberSales = () => {
         } catch (error) {
           console.error('❌ Error recargando inventario:', error);
         }
-      }, 1500); // Aumentar a 1.5 segundos para asegurar que el backend procese completamente
+      }, 1500);
 
     } catch (error) {
       console.error('Error procesando venta:', error);
-      showError('Error al procesar la venta');
+      showError(error.response?.data?.message || 'Error al procesar la venta');
     } finally {
       setProcessingSale(false);
     }
@@ -396,10 +491,47 @@ const BarberSales = () => {
           {user && (
             <div className="inline-flex items-center px-4 py-2 bg-blue-500/10 backdrop-blur-sm border border-blue-500/20 text-blue-300 rounded-xl text-sm shadow-lg shadow-blue-500/20">
               <User className="w-4 h-4 mr-2" />
-              Barbero: {user.name || user.email}
+              {user.role === 'admin' ? 'Administrador' : 'Barbero'}: {user.name || user.email}
             </div>
           )}
         </div>
+
+        {/* Selector de barbero (solo para admins) */}
+        {user?.role === 'admin' && (
+          <div className="max-w-md mx-auto mb-6">
+            <div className="bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm shadow-lg p-4">
+              <label className="block text-sm font-medium text-gray-300 mb-3">
+                <User className="w-4 h-4 inline mr-2" />
+                Seleccionar Barbero para la Venta
+              </label>
+              {loadingBarbers ? (
+                <div className="flex items-center justify-center py-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                  <span className="ml-2 text-sm text-gray-400">Cargando barberos...</span>
+                </div>
+              ) : (
+                <select
+                  value={selectedBarberId || ''}
+                  onChange={(e) => setSelectedBarberId(e.target.value)}
+                  className="glassmorphism-select w-full"
+                  required
+                >
+                  <option value="">Selecciona un barbero</option>
+                  {availableBarbers.map((barber) => (
+                    <option key={barber._id} value={barber._id}>
+                      {barber.user?.name || barber.specialty} - {barber.specialty}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {!selectedBarberId && availableBarbers.length > 0 && (
+                <p className="text-xs text-yellow-400 mt-2">
+                  ⚠️ Debes seleccionar un barbero antes de procesar ventas
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Error */}
         {error && (
@@ -411,16 +543,52 @@ const BarberSales = () => {
           </div>
         )}
 
-        {/* Grid principal responsivo - Carrito + Contenido */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-          {/* Carrito - Siempre visible - Arriba en móvil, lateral en desktop */}
-          <div className="order-1 xl:order-1 space-y-4 sm:space-y-6 lg:space-y-8">
-            <div className="group relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 sm:p-4 lg:p-6 shadow-xl shadow-blue-500/20 overflow-hidden">
+        {/* Selector de tipo de venta - Tabs centrales */}
+        <div className="flex justify-center mb-6">
+          <div className="bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm shadow-lg p-1 flex gap-1 w-fit">
+            <button
+              onClick={() => setSaleType('product')}
+              className={`group relative px-3 py-2.5 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 overflow-hidden backdrop-blur-sm flex items-center justify-center gap-1.5 ${
+                saleType === 'product' 
+                  ? 'border-blue-500/50 bg-blue-500/10 shadow-xl shadow-blue-500/20' 
+                  : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
+              }`}
+            >
+              <Package size={14} className={`transition-all duration-300 ${
+                saleType === 'product' ? 'text-blue-300' : 'text-white'
+              }`} />
+              <span className={`font-medium text-xs whitespace-nowrap ${
+                saleType === 'product' ? 'text-blue-300' : 'text-white'
+              }`}>Productos</span>
+            </button>
+            <button
+              onClick={() => setSaleType('walkIn')}
+              className={`group relative px-3 py-2.5 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 overflow-hidden backdrop-blur-sm flex items-center justify-center gap-1.5 ${
+                saleType === 'walkIn' 
+                  ? 'border-green-500/50 bg-green-500/10 shadow-xl shadow-green-500/20' 
+                  : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
+              }`}
+            >
+              <Scissors size={14} className={`transition-all duration-300 ${
+                saleType === 'walkIn' ? 'text-green-300' : 'text-white'
+              }`} />
+              <span className={`font-medium text-xs whitespace-nowrap ${
+                saleType === 'walkIn' ? 'text-green-300' : 'text-white'
+              }`}>Servicios de Corte</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Layout principal: Carrito arriba en móvil, lado a lado en desktop */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 min-h-screen">
+          {/* Carrito - Primero en móvil, último en desktop */}
+          <div className="order-1 lg:order-2 lg:col-span-1">
+            <div className="group relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 sm:p-4 lg:p-6 shadow-xl shadow-blue-500/20 overflow-hidden lg:sticky lg:top-4">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-xl"></div>
               <div className="relative">
                 <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 flex items-center">
                   <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-green-400" />
-                  <span className="hidden sm:inline">Carrito </span>({cart.length})
+                  <span>Carrito </span>({cart.length})
                 </h3>
 
                 {cart.length === 0 ? (
@@ -443,12 +611,41 @@ const BarberSales = () => {
                               <p className="text-white text-xs sm:text-sm font-medium truncate">
                                 {item.name}
                               </p>
-                              <p className="text-gray-400 text-xs">
-                                {formatPrice(item.price)} 
-                                {item.type === 'product' && (
-                                  <span className="hidden sm:inline"> • Stock: {item.stock}</span>
-                                )}
-                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <p className="text-gray-400 text-xs">
+                                  {formatPrice(item.price)} 
+                                  {item.type === 'product' && (
+                                    <span className="hidden sm:inline"> • Stock: {item.stock}</span>
+                                  )}
+                                </p>
+                                {/* Método de pago actual */}
+                                <div className="flex items-center gap-1">
+                                  {(() => {
+                                    const methodInfo = getPaymentMethodInfo(item.paymentMethod);
+                                    const IconComponent = methodInfo.icon;
+                                    return (
+                                      <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${
+                                        methodInfo.color === 'green' ? 'bg-green-500/10 border-green-500/30 text-green-300' :
+                                        methodInfo.color === 'purple' ? 'bg-purple-500/10 border-purple-500/30 text-purple-300' :
+                                        methodInfo.color === 'violet' ? 'bg-violet-500/10 border-violet-500/30 text-violet-300' :
+                                        methodInfo.color === 'red' ? 'bg-red-500/10 border-red-500/30 text-red-300' :
+                                        methodInfo.color === 'blue' ? 'bg-blue-500/10 border-blue-500/30 text-blue-300' :
+                                        'bg-gray-500/10 border-gray-500/30 text-gray-300'
+                                      }`}>
+                                        <IconComponent size={10} />
+                                        <span className="hidden sm:inline">{methodInfo.name}</span>
+                                      </div>
+                                    );
+                                  })()}
+                                  <button
+                                    onClick={() => openPaymentMethodModal(item)}
+                                    className="p-1 text-gray-400 hover:text-blue-300 transition-colors duration-300"
+                                    title="Cambiar método de pago"
+                                  >
+                                    <Edit3 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                             
                             <div className="flex items-center space-x-1 sm:space-x-2 ml-2 sm:ml-3">
@@ -485,6 +682,37 @@ const BarberSales = () => {
                         </div>
                       </div>
                     ))}
+
+                    {/* Resumen por métodos de pago */}
+                    {cart.length > 0 && (
+                      <div className="border-t border-blue-500/20 pt-3 sm:pt-4 mt-3 sm:mt-4">
+                        <p className="text-sm font-medium text-white mb-2">Desglose por método de pago:</p>
+                        <div className="space-y-1">
+                          {Object.entries(getPaymentMethodSummary()).map(([methodId, total]) => {
+                            const methodInfo = getPaymentMethodInfo(methodId);
+                            const IconComponent = methodInfo.icon;
+                            return (
+                              <div key={methodId} className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <IconComponent size={14} className={`${
+                                    methodInfo.color === 'green' ? 'text-green-400' :
+                                    methodInfo.color === 'purple' ? 'text-purple-400' :
+                                    methodInfo.color === 'violet' ? 'text-violet-400' :
+                                    methodInfo.color === 'red' ? 'text-red-400' :
+                                    methodInfo.color === 'blue' ? 'text-blue-400' :
+                                    'text-gray-400'
+                                  }`} />
+                                  <span className="text-sm text-gray-300">{methodInfo.name}:</span>
+                                </div>
+                                <span className="text-sm font-medium text-white">
+                                  {formatPrice(total)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Total responsivo */}
                     <div className="border-t border-blue-500/20 pt-3 sm:pt-4 mt-3 sm:mt-4">
@@ -533,48 +761,12 @@ const BarberSales = () => {
             </div>
           </div>
 
-          {/* Contenido principal - Tabs, búsquedas y productos/servicios */}
-          <div className="order-2 xl:order-2 xl:col-span-2 space-y-4 sm:space-y-6 lg:space-y-8">
-          {/* Selector de tipo de venta - Tabs flotantes */}
-          <div className="flex justify-center">
-            <div className="bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm shadow-lg p-1 flex gap-1 w-fit">
-              <button
-                onClick={() => setSaleType('product')}
-                className={`group relative px-3 py-2.5 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 overflow-hidden backdrop-blur-sm flex items-center justify-center gap-1.5 ${
-                  saleType === 'product' 
-                    ? 'border-blue-500/50 bg-blue-500/10 shadow-xl shadow-blue-500/20' 
-                    : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
-                }`}
-              >
-                <Package size={14} className={`transition-all duration-300 ${
-                  saleType === 'product' ? 'text-blue-300' : 'text-white'
-                }`} />
-                <span className={`font-medium text-xs whitespace-nowrap ${
-                  saleType === 'product' ? 'text-blue-300' : 'text-white'
-                }`}>Productos</span>
-              </button>
-              <button
-                onClick={() => setSaleType('walkIn')}
-                className={`group relative px-3 py-2.5 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 overflow-hidden backdrop-blur-sm flex items-center justify-center gap-1.5 ${
-                  saleType === 'walkIn' 
-                    ? 'border-green-500/50 bg-green-500/10 shadow-xl shadow-green-500/20' 
-                    : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
-                }`}
-              >
-                <Scissors size={14} className={`transition-all duration-300 ${
-                  saleType === 'walkIn' ? 'text-green-300' : 'text-white'
-                }`} />
-                <span className={`font-medium text-xs whitespace-nowrap ${
-                  saleType === 'walkIn' ? 'text-green-300' : 'text-white'
-                }`}>Servicios de Corte</span>
-              </button>
-            </div>
-          </div>
-
+          {/* Contenido principal - Segundo en móvil, primero en desktop */}
+          <div className="order-2 lg:order-1 lg:col-span-2 space-y-4 sm:space-y-6 lg:space-y-8">
             {/* Contenido según tipo de venta */}
             {saleType === 'product' ? (
               <>
-                {/* Filtros de productos - Inputs flotantes responsivos */}
+                {/* Filtros de productos */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                   {/* Búsqueda */}
                   <div className="relative">
@@ -606,8 +798,8 @@ const BarberSales = () => {
                   </div>
                 </div>
 
-                {/* Grid de productos responsivo */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+                {/* Grid de productos que fluye alrededor del carrito */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
                   {filteredProducts.length === 0 ? (
                     <div className="col-span-full text-center py-6 sm:py-8">
                       <Package className="w-8 h-8 sm:w-12 sm:h-12 text-gray-600 mx-auto mb-2 sm:mb-3" />
@@ -646,6 +838,77 @@ const BarberSales = () => {
                               onClick={() => addToCart(product)}
                               disabled={(product.quantity || product.stock || 0) === 0}
                               className="group relative p-1.5 sm:p-2 bg-gradient-to-r from-blue-600/20 to-green-600/20 rounded-lg border border-blue-500/30 hover:border-green-500/40 transition-all duration-300 backdrop-blur-sm hover:bg-gradient-to-r hover:from-blue-600/30 hover:to-green-600/30 transform hover:scale-110 shadow-xl shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                            >
+                              <Plus className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400 group-hover:text-green-400 transition-colors duration-300" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Grid de productos que fluye alrededor del carrito */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+                  {loadingInventory ? (
+                    Array.from({ length: 6 }).map((_, index) => (
+                      <div key={index} className="group relative backdrop-blur-sm border border-white/10 rounded-lg p-3 sm:p-4 transition-all duration-300 overflow-hidden">
+                        <div className="animate-pulse">
+                          <div className="h-4 bg-gray-700 rounded mb-2"></div>
+                          <div className="h-3 bg-gray-700 rounded mb-3"></div>
+                          <div className="h-8 bg-gray-700 rounded"></div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    filteredProducts.map((product) => (
+                      <div
+                        key={product._id}
+                        className="group relative backdrop-blur-sm border border-white/20 rounded-lg p-3 sm:p-4 transition-all duration-300 overflow-hidden hover:scale-105 bg-white/5 hover:border-white/40 hover:bg-white/10"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-lg"></div>
+                        <div className="relative">
+                          <div className="flex items-center justify-between mb-2 sm:mb-3">
+                            <h4 className="text-sm sm:text-base font-semibold text-white truncate flex-1">
+                              {product.name}
+                            </h4>
+                            <div className={`px-1.5 sm:px-2 py-1 rounded text-xs ${
+                              product.stock > 10 
+                                ? 'bg-green-500/20 text-green-300' 
+                                : product.stock > 0 
+                                ? 'bg-yellow-500/20 text-yellow-300' 
+                                : 'bg-red-500/20 text-red-300'
+                            }`}>
+                              {product.stock}
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-1 sm:space-y-2 mb-3 sm:mb-4">
+                            <p className="text-xs sm:text-sm text-gray-400">
+                              {product.category}
+                            </p>
+                            <p className="text-sm sm:text-base font-semibold text-green-400">
+                              {formatPrice(product.price)}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => updateCartQuantity(product._id, 'product', getCartQuantity(product._id, 'product') - 1)}
+                              disabled={getCartQuantity(product._id, 'product') === 0}
+                              className="group relative p-1.5 sm:p-2 bg-gradient-to-r from-red-600/20 to-blue-600/20 rounded-lg border border-red-500/30 hover:border-blue-500/40 transition-all duration-300 backdrop-blur-sm hover:bg-gradient-to-r hover:from-red-600/30 hover:to-blue-600/30 transform hover:scale-110 shadow-xl shadow-blue-500/20 disabled:opacity-50 disabled:hover:scale-100"
+                            >
+                              <Minus className="w-3 h-3 sm:w-4 sm:h-4 text-red-400 group-hover:text-blue-400 transition-colors duration-300" />
+                            </button>
+                            
+                            <span className="min-w-[2rem] sm:min-w-[2.5rem] text-center text-sm sm:text-base text-white font-semibold">
+                              {getCartQuantity(product._id, 'product')}
+                            </span>
+                            
+                            <button
+                              onClick={() => addToCart(product)}
+                              disabled={product.stock <= getCartQuantity(product._id, 'product')}
+                              className="group relative p-1.5 sm:p-2 bg-gradient-to-r from-blue-600/20 to-green-600/20 rounded-lg border border-blue-500/30 hover:border-green-500/40 transition-all duration-300 backdrop-blur-sm hover:bg-gradient-to-r hover:from-blue-600/30 hover:to-green-600/30 transform hover:scale-110 shadow-xl shadow-blue-500/20 disabled:opacity-50 disabled:hover:scale-100"
                             >
                               <Plus className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400 group-hover:text-green-400 transition-colors duration-300" />
                             </button>
@@ -726,6 +989,82 @@ const BarberSales = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal para editar método de pago */}
+      {paymentMethodModal.show && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="relative w-full max-w-md mx-auto">
+            <div className="relative bg-blue-500/5 backdrop-blur-md border border-blue-500/20 rounded-2xl p-6 shadow-2xl shadow-blue-500/20">
+              <div className="relative z-10">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl border border-blue-500/20">
+                      <CreditCard className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Método de pago</h3>
+                      <p className="text-sm text-gray-300">{paymentMethodModal.item?.name}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={closePaymentMethodModal}
+                    className="p-1 text-gray-400 hover:text-white transition-colors duration-300"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Opciones de método de pago */}
+                <div className="space-y-3">
+                  {paymentMethods.map((method) => {
+                    const IconComponent = method.icon;
+                    const isSelected = paymentMethodModal.item?.paymentMethod === method.id;
+                    
+                    return (
+                      <button
+                        key={method.id}
+                        onClick={() => updatePaymentMethod(method.id)}
+                        className={`w-full p-3 rounded-xl border transition-all duration-300 flex items-center gap-3 ${
+                          isSelected
+                            ? `${
+                                method.color === 'green' ? 'bg-green-500/10 border-green-500/30 shadow-green-500/20' :
+                                method.color === 'purple' ? 'bg-purple-500/10 border-purple-500/30 shadow-purple-500/20' :
+                                method.color === 'violet' ? 'bg-violet-500/10 border-violet-500/30 shadow-violet-500/20' :
+                                method.color === 'red' ? 'bg-red-500/10 border-red-500/30 shadow-red-500/20' :
+                                method.color === 'blue' ? 'bg-blue-500/10 border-blue-500/30 shadow-blue-500/20' :
+                                'bg-gray-500/10 border-gray-500/30 shadow-gray-500/20'
+                              } shadow-lg`
+                            : 'bg-white/5 border-white/10 hover:border-white/30 hover:bg-white/10'
+                        }`}
+                      >
+                        <IconComponent className={`w-5 h-5 ${
+                          isSelected
+                            ? method.color === 'green' ? 'text-green-300' :
+                              method.color === 'purple' ? 'text-purple-300' :
+                              method.color === 'violet' ? 'text-violet-300' :
+                              method.color === 'red' ? 'text-red-300' :
+                              method.color === 'blue' ? 'text-blue-300' :
+                              'text-gray-300'
+                            : 'text-gray-400'
+                        }`} />
+                        <span className={`font-medium ${
+                          isSelected ? 'text-white' : 'text-gray-300'
+                        }`}>
+                          {method.name}
+                        </span>
+                        {isSelected && (
+                          <Check className="w-4 h-4 text-green-400 ml-auto" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 };

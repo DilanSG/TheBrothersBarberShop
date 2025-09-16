@@ -31,6 +31,22 @@ export const createWalkInSale = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Crear venta desde carrito con métodos de pago múltiples
+// @route   POST /api/v1/sales/cart
+// @access  Privado/Barbero+
+export const createCartSale = asyncHandler(async (req, res) => {
+  console.log('🛒 Datos recibidos para venta desde carrito:', req.body);
+  console.log('👤 Usuario autenticado:', req.user);
+  
+  const sale = await SaleService.createCartSale(req.body);
+  
+  res.status(201).json({
+    success: true,
+    message: 'Venta desde carrito registrada exitosamente',
+    data: sale
+  });
+});
+
 // @desc    Obtener reporte por período
 // @route   GET /api/v1/sales/reports
 // @access  Privado/Admin
@@ -127,7 +143,13 @@ export const cancelSale = asyncHandler(async (req, res) => {
 // @access  Privado/Admin
 export const getBarberSalesStats = asyncHandler(async (req, res) => {
   const { barberId } = req.params;
-  const stats = await SaleService.getBarberSalesStats(barberId);
+  const { date, startDate, endDate } = req.query;
+  
+  const stats = await SaleService.getBarberSalesStats(barberId, {
+    date,
+    startDate,
+    endDate
+  });
   
   res.json({
     success: true,
@@ -165,5 +187,81 @@ export const getAvailableDates = asyncHandler(async (req, res) => {
     success: true,
     message: 'Fechas disponibles obtenidas correctamente',
     data: dates
+  });
+});
+
+// @desc    Obtener reporte detallado de ventas por producto y día
+// @route   GET /api/v1/sales/detailed-report
+// @access  Privado/Admin
+export const getDetailedSalesReport = asyncHandler(async (req, res) => {
+  const { barberId, startDate, endDate } = req.query;
+  
+  if (!barberId) {
+    throw new AppError('barberId es requerido', 400);
+  }
+
+  const detailedReport = await SaleService.getDetailedSalesReport(barberId, startDate, endDate);
+  
+  res.status(200).json({
+    success: true,
+    message: 'Reporte detallado de ventas obtenido correctamente',
+    data: detailedReport
+  });
+});
+
+// @desc    Obtener detalles de cortes walk-in por barbero y rango de fechas
+// @route   GET /api/v1/sales/walk-in-details
+// @access  Privado/Admin
+export const getWalkInDetails = asyncHandler(async (req, res) => {
+  const { barberId, startDate, endDate } = req.query;
+  
+  if (!barberId) {
+    throw new AppError('barberId es requerido', 400);
+  }
+
+  const walkInDetails = await SaleService.getWalkInDetails(barberId, startDate, endDate);
+  
+  res.status(200).json({
+    success: true,
+    message: 'Detalles de cortes walk-in obtenidos correctamente',
+    data: walkInDetails
+  });
+});
+
+// @desc    Obtener reporte detallado de cortes por barbero y rango de fechas
+// @route   GET /api/v1/sales/detailed-cuts-report
+// @access  Privado/Admin
+export const getDetailedCutsReport = asyncHandler(async (req, res) => {
+  const { barberId, startDate, endDate } = req.query;
+  
+  if (!barberId) {
+    throw new AppError('barberId es requerido', 400);
+  }
+
+  const detailedReport = await SaleService.getDetailedCutsReport(barberId, startDate, endDate);
+  
+  res.status(200).json({
+    success: true,
+    message: 'Reporte detallado de cortes obtenido correctamente',
+    data: detailedReport
+  });
+});
+
+// @desc    Obtener resumen financiero completo para reportes
+// @route   GET /api/v1/sales/financial-summary
+// @access  Privado/Admin
+export const getFinancialSummary = asyncHandler(async (req, res) => {
+  const { startDate, endDate } = req.query;
+  
+  if (!startDate || !endDate) {
+    throw new AppError('startDate y endDate son requeridos', 400);
+  }
+
+  const financialSummary = await SaleService.getFinancialSummary(startDate, endDate);
+  
+  res.status(200).json({
+    success: true,
+    message: 'Resumen financiero obtenido correctamente',
+    data: financialSummary
   });
 });

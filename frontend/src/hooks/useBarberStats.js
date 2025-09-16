@@ -1,9 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { barberService, salesService, appointmentsService } from '../services/api';
+import { availableDatesService } from '../services/availableDatesService';
 import { useNotification } from '../contexts/NotificationContext';
+import cacheService from '../services/cacheService';
+import batchProcessingService from '../services/batchProcessingService';
 
 // Configuración de logging - cambiar a false para reducir logs en producción
-const DEBUG_LOGS = true; // Activado para debugging - problema con filtros
+const DEBUG_LOGS = true; // Activado temporalmente para debug
 
 // Función helper para logs condicionales
 const debugLog = (message, ...args) => {
@@ -13,8 +16,8 @@ const debugLog = (message, ...args) => {
 };
 
 /**
- * Hook personalizado para manejar estadísticas y datos de barberos
- * Gestiona la carga de datos, filtros y generación de reportes
+ * Hook optimizado para manejar estadísticas y datos de barberos
+ * INCLUYE: Cache local, batching, debounce, precarga inteligente
  */
 export const useBarberStats = () => {
   const { showError, showSuccess } = useNotification();
@@ -26,9 +29,8 @@ export const useBarberStats = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
-  // Estados de filtros
-  const [globalAvailableDates, setGlobalAvailableDates] = useState([]);
-  const [availableDates, setAvailableDates] = useState({});
+  // Estados de filtros  
+  const [allAvailableDates, setAllAvailableDates] = useState([]);
   const [filterType, setFilterType] = useState('General');
   const [filterDate, setFilterDate] = useState('');
   const [filterLoading, setFilterLoading] = useState(false);
@@ -37,555 +39,407 @@ export const useBarberStats = () => {
   const [reportData, setReportData] = useState(null);
   const [loadingReport, setLoadingReport] = useState(false);
   const [selectedBarber, setSelectedBarber] = useState(null);
+  
+  // Estados para prevenir ejecuciones múltiples
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [isApplyingFilter, setIsApplyingFilter] = useState(false);
+  
+  // Estados de progreso por barbero
+  const [loadingStatus, setLoadingStatus] = useState({});
+  
+  // Ref para debounce
+  const debounceTimeoutRef = useRef(null);
 
-  // Memo para obtener los días disponibles globales (para el filtro general)
-  const allAvailableDates = useMemo(() => {
-    return globalAvailableDates.sort((a, b) => new Date(b) - new Date(a));
-  }, [globalAvailableDates]);
-
-  // Cargar fechas globales de ventas e inventario al inicio
-  useEffect(() => {
-    const loadGlobalDates = async () => {
-      try {
-        // Cargar todas las fechas con datos de ventas
-        const salesResponse = await salesService.getAvailableDates();
-        const salesDates = salesResponse?.data || [];
-        
-        // También incluir fechas de citas si hay endpoint global
-        let appointmentDates = [];
-        try {
-          // Nota: Por ahora no hay endpoint global de citas, usar array vacío
-          // const appointmentResponse = await appointmentsService.getAvailableDates();
-          // appointmentDates = appointmentResponse?.data || [];
-        } catch (e) {
-          appointmentDates = [];
-        }
-        
-        // ELIMINADO: inventoryService.getAvailableDates no existe
-        // Solo usar fechas de ventas y citas
-        const allDates = [...new Set([
-          ...salesDates,
-          ...appointmentDates
-        ])].filter(date => date && date.trim() !== '').sort((a, b) => new Date(b) - new Date(a));
-        
-        debugLog('📅 Fechas disponibles cargadas:', allDates);
-        setGlobalAvailableDates(allDates);
-        
-      } catch (err) {
-        console.error('Error cargando fechas globales:', err);
-        setGlobalAvailableDates([]);
-      }
-    };
-    loadGlobalDates();
-  }, []);
-
-  // Efecto para filtrar estadísticas cuando cambia el filtro
-  useEffect(() => {
-    debugLog('🔄 Aplicando filtro:', filterType, filterDate, 'Barbers:', barbers.length);
-    
-    if (filterType === 'General' || !filterDate) {
-      debugLog('📋 Usando estadísticas generales - limpiando filtros');
-      setFilteredStats({});  // Limpiar filtros cuando es general
-      setFilterLoading(false);
-      return;
+  // Memo para obtener los días disponibles globales (ordenados)
+  const sortedAvailableDates = useMemo(() => {
+    if (!allAvailableDates || !Array.isArray(allAvailableDates)) {
+      debugLog('🚨 sortedAvailableDates: allAvailableDates no válido:', allAvailableDates);
+      return [];
     }
-    
-    if (barbers.length === 0) {
-      debugLog('⚠️ No hay barberos para filtrar');
-      return;
-    }
-    
-    // Evitar ejecutar si ya hay una operación de filtrado en progreso
-    if (filterLoading) {
-      debugLog('⏳ Filtrado ya en progreso, saltando...');
-      return;
-    }
-    
-    debugLog('🎯 Ejecutando filtrado por tipo:', filterType, 'fecha base:', filterDate);
-    filtrarPorRango();
-    // eslint-disable-next-line
-  }, [filterType, filterDate, barbers]);
+    const result = allAvailableDates.sort((a, b) => new Date(b) - new Date(a));
+    debugLog('📅 sortedAvailableDates calculado:', result.length, 'fechas', result.slice(0, 3));
+    return result;
+  }, [allAvailableDates]);
 
-  // Función para obtener el rango de fechas a resaltar (mejorada)
-  const getHighlightedRange = () => {
-    if (!filterDate || filterType === 'General') return [];
-    
-    // Usar fecha local en lugar de UTC
-    const base = new Date(filterDate + 'T12:00:00');
-    const range = [];
-    
-    if (filterType === 'Día') {
-      // Solo el día seleccionado
-      range.push(new Date(base));
-    } else if (filterType === 'Semana') {
-      // Últimos 7 días desde la fecha base (incluyendo la fecha base)
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(base);
-        d.setDate(base.getDate() - i);
-        range.push(new Date(d));
-      }
-    } else if (filterType === 'Mes') {
-      // Últimos 30 días desde la fecha base (incluyendo la fecha base)
-      for (let i = 0; i < 30; i++) {
-        const d = new Date(base);
-        d.setDate(base.getDate() - i);
-        range.push(new Date(d));
-      }
-    }
-    
-    debugLog('🎯 Rango a resaltar:', filterType, filterDate, range.map(d => {
-      const year = d.getFullYear();
-      const month = (d.getMonth() + 1).toString().padStart(2, '0');
-      const day = d.getDate().toString().padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }));
-    return range;
-  };
-
-  // Función para obtener fechas válidas para el rango seleccionado
-  const getValidDatesForRange = async () => {
-    if (!filterDate || filterType === 'General') {
-      return allAvailableDates;
-    }
-    
-    const base = new Date(filterDate + 'T12:00:00');
-    const rangeLimit = filterType === 'Semana' ? 7 : (filterType === 'Mes' ? 30 : 1);
-    
-    // Filtrar fechas disponibles que estén dentro del rango
-    const validDates = allAvailableDates.filter(dateStr => {
-      const date = new Date(dateStr + 'T12:00:00');
-      const daysDiff = Math.floor((base - date) / (1000 * 60 * 60 * 24));
-      return daysDiff >= 0 && daysDiff < rangeLimit;
-    });
-    
-    debugLog('📅 Fechas válidas para rango:', filterType, filterDate, validDates);
-    return validDates;
-  };
-
-  // Función para obtener fechas del rango según filtro (corregida)
-  const getDateRange = (type, baseDate) => {
-    if (!baseDate) return [];
-    
-    const base = new Date(baseDate + 'T00:00:00.000Z');
-    const result = [];
-    
-    if (type === 'Día') {
-      // Solo el día seleccionado
-      result.push(base.toISOString().split('T')[0]);
-    } else if (type === 'Semana') {
-      // Últimos 7 días INCLUYENDO la fecha base
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(base);
-        d.setDate(base.getDate() - i);
-        result.push(d.toISOString().split('T')[0]);
-      }
-    } else if (type === 'Mes') {
-      // Últimos 30 días INCLUYENDO la fecha base
-      for (let i = 0; i < 30; i++) {
-        const d = new Date(base);
-        d.setDate(base.getDate() - i);
-        result.push(d.toISOString().split('T')[0]);
-      }
-    }
-    
-    // IMPORTANTE: Solo incluir fechas que realmente tienen datos
-    const validDates = result.filter(date => allAvailableDates.includes(date));
-    debugLog(`📅 Rango para ${type} desde ${baseDate}:`, `Total generado: ${result.length}, Con datos: ${validDates.length}`, validDates);
-    return validDates;
-  };
-
-  // Filtrar estadísticas por fecha/período específico
-  const filtrarPorRango = async () => {
-    if (!filterDate || filterType === 'General') {
+  // Función optimizada para cargar estadísticas con cache y batching
+  const loadStatistics = useCallback(async (barbersData, dateFilter = {}) => {
+    // Verificar que barbersData sea válido
+    if (!barbersData || !Array.isArray(barbersData) || barbersData.length === 0) {
+      debugLog('⚠️ barbersData está vacío o no es válido:', barbersData);
+      setStatistics({});
       setFilteredStats({});
-      setFilterLoading(false);
       return;
     }
     
-    setFilterLoading(true);
-    console.log(`🔍 INICIANDO FILTRO: ${filterType} - ${filterDate}`);
+    debugLog('🚀 Cargando estadísticas OPTIMIZADAS para', barbersData.length, 'barberos con filtros:', dateFilter);
     
-    if (filterType === 'Día') {
-      // Para día específico, usar la versión alternativa que funciona con endpoints disponibles
-      await filtrarPorFechaEspecificaAlternativa(filterDate);
-    } else {
-      // Para semana/mes, usar el filtrado por rango
-      await filtrarPorRangoMultiple();
+    // Determinar el tipo de filtro y fechas
+    let filterTypeKey = 'General';
+    let startDate = '';
+    let endDate = '';
+    
+    if (dateFilter.date) {
+      filterTypeKey = 'Hoy';
+      startDate = endDate = dateFilter.date;
+    } else if (dateFilter.startDate && dateFilter.endDate) {
+      startDate = dateFilter.startDate;
+      endDate = dateFilter.endDate;
+      
+      // Determinar tipo basado en rango de fechas
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+      
+      if (daysDiff <= 1) filterTypeKey = 'Hoy';
+      else if (daysDiff <= 7) filterTypeKey = '7 días';
+      else if (daysDiff <= 15) filterTypeKey = '15 días';
+      else if (daysDiff <= 30) filterTypeKey = '30 días';
+      else filterTypeKey = 'Personalizado';
     }
-    
-    console.log(`✅ FILTRO COMPLETADO: ${filterType} - ${filterDate}`);
-  };
 
-  // Filtrar por día específico (versión alternativa - filtra desde datos existentes)
-  const filtrarPorFechaEspecificaAlternativa = async (dateStr) => {
-    console.log('📅 FILTRO DIARIO ALTERNATIVO - Filtrando desde datos existentes:', dateStr);
-    setFilterLoading(true);
-    const newStats = {};
-    
-    for (const barber of barbers) {
-      try {
-        console.log(`📊 Procesando día ${dateStr} para barbero ${barber.user?.name || barber._id}...`);
-        
-        // Inicializar con valores vacíos para el día específico
-        newStats[barber._id] = {
-          sales: { total: 0, count: 0 },
-          cortes: { count: 0, total: 0 },
-          appointments: { completed: 0, total: 0 },
-        };
-        
-        // Intentar obtener datos específicos del día desde el backend
-        try {
-          const [salesResp, appointmentsResp] = await Promise.all([
-            salesService.getDailyReport(dateStr, barber._id),
-            appointmentsService.getDailyReport(dateStr, barber._id)
-          ]);
-          
-          console.log(`� Datos del día para ${barber.user?.name}:`, {
-            ventas: salesResp,
-            citas: appointmentsResp
-          });
-          
-          // Procesar ventas del día
-          if (salesResp?.success && salesResp?.data) {
-            let totalVentas = 0;
-            let countVentas = 0;
-            let totalCortes = 0;
-            let countCortes = 0;
-            
-            if (Array.isArray(salesResp.data)) {
-              salesResp.data.forEach(sale => {
-                if (sale.type === 'product') {
-                  totalVentas += sale.total || 0;
-                  countVentas += 1;
-                } else if (sale.type === 'walkIn' || sale.type === 'corte') {
-                  totalCortes += sale.total || 0;
-                  countCortes += 1;
-                }
-              });
-            } else if (salesResp.data.total !== undefined) {
-              totalVentas = salesResp.data.total || 0;
-              countVentas = salesResp.data.count || 0;
-            }
-            
-            newStats[barber._id].sales = { total: totalVentas, count: countVentas };
-            newStats[barber._id].cortes = { count: countCortes, total: totalCortes };
-            
-            console.log(`💰 Ventas del día ${dateStr}:`, { totalVentas, countVentas, totalCortes, countCortes });
-          }
-          
-          // Procesar citas del día
-          if (appointmentsResp?.success && appointmentsResp?.data) {
-            let totalCitas = 0;
-            let countCitas = 0;
-            
-            if (Array.isArray(appointmentsResp.data)) {
-              appointmentsResp.data.forEach(apt => {
-                totalCitas += apt.total || apt.service?.price || 0;
-                if (apt.status === 'completed') {
-                  countCitas += 1;
-                }
-              });
-            } else if (appointmentsResp.data.total !== undefined) {
-              totalCitas = appointmentsResp.data.total || 0;
-              countCitas = appointmentsResp.data.completed || 0;
-            }
-            
-            newStats[barber._id].appointments = { completed: countCitas, total: totalCitas };
-            console.log(`📅 Citas del día ${dateStr}:`, { totalCitas, countCitas });
-          }
-          
-        } catch (apiError) {
-          console.warn(`⚠️ Error obteniendo datos del día ${dateStr} para ${barber.user?.name}:`, apiError.message);
-          // Mantener valores en 0 si no hay datos disponibles para ese día
-        }
-        
-        console.log(`✅ FINAL día ${dateStr} para ${barber.user?.name}:`, newStats[barber._id]);
-        
-      } catch (error) {
-        console.error(`❌ Error processing day ${dateStr} for barber ${barber._id}:`, error);
-      }
-    }
-    
-    console.log('📊 RESULTADO FINAL - Estadísticas del día:', newStats);
-    setFilteredStats(newStats);
-    setFilterLoading(false);
-  };
-
-  // Función para filtrar por rango (semana/mes) - CORREGIDA
-  const filtrarPorRangoMultiple = async () => {
-    if (!barbers || barbers.length === 0) return;
-    
-    setFilterLoading(true);
-    
-    // Obtener fechas válidas para el rango - LIMITADO a fechas con datos reales
-    const validDates = getDateRange(filterType, filterDate);
-    debugLog(`📅 Procesando ${filterType} - Fechas válidas:`, validDates);
-    
-    if (validDates.length === 0) {
-      debugLog('❌ No hay fechas válidas para el rango, mostrando estadísticas vacías');
-      const emptyStats = {};
-      barbers.forEach(barber => {
-        emptyStats[barber._id] = {
-          sales: { total: 0, count: 0 },
-          cortes: { count: 0, total: 0 },
-          appointments: { completed: 0, total: 0 },
-        };
-      });
-      setFilteredStats(emptyStats);
-      setFilterLoading(false);
-      return;
-    }
-    
-    const newStats = {};
-    
-    for (const barber of barbers) {
-      try {
-        debugLog(`📊 Procesando ${filterType} para barbero ${barber.user?.name || barber._id}...`);
-        
-        let totalVentas = 0;
-        let countVentas = 0;
-        let totalCortes = 0;
-        let countCortes = 0;
-        let totalCitas = 0;
-        let countCitas = 0;
-        
-        // Iterar sobre cada fecha válida del rango - EVITAR DUPLICACIÓN
-        for (const dateStr of validDates) {
-          try {
-            debugLog(`📅 Procesando fecha ${dateStr} para ${barber.user?.name}...`);
-            
-            // Obtener datos para UNA SOLA fecha del rango
-            const [salesResp, appointmentsResp] = await Promise.all([
-              salesService.getBarberSalesStats(barber._id, { date: dateStr }),
-              appointmentsService.getBarberAppointmentStats(barber._id, { date: dateStr })
-            ]);
-            
-            // Procesar ventas para esta fecha ESPECÍFICA
-            if (salesResp?.success && salesResp?.data) {
-              const salesData = salesResp.data;
-              
-              // Productos vendidos
-              if (salesData.ventas && Array.isArray(salesData.ventas)) {
-                salesData.ventas.forEach(v => {
-                  totalVentas += v.total || 0;
-                  countVentas += 1;
-                });
-              }
-              
-              // Cortes
-              if (salesData.cortes && Array.isArray(salesData.cortes)) {
-                salesData.cortes.forEach(c => {
-                  totalCortes += c.total || 0;
-                  countCortes += 1;
-                });
-              }
-              
-              // Totales directos si están disponibles (SIN duplicar)
-              if (salesData.total !== undefined && !salesData.ventas) {
-                totalVentas += salesData.total;
-              }
-              if (salesData.cortesTotal !== undefined && !salesData.cortes) {
-                totalCortes += salesData.cortesTotal;
-              }
-              
-              debugLog(`💰 ${dateStr} - Ventas: ${salesData.total || 0}, Cortes: ${salesData.cortesTotal || 0}`);
-            }
-            
-            // Procesar citas para esta fecha ESPECÍFICA
-            if (appointmentsResp?.success && appointmentsResp?.data) {
-              const appointmentData = appointmentsResp.data;
-              
-              if (appointmentData.citas && Array.isArray(appointmentData.citas)) {
-                appointmentData.citas.forEach(c => {
-                  totalCitas += c.revenue || c.service?.price || 0;
-                  if (c.status === 'completed') {
-                    countCitas += 1;
-                  }
-                });
-              }
-              
-              // Totales directos si están disponibles (SIN duplicar)
-              if (appointmentData.revenue !== undefined && !appointmentData.citas) {
-                totalCitas += appointmentData.revenue;
-              }
-              if (appointmentData.completed !== undefined && !appointmentData.citas) {
-                countCitas += appointmentData.completed;
-              }
-              
-              debugLog(`📅 ${dateStr} - Citas: ${appointmentData.revenue || 0}, Completadas: ${appointmentData.completed || 0}`);
-            }
-            
-          } catch (dateError) {
-            debugLog(`⚠️ Error procesando fecha ${dateStr} para barbero ${barber._id}:`, dateError.message);
-          }
-        }
-        
-        newStats[barber._id] = {
-          sales: { total: totalVentas, count: countVentas },
-          cortes: { count: countCortes, total: totalCortes },
-          appointments: { completed: countCitas, total: totalCitas },
-        };
-        
-        debugLog(`✅ TOTAL ${filterType} para ${barber.user?.name}:`, 
-          `Ventas: ${totalVentas}, Cortes: ${totalCortes}, Citas: ${totalCitas}`, 
-          `Fechas procesadas: ${validDates.length}`);
-        
-      } catch (error) {
-        console.error(`❌ Error procesando ${filterType} para barbero ${barber._id}:`, error);
-        newStats[barber._id] = {
-          sales: { total: 0, count: 0 },
-          cortes: { count: 0, total: 0 },
-          appointments: { completed: 0, total: 0 },
-        };
-      }
-    }
-    
-    debugLog(`📊 FINAL - Estadísticas filtradas por ${filterType}:`, newStats);
-    setFilteredStats(newStats);
-    setFilterLoading(false);
-  };
-
-  // Cargar datos principales
-  const loadData = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const barbersResponse = await barberService.getAllBarbers();
-      let barbersData = [];
-      if (Array.isArray(barbersResponse)) {
-        barbersData = barbersResponse;
-      } else if (barbersResponse && barbersResponse.data && Array.isArray(barbersResponse.data)) {
-        barbersData = barbersResponse.data;
-      } else if (barbersResponse && Array.isArray(barbersResponse.success)) {
-        barbersData = barbersResponse.success;
-      }
-      setBarbers(barbersData);
-      await loadStatistics(barbersData);
-    } catch (error) {
-      console.error('Error al cargar barberos:', error);
-      setBarbers([]);
-      setError('Error al cargar los datos');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Cargar estadísticas generales
-  const loadStatistics = async (barbersData) => {
-    debugLog('📊 Cargando estadísticas para', barbersData.length, 'barberos...');
-    const stats = {};
-    
-    // Procesar barberos secuencialmente con delay para evitar rate limiting
-    for (let i = 0; i < barbersData.length; i++) {
-      const barber = barbersData[i];
+    // Función para fetch individual de barbero
+    const fetchBarberData = async (barber) => {
+      const barberId = barber._id;
+      const barberName = barber.user?.name || barberId;
+      
+      // Actualizar estado de loading para este barbero
+      setLoadingStatus(prev => ({ ...prev, [barberId]: 'fetching_sales' }));
       
       try {
-        debugLog(`🔄 Cargando stats para barbero ${i + 1}/${barbersData.length}: ${barber.user?.name || barber._id}`);
-        
-        // Agregar delay progresivo entre llamadas
-        if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, 150 * i));
+        const queryParams = {};
+        if (dateFilter.date) {
+          queryParams.date = dateFilter.date;
+        } else if (dateFilter.startDate && dateFilter.endDate) {
+          queryParams.startDate = dateFilter.startDate;
+          queryParams.endDate = dateFilter.endDate;
         }
-        
+
+        debugLog(`🔄 Fetching para ${barberName}:`, queryParams);
+
+        setLoadingStatus(prev => ({ ...prev, [barberId]: 'fetching_appointments' }));
+
         const [salesResponse, appointmentsResponse] = await Promise.all([
-          salesService.getBarberSalesStats(barber._id),
-          appointmentsService.getBarberAppointmentStats(barber._id)
+          salesService.getBarberSalesStats(barberId, queryParams),
+          appointmentsService.getBarberAppointmentStats(barberId, queryParams)
         ]);
-        
+
+        setLoadingStatus(prev => ({ ...prev, [barberId]: 'processing' }));
+
         // Procesar ventas de productos
         let totalProductos = 0;
         let countProductos = 0;
         if (salesResponse.data && Array.isArray(salesResponse.data.ventas)) {
           salesResponse.data.ventas.forEach(v => {
             totalProductos += v.total || 0;
-            countProductos += 1;
+            countProductos += v.totalQuantity || v.count || 0; // Priorizar totalQuantity
           });
         } else if (salesResponse.data && typeof salesResponse.data.total === 'number') {
           totalProductos = salesResponse.data.total;
-          countProductos = salesResponse.data.count || 0;
+          countProductos = salesResponse.data.totalQuantity || salesResponse.data.count || 0; // Priorizar totalQuantity
         }
-        
+
         // Procesar cortes
         let cortesCount = 0;
         let cortesTotal = 0;
         if (salesResponse.data && Array.isArray(salesResponse.data.cortes)) {
           salesResponse.data.cortes.forEach(c => {
             cortesTotal += c.total || 0;
-            cortesCount += 1;
+            cortesCount += c.totalQuantity || c.count || 0; // Priorizar totalQuantity
           });
         }
-        
-        // Procesar citas (solo reservas)
+
+        // Procesar citas
         let totalCitas = 0;
         let completedCitas = 0;
         if (appointmentsResponse.data && Array.isArray(appointmentsResponse.data.citas)) {
           appointmentsResponse.data.citas.forEach(c => {
             totalCitas += c.revenue || c.service?.price || 0;
-            completedCitas += 1;
+            completedCitas += c.count || 1;
           });
         } else if (appointmentsResponse.data && typeof appointmentsResponse.data.revenue === 'number') {
           totalCitas = appointmentsResponse.data.revenue;
-          completedCitas = appointmentsResponse.data.completed || 0;
+          completedCitas = appointmentsResponse.data.completed || 1;
         }
-        
-        stats[barber._id] = {
-          sales: { total: totalProductos, count: countProductos },
-          cortes: { count: cortesCount, total: cortesTotal },
-          appointments: { completed: completedCitas, total: totalCitas },
+
+        const barberStats = {
+          // Arrays para reportes detallados
+          salesArray: salesResponse.data?.ventas || [],
+          appointmentsArray: appointmentsResponse.data?.citas || [],
+          walkInsArray: salesResponse.data?.cortes || [],
+          
+          // Objetos con totales para las cards
+          sales: {
+            total: totalProductos,
+            count: countProductos,
+            totalQuantity: countProductos // Agregar totalQuantity para compatibilidad
+          },
+          appointments: {
+            total: totalCitas,
+            completed: completedCitas,
+            count: completedCitas
+          },
+          cortes: {
+            total: cortesTotal,
+            count: cortesCount,
+            totalQuantity: cortesCount // Agregar totalQuantity para compatibilidad
+          },
+          
+          // Totales legacy (mantener por compatibilidad)
+          totals: {
+            sales: totalProductos,
+            appointments: totalCitas,
+            walkIns: cortesTotal,
+            salesCount: countProductos,
+            appointmentsCount: completedCitas,
+            walkInsCount: cortesCount
+          }
         };
+
+        debugLog(`✅ Stats procesadas para ${barberName}:`, barberStats.totals);
         
-        debugLog(`✅ Stats cargadas para ${barber.user?.name || barber._id}:`, stats[barber._id]);
+        // Limpiar estado de loading para este barbero
+        setLoadingStatus(prev => ({ ...prev, [barberId]: 'complete' }));
         
+        return barberStats;
+
       } catch (error) {
-        console.error(`❌ Error loading stats for barber ${barber._id}:`, error);
-        stats[barber._id] = {
+        console.error(`❌ Error loading stats para ${barberName}:`, error);
+        setLoadingStatus(prev => ({ ...prev, [barberId]: 'error' }));
+        
+        // Retornar datos por defecto en caso de error
+        return {
+          salesArray: [],
+          appointmentsArray: [],
+          walkInsArray: [],
           sales: { total: 0, count: 0 },
-          cortes: { count: 0, total: 0 },
-          appointments: { completed: 0, total: 0 },
+          appointments: { total: 0, completed: 0, count: 0 },
+          cortes: { total: 0, count: 0 },
+          totals: { sales: 0, appointments: 0, walkIns: 0, salesCount: 0, appointmentsCount: 0, walkInsCount: 0 }
         };
       }
-    }
-    
-    debugLog('📈 Todas las estadísticas cargadas:', stats);
-    setStatistics(stats);
-  };
+    };
 
-  // Cargar fechas disponibles para un barbero específico
-  const loadBarberAvailableDates = async (barberId) => {
     try {
-      const [salesDates, appointmentDates] = await Promise.all([
-        salesService.getAvailableDates(barberId),
-        appointmentsService.getAvailableDates(barberId)
-      ]);
+      // Usar batch processing con cache
+      const { results, errors, cacheHits } = await batchProcessingService.processBarbersWithCache(
+        barbersData,
+        fetchBarberData,
+        filterTypeKey,
+        startDate,
+        endDate
+      );
+
+      // Debug temporal - ver qué devuelve el batch processing
+      console.log('🔍 Resultados del batch processing completados:', {
+        resultsCount: Object.keys(results).length,
+        filterTypeKey
+      });
+
+      // Actualizar estadísticas
+      if (filterTypeKey === 'General') {
+        // Para filtro general, solo actualizar statistics
+        console.log('🔍 ACTUALIZANDO STATISTICS GENERAL:', {
+          resultsKeys: Object.keys(results),
+          sampleResult: Object.values(results)[0]
+        });
+        setStatistics(results);
+        setFilteredStats({}); // Limpiar filtros cuando es General
+      } else {
+        // Para filtros específicos, mantener statistics general y actualizar filteredStats
+        console.log('🔍 ACTUALIZANDO FILTERED STATS:', {
+          filterTypeKey,
+          resultsKeys: Object.keys(results)
+        });
+        setFilteredStats(results);
+      }
+
+      // Limpiar estados de loading inmediatamente después de procesar
+      setLoadingStatus({});
+
+      // Mostrar estadísticas de rendimiento
+      const cacheHitCount = Object.keys(cacheHits).length;
+      const errorCount = Object.keys(errors).length;
       
-      // Combinar y deduplicar fechas
-      const allDates = [...new Set([
-        ...(salesDates?.data || []),
-        ...(appointmentDates?.data || [])
-      ])].sort((a, b) => new Date(b) - new Date(a)); // Más recientes primero
+      console.log(`📊 Carga completada - Cache hits: ${cacheHitCount}/${barbersData.length}, Errores: ${errorCount}`);
       
-      setAvailableDates(prev => ({ ...prev, [barberId]: allDates }));
+      if (cacheHitCount > 0) {
+        showSuccess(`Datos cargados (${cacheHitCount} desde cache)`);
+      }
+
     } catch (error) {
-      console.error('Error cargando fechas disponibles:', error);
-      showError('Error al cargar fechas disponibles');
+      console.error('❌ Error en loadStatistics optimizado:', error);
+      showError('Error al cargar estadísticas');
+      setError('Error al cargar estadísticas: ' + error.message);
+      
+      // Limpiar estados de loading
+      setLoadingStatus({});
+    }
+  }, [showError, showSuccess]);
+
+  // Función debounced para aplicar filtros
+  const applyFilterDebounced = useCallback((type, date, barbersOverride = null) => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    debounceTimeoutRef.current = setTimeout(async () => {
+      await applyFilter(type, date, barbersOverride);
+    }, 300); // 300ms debounce
+  }, []);
+
+  // Función principal para aplicar filtros
+  const applyFilter = async (type, date, barbersOverride = null) => {
+    console.log('🎯 [useBarberStats] APLICANDO FILTRO:', { type, date, isApplyingFilter });
+    console.log('🔍 [useBarberStats] PARÁMETROS RECIBIDOS:', { 
+      type, 
+      date, 
+      barbersOverrideLength: barbersOverride?.length || 0,
+      barbersOverridePassed: barbersOverride !== null,
+      barbersOverrideData: barbersOverride
+    });
+    
+    if (isApplyingFilter) {
+      debugLog('⏸️ Filtro ya en proceso, ignorando...');
+      return;
+    }
+
+    console.log('🎯 [useBarberStats] INICIANDO APLICACIÓN DE FILTRO:', type);
+    setIsApplyingFilter(true);
+    setFilterLoading(true);
+    setFilterType(type);
+    setFilterDate(date);
+
+    try {
+      const dateFilter = {};
+      
+      if (type === 'Hoy' && date) {
+        dateFilter.date = date;
+      } else if (type !== 'General' && date) {
+        const endDate = new Date(date + 'T12:00:00');
+        const startDate = new Date(endDate);
+        
+        if (type === '7 días') {
+          startDate.setDate(endDate.getDate() - 6);
+        } else if (type === '15 días') {
+          startDate.setDate(endDate.getDate() - 14);
+        } else if (type === '30 días') {
+          startDate.setDate(endDate.getDate() - 29);
+        }
+        
+        dateFilter.startDate = startDate.toISOString().split('T')[0];
+        dateFilter.endDate = endDate.toISOString().split('T')[0];
+      }
+
+      console.log(`🎯 Aplicando filtro optimizado: ${type}`, dateFilter);
+      
+      // Usar barbersOverride si se proporciona, sino usar barbers del estado
+      const barbersToUse = barbersOverride || barbers;
+      console.log('👥 BARBEROS A USAR - DETALLE:', { 
+        barbersOverride: barbersOverride?.length || 0, 
+        barbersState: barbers?.length || 0,
+        using: barbersToUse?.length || 0,
+        barbersOverrideData: barbersOverride?.map(b => b.user?.name || b.name) || [],
+        barbersStateData: barbers?.map(b => b.user?.name || b.name) || []
+      });
+      
+      await loadStatistics(barbersToUse, dateFilter);
+      console.log('✅ [useBarberStats] FILTRO APLICADO EXITOSAMENTE:', type);
+
+    } catch (error) {
+      console.error('❌ Error aplicando filtro:', error);
+      showError('Error al aplicar filtro');
+    } finally {
+      console.log('🏁 [useBarberStats] FINALIZANDO APLICACIÓN DE FILTRO:', type);
+      setFilterLoading(false);
+      setIsApplyingFilter(false);
     }
   };
 
-  // Generar reporte para barbero específico
-  const generateBarberReport = async (barberId, date = null) => {
+  // Cargar datos iniciales
+  const loadData = async () => {
+    if (isLoadingData) {
+      debugLog('⏸️ Datos ya cargándose, ignorando...');
+      return;
+    }
+
+    setIsLoadingData(true);
+    setLoading(true);
+    setError('');
+
+    // Timeout de seguridad solo para esta carga específica
+    const loadingTimeoutId = setTimeout(() => {
+      console.warn('⏰ Timeout de carga alcanzado para loadData');
+      setLoading(false);
+      setIsLoadingData(false);
+      setError('La carga de datos tardó demasiado tiempo');
+    }, 20000);
+
+    try {
+      debugLog('🔄 Cargando datos iniciales...');
+      
+      // Cargar barberos y fechas disponibles en paralelo
+      const [barbersResponse, datesResponse] = await Promise.all([
+        barberService.getAllBarbers(),
+        availableDatesService.getAllAvailableDates()
+      ]);
+
+      const barbersData = barbersResponse.data || [];
+      const datesData = datesResponse; // El servicio devuelve directamente el array, no .data
+      
+      debugLog('📅 FECHAS RECIBIDAS:', { datesResponse, datesData: datesData?.length || 0 });
+
+      setBarbers(barbersData);
+      setAllAvailableDates(datesData);
+
+      if (barbersData.length > 0) {
+        // Cargar estadísticas generales (sin filtro de fecha)
+        await loadStatistics(barbersData);
+
+        // PRECARGA DESACTIVADA TEMPORALMENTE para evitar rate limiting
+        // setTimeout(() => {
+        //   batchProcessingService.preloadCommonFilters(barbersData, async (barber) => {
+        //     const queryParams = { date: new Date().toISOString().split('T')[0] };
+        //     
+        //     const [salesResponse, appointmentsResponse] = await Promise.all([
+        //       salesService.getBarberSalesStats(barber._id, queryParams),
+        //       appointmentsService.getBarberAppointmentStats(barber._id, queryParams)
+        //     ]);
+
+        //     return {
+        //       sales: salesResponse.data?.ventas || [],
+        //       appointments: appointmentsResponse.data?.citas || [],
+        //       walkIns: salesResponse.data?.cortes || [],
+        //       totals: { sales: 0, appointments: 0, walkIns: 0 }
+        //     };
+        //   });
+        // }, 100);
+      }
+
+      debugLog('✅ Datos iniciales cargados exitosamente');
+
+    } catch (error) {
+      console.error('❌ Error cargando datos:', error);
+      setError('Error al cargar datos: ' + error.message);
+      showError('Error al cargar datos del dashboard');
+    } finally {
+      clearTimeout(loadingTimeoutId); // Cancelar timeout
+      setLoading(false);
+      setIsLoadingData(false);
+    }
+  };
+
+  // Función para generar reportes
+  const generateReport = async (barberId, date = null) => {
     setLoadingReport(true);
     setSelectedBarber(barberId);
     try {
       const reportDate = date || new Date().toISOString().split('T')[0];
-      // Solo necesitamos la respuesta de ventas ya que incluye todo
       const salesResponse = await salesService.getDailyReport(reportDate, barberId);
       
       debugLog('🔍 Respuesta del servidor:', salesResponse);
       
       const barber = barbers.find(b => b._id === barberId);
       const responseData = salesResponse?.data || salesResponse;
-      
-      debugLog('📊 Datos procesados:', responseData);
       
       setReportData({
         date: reportDate,
@@ -608,9 +462,31 @@ export const useBarberStats = () => {
     }
   };
 
+  // Función para limpiar cache
+  const clearCache = useCallback(() => {
+    cacheService.clear();
+    showSuccess('Cache limpiado');
+  }, [showSuccess]);
+
+  // Función para obtener estadísticas de rendimiento
+  const getPerformanceStats = useCallback(() => {
+    return {
+      cache: cacheService.getStats(),
+      batchProcessing: batchProcessingService.getStats(),
+      loadingStatus
+    };
+  }, [loadingStatus]);
+
   // Inicializar datos al montar el hook
   useEffect(() => {
     loadData();
+    
+    // Limpiar timeouts al desmontar
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
   }, []);
 
   return {
@@ -622,9 +498,8 @@ export const useBarberStats = () => {
     error,
     
     // Estados de filtros
-    globalAvailableDates,
     allAvailableDates,
-    availableDates,
+    sortedAvailableDates,
     filterType,
     filterDate,
     filterLoading,
@@ -634,20 +509,26 @@ export const useBarberStats = () => {
     loadingReport,
     selectedBarber,
     
-    // Funciones de filtros
-    setFilterType,
-    setFilterDate,
-    getHighlightedRange,
-    getValidDatesForRange,
-    getDateRange,
+    // Estados de progreso
+    loadingStatus,
     
-    // Funciones de datos
+    // Funciones principales
     loadData,
     loadStatistics,
-    loadBarberAvailableDates,
+    applyFilter: applyFilterDebounced, // Función debounced
+    generateReport,
     
-    // Funciones de reportes
-    generateBarberReport,
-    setReportData
+    // Funciones de optimización
+    clearCache,
+    getPerformanceStats,
+    
+    // Flags de estado
+    isLoadingData,
+    isApplyingFilter
   };
+  
+  // Debug final: verificar qué se está retornando
+  debugLog('🔍 HOOK RETURN - sortedAvailableDates:', result.sortedAvailableDates?.length || 0);
+  
+  return result;
 };

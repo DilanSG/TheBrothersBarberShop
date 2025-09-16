@@ -1,211 +1,145 @@
-# GitHub Copilot Instructio**Estados focus obligatorios:**
-- Todos los campos deben tener `focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:bg-white/10`
-- Ningún input debe verse blanco al hacer click
-- Transiciones suaves en todos los estados
+# GitHub Copilot Instructions - The Brothers Barber Shop
 
-**Selectores y Opciones:**
-- Los `<select>` DEBEN usar `glassmorphism-select`
-- Las opciones tienen estilos automáticos con gradientes azul-púrpura
-- Campos de fecha tienen iconos personalizados con efectos hover
-- Todos los dropdowns nativos están estilizados con glassmorphism
+**Essential Development Guide**: Use this file as context for all code suggestions and assistance. Consider these architectural patterns, workflows, and project-specific conventions.
 
-### 📋 REGLA CRÍTICA: CARDS DE CITAS
+## 🏗️ Project Architecture
 
-**TODAS las cards de citas DEBEN seguir esta estructura y estilo:**
+**Full-stack barbershop management system** with React frontend (Vite + Tailwind) and Node.js/Express backend (MongoDB, JWT, Cloudinary).
 
-**Contenedor principal:**
-```jsx
-<div className="space-y-2 max-h-96 overflow-y-auto pr-2 custom-scrollbar pl-1 pt-2 rounded-xl">
+### Core Structure
+```
+TheBrothersBarberShop/
+├── backend/src/          # Express API with role-based auth
+├── frontend/src/         # React SPA with Context API
+├── docs/                 # Built frontend for GitHub Pages
+└── dev-launcher.js       # Custom development server
 ```
 
-**Card individual:**
-```jsx
-<div className={`group relative backdrop-blur-sm border rounded-lg p-4 transition-all duration-300 overflow-hidden hover:scale-[1.002] hover:-translate-y-0.5 cursor-pointer ml-1 mr-1 ${
-  status === 'confirmed' ? 'border-green-500/30 bg-green-500/5 shadow-sm shadow-green-500/20' :
-  status === 'pending' ? 'border-yellow-500/30 bg-yellow-500/5 shadow-sm shadow-yellow-500/20' :
-  status === 'cancelled' ? 'border-red-500/30 bg-red-500/5 shadow-sm shadow-red-500/20' :
-  'border-blue-500/30 bg-blue-500/5 shadow-sm shadow-blue-500/20'
-}`}
-style={{ zIndex: filteredItems.length - index }}
->
+### Development Workflow
+- **Development**: `npm run dev` (launches both backend/frontend via `dev-launcher.js`)
+- **Deployment Model**: 
+  - Frontend: `gh-pages` branch → GitHub Pages (builds to `/docs/`)
+  - Backend: `develop` branch → Render.com
+
+## 🔧 Critical Development Patterns
+
+### API Architecture (`backend/src/`)
+- **Centralized routing**: All routes through `routes/index.js` with monitoring middleware
+- **Role-based auth**: JWT with user/barber/admin roles via `middleware/auth.js`
+- **Validation pattern**: Input validation with timezone awareness (Colombia/Bogota)
+- **Error handling**: Centralized via `middleware/errorHandler.js` with Winston logging
+
+### Frontend Architecture (`frontend/src/`)
+- **Auth Context**: `contexts/AuthContext.jsx` handles JWT refresh every 14 minutes
+- **API Service**: `services/api.js` with caching, retry logic, and offline support
+- **Component Structure**: 
+  - `pages/` for route components
+  - `components/ui/` for reusable UI (GradientText, glassmorphism patterns)
+  - `components/common/` for shared business logic
+
+### Key Integration Points
+```javascript
+// API Base URLs (environment-dependent)
+const API_URL = import.meta.env.VITE_API_URL;
+// Assets helper for GitHub Pages deployment
+import { getAssetUrl } from '../utils/assets.js';
+// Authentication flow with role checking
+const { user, logout } = useAuth();
 ```
 
-**Z-index dinámico obligatorio:**
-- SIEMPRE usar `style={{ zIndex: arrayLength - index }}` para evitar superposición
-- NO usar `hover:z-10` fijo
-- El primer elemento debe tener el z-index más alto
+## 🎨 Design System (Critical UI Patterns)
 
-**Efecto hover obligatorio:**
-- Escalado mínimo: `hover:scale-[1.002]` (0.2%)
-- Elevación sutil: `hover:-translate-y-0.5`
-- Márgenes de seguridad: `ml-1 mr-1`
-- Padding superior: `pt-2` en contenedor para evitar cortes
-- Efecto de brillo: `via-white/[2.5%]`
+### Glassmorphism Classes (Always Use)
+- **Inputs**: `glassmorphism-input` (focus states built-in)
+- **Selects**: `glassmorphism-select` (native dropdown styling)
+- **Scrollbars**: `custom-scrollbar` (on any overflow container)
 
-**Colores por estado obligatorios:**
-- Verde: Confirmadas (`confirmed`)
-- Amarillo: Pendientes (`pending`) 
-- Rojo: Canceladas (`cancelled`)
-- Azul: Completadas (`completed`)
-
-### 🪟 REGLA CRÍTICA: MODALES UNIFICADOS
-
-**TODOS los modales DEBEN seguir esta estructura:**
-
-**Modal de información (dinámico por estado):**
+### Status-Driven UI Colors
 ```jsx
-<div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 sm:p-6 lg:p-8">
-  <div className="relative w-full max-w-sm sm:max-w-md lg:max-w-lg mx-auto h-[90vh] sm:h-[85vh] lg:h-[80vh] flex flex-col">
-    <div className={`relative backdrop-blur-md border rounded-2xl shadow-2xl h-full flex flex-col overflow-hidden ${
-      status === 'confirmed' ? 'bg-green-500/5 border-green-500/20 shadow-green-500/20' :
-      status === 'pending' ? 'bg-yellow-500/5 border-yellow-500/20 shadow-yellow-500/20' :
-      status === 'cancelled' ? 'bg-red-500/5 border-red-500/20 shadow-red-500/20' :
-      'bg-blue-500/5 border-blue-500/20 shadow-blue-500/20'
-    }`}>
-      {/* Header fijo */}
-      <div className="relative z-10 flex-shrink-0 p-4 sm:p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className={`p-1.5 sm:p-2 rounded-lg ${statusBgClass}`}>
-              <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${statusColorClass}`} />
-            </div>
-            <h3 className="text-base sm:text-lg font-semibold text-white">Título</h3>
-          </div>
-          <button className="p-1 text-gray-400 hover:text-white transition-colors duration-200">
-            <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
-        </div>
-      </div>
-      {/* Contenido scrolleable */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar px-4 sm:px-6 pb-4 sm:pb-6" style={{ minHeight: 0 }}>
-        {/* Contenido aquí */}
-      </div>
-    </div>
-  </div>
-</div>
+// Appointment status colors (use consistently)
+const statusStyles = {
+  confirmed: 'bg-green-500/5 border-green-500/20 shadow-green-500/20',
+  pending: 'bg-yellow-500/5 border-yellow-500/20 shadow-yellow-500/20',
+  cancelled: 'bg-red-500/5 border-red-500/20 shadow-red-500/20',
+  completed: 'bg-blue-500/5 border-blue-500/20 shadow-blue-500/20'
+};
 ```
 
-**Modal compacto (confirmación/cancelación):**
+### Mobile-First Responsive Patterns
 ```jsx
-<div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 sm:p-6 lg:p-8">
-  <div className="relative w-full max-w-sm sm:max-w-md mx-auto">
-    <div className="relative bg-red-500/5 backdrop-blur-md border border-red-500/20 rounded-2xl shadow-2xl shadow-red-500/20 overflow-hidden">
-      <div className="relative z-10 p-4 sm:p-6">
-        {/* Header + Contenido en el mismo contenedor */}
-        <div className="flex items-center justify-between mb-4">
-          {/* Header similar al modal de información */}
-        </div>
-        {/* Contenido directo sin scroll */}
-      </div>
-    </div>
-  </div>
-</div>
+// Standard container pattern
+<div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+// Grid collapse pattern  
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+// Typography scaling
+<h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">
 ```
 
-**Colores temáticos obligatorios:**
-- Verde: `bg-green-500/5 border-green-500/20 shadow-green-500/20`
-- Amarillo: `bg-yellow-500/5 border-yellow-500/20 shadow-yellow-500/20`
-- Rojo: `bg-red-500/5 border-red-500/20 shadow-red-500/20`
-- Azul: `bg-blue-500/5 border-blue-500/20 shadow-blue-500/20`
+## 🔍 Environment & Configuration
 
-**Scroll obligatorio:**
-- SIEMPRE bloquear scroll del body: `useEffect(() => { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = 'unset'; }; }, [showModal]);`
-- Solo el contenido del modal debe hacer scroll
-- Usar `custom-scrollbar` siempre
+### Required Environment Variables
+```bash
+# Backend (.env)
+MONGODB_URI=mongodb+srv://...
+JWT_SECRET=your-secret
+CLOUDINARY_CLOUD_NAME=your-cloud
+CLOUDINARY_API_KEY=your-key
+CLOUDINARY_API_SECRET=your-secret
 
-### 🏷️ REGLA CRÍTICA: TÍTULOS Y HEADERS
-
-**TODOS los títulos principales DEBEN usar GradientText:**
-
-**Título principal con ícono:**
-```jsx
-<div className="inline-flex items-center gap-3 mb-4">
-  <div className="p-3 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl border border-blue-500/20 shadow-xl shadow-blue-500/20">
-    <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400" />
-  </div>
-  <GradientText className="text-xl sm:text-2xl lg:text-3xl font-bold">
-    Título Principal
-  </GradientText>
-</div>
+# Frontend (.env)
+VITE_API_URL=http://localhost:5000/api/v1  # Development
 ```
 
-**Título de sección centrado:**
-```jsx
-<div className="text-center mb-6">
-  <div className="flex items-center justify-center gap-3 mb-2">
-    <div className="p-3 bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-xl border border-purple-500/20 shadow-xl shadow-blue-500/20">
-      <Icon className="w-6 h-6 text-purple-400" />
-    </div>
-    <GradientText className="text-xl lg:text-2xl font-bold">
-      Título de Sección
-    </GradientText>
-  </div>
-</div>
+### Port Configuration
+- **Backend**: `process.env.PORT || 5000` (dynamic for Render deployment)
+- **Frontend**: `5173` (Vite default, configured in `vite.config.js`)
+
+## 🚨 Critical Development Rules
+
+### Branch Strategy
+- **Frontend changes**: Work in `gh-pages` branch
+- **Backend changes**: Work in `develop` branch
+- **Asset paths**: Use `getAssetUrl()` helper for GitHub Pages compatibility
+
+### Authentication Flow
+- JWT stored in localStorage with auto-refresh
+- Role checking: `user?.role === 'admin'` pattern
+- Protected routes via AuthContext consumer pattern
+
+### Data Validation
+- **Timezone handling**: All dates in 'America/Bogota' timezone
+- **Input sanitization**: express-mongo-sanitize + xss-clean in backend
+- **File uploads**: Cloudinary integration with MIME type validation
+
+## 🧪 Testing & Debugging
+
+### Available Scripts
+```bash
+npm run dev              # Full development environment
+npm run backend          # Backend only (port 5000)
+npm run frontend         # Frontend only (port 5173)
+npm run build            # Build frontend to /docs/
+npm run install:all      # Install all dependencies
 ```
 
-**Títulos responsivos obligatorios:**
-- Principal: `text-xl sm:text-2xl lg:text-3xl`
-- Sección: `text-lg sm:text-xl lg:text-2xl`
-- Subsección: `text-base sm:text-lg`
+### Debug Tools
+- **Backend logs**: Winston logging to `backend/logs/`
+- **MongoDB debug**: Debug scripts in `backend/scripts/`
+- **API monitoring**: Built-in monitoring middleware on all routes
 
-### 📋 REGLA CRÍTICA: CARDS DE CITAS
-
-**TODAS las cards de citas DEBEN seguir esta estructura y estilo:**
-
-**Contenedor principal:**
-```jsx
-<div className="space-y-2 max-h-96 overflow-y-auto pr-2 custom-scrollbar pl-1">
+### Common Debugging Patterns
+```javascript
+// API service debugging
+console.log('API_URL:', import.meta.env.VITE_API_URL);
+// Auth debugging  
+console.log('Current user:', user, 'Token:', !!token);
+// Environment validation
+npm run dev  # Validates all required env vars
 ```
-
-**Card individual:**
-```jsx
-<div className={`group relative backdrop-blur-sm border rounded-lg p-4 transition-all duration-300 overflow-hidden hover:scale-[1.002] hover:-translate-y-0.5 cursor-pointer ml-1 mr-1 ${
-  status === 'confirmed' ? 'border-green-500/30 bg-green-500/5 shadow-sm shadow-green-500/20' :
-  status === 'pending' ? 'border-yellow-500/30 bg-yellow-500/5 shadow-sm shadow-yellow-500/20' :
-  status === 'cancelled' ? 'border-red-500/30 bg-red-500/5 shadow-sm shadow-red-500/20' :
-  'border-blue-500/30 bg-blue-500/5 shadow-sm shadow-blue-500/20'
-}`}>
-```
-
-**Efecto hover obligatorio:**
-- Escalado mínimo: `hover:scale-[1.002]` (0.2%)
-- Elevación sutil: `hover:-translate-y-0.5`
-- Márgenes de seguridad: `ml-1 mr-1`
-- Efecto de brillo: `via-white/[2.5%]`
-
-**Colores por estado obligatorios:**
-- Verde: Confirmadas (`confirmed`)
-- Amarillo: Pendientes (`pending`) 
-- Rojo: Canceladas (`cancelled`)
-- Azul: Completadas (`completed`)Instrucciones para GitHub Copilot**: Este archivo contiene las instrucciones completas del proyecto. Úsalo como contexto para todas las sugerencias de código, respuestas y asistencia. Siempre considera estas reglas, arquitectura y buenas prácticas al generar código o dar recomendaciones.
-
-# GitHub Copilot — Instrucciones Completas del Proyecto
-
-## 🏪 Resumen del Proyecto
-
-The Brothers Barber Shop es un sistema integral para la gestión de barberías, con frontend en React (Vite, Tailwind) y backend en Node.js/Express (MongoDB, JWT, Cloudinary, Winston, Redis, etc). Incluye gestión de usuarios, barberos, servicios, citas, inventario, ventas y reportes, con autenticación basada en roles.
 
 ---
 
-## 🚨 REGLAS CRÍTICAS DE ESTILOS
-
-### 📱 REGLA CRÍTICA: RESPONSIVIDAD MÓVIL OBLIGATORIA
-
-**TODA la interfaz debe ser 100% responsiva y optimizada para móvil. Esta es una regla NO NEGOCIABLE.**
-
-### 🎯 REGLA CRÍTICA: INPUTS Y SCROLLBARS ESTILIZADOS
-
-**TODOS los inputs, textareas, selects y contenedores con scroll DEBEN usar las clases glassmorphism predefinidas:**
-
-- **Inputs**: `glassmorphism-input` (NO usar estilos inline)
-- **Textareas**: `glassmorphism-textarea` (NO usar estilos inline)  
-- **Selects**: `glassmorphism-select` (NO usar estilos inline)
-- **Scrollbars**: `custom-scrollbar` en cualquier contenedor con overflow
-
-**Estados focus obligatorios:**
-- Todos los campos deben tener `focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:bg-white/10`
-- Ningún input debe verse blanco al hacer click
-- Transiciones suaves en todos los estados
+*Focus on these patterns for immediate productivity. The system uses established conventions - follow existing patterns rather than creating new ones.*
 
 **Selectores y Opciones:**
 - Los `<select>` DEBEN usar `glassmorphism-select`

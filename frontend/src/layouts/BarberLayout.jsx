@@ -28,7 +28,7 @@ export const BarberLayout = ({ children }) => {
 
   // Verificar que tenga permisos de barbero o admin
   if (user.role !== 'barber' && user.role !== 'admin') {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return (

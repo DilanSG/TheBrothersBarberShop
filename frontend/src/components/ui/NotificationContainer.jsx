@@ -6,19 +6,43 @@ const NotificationContainer = () => {
 
   if (notifications.length === 0) return null;
 
+  const getNotificationSize = (message, title) => {
+    const hasTitle = title && title.trim().length > 0;
+    const messageLength = message.length;
+    const isMultiline = message.includes('\n');
+    
+    // Para mensajes muy cortos sin título (como "Éxito", "Error")
+    if (!hasTitle && messageLength <= 25 && !isMultiline) {
+      return 'w-auto min-w-[200px] max-w-[280px]'; // Tamaño fijo pequeño
+    }
+    
+    // Para mensajes cortos con o sin título
+    if (messageLength <= 50 && !isMultiline) {
+      return 'w-auto min-w-[250px] max-w-[320px]'; // Tamaño medio
+    }
+    
+    // Para mensajes largos o multilinea
+    if (isMultiline || messageLength > 50 || hasTitle) {
+      return 'w-auto min-w-[280px] max-w-[400px]'; // Tamaño grande
+    }
+    
+    // Fallback - tamaño medio
+    return 'w-auto min-w-[250px] max-w-[320px]';
+  };
+
   const getNotificationStyles = (type) => {
-    const baseStyles = "relative overflow-hidden backdrop-blur-md border rounded-lg shadow-lg transition-all duration-300 ease-in-out transform";
+    const baseStyles = "relative overflow-hidden backdrop-blur-md border rounded-lg shadow-xl transition-all duration-300 ease-in-out transform hover:scale-105";
     
     switch (type) {
       case 'success':
-        return `${baseStyles} bg-green-500/10 border-green-500/30 text-green-100`;
+        return `${baseStyles} bg-green-500/10 border-green-500/30 text-green-100 shadow-green-500/20`;
       case 'error':
-        return `${baseStyles} bg-red-500/10 border-red-500/30 text-red-100`;
+        return `${baseStyles} bg-red-500/10 border-red-500/30 text-red-100 shadow-red-500/20`;
       case 'warning':
-        return `${baseStyles} bg-yellow-500/10 border-yellow-500/30 text-yellow-100`;
+        return `${baseStyles} bg-yellow-500/10 border-yellow-500/30 text-yellow-100 shadow-yellow-500/20`;
       case 'info':
       default:
-        return `${baseStyles} bg-blue-500/10 border-blue-500/30 text-blue-100`;
+        return `${baseStyles} bg-blue-500/10 border-blue-500/30 text-blue-100 shadow-blue-500/20`;
     }
   };
 
@@ -26,26 +50,26 @@ const NotificationContainer = () => {
     switch (type) {
       case 'success':
         return (
-          <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         );
       case 'error':
         return (
-          <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         );
       case 'warning':
         return (
-          <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
         );
       case 'info':
       default:
         return (
-          <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         );
@@ -63,11 +87,13 @@ const NotificationContainer = () => {
   };
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm w-full">
-      {notifications.map((notification) => (
+    <div className="fixed top-2 sm:top-4 right-2 sm:right-4 left-2 sm:left-auto z-50 space-y-2 sm:w-auto">
+      {notifications.map((notification) => {
+        const sizeClass = getNotificationSize(notification.message, notification.title);
+        return (
         <div
           key={notification.id}
-          className={getNotificationStyles(notification.type)}
+          className={`${getNotificationStyles(notification.type)} ${sizeClass}`}
           role="alert"
         >
           {/* Barra de progreso para auto-close */}
@@ -82,27 +108,32 @@ const NotificationContainer = () => {
             </div>
           )}
 
-          <div className="p-4">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
+          <div className="p-3">
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0 mt-0.5">
                 {getIcon(notification.type)}
               </div>
               
-              <div className="ml-3 w-0 flex-1">
-                {notification.title && (
-                  <p className="text-sm font-medium">
+              <div className="flex-1 min-w-0">
+                {notification.title && notification.title.trim().length > 0 && (
+                  <p className="text-sm font-medium text-white mb-1 line-clamp-1">
                     {notification.title}
                   </p>
                 )}
-                <p className={`text-sm ${notification.title ? 'mt-1' : ''}`}>
-                  {notification.message}
-                </p>
+                <div className={`text-sm leading-snug ${(!notification.title || notification.title.trim().length === 0) ? 'font-medium' : ''}`}>
+                  {notification.message.split('\n').map((line, index) => (
+                    <div key={index} className={index > 0 ? 'mt-1' : ''}>
+                      {line}
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="ml-4 flex-shrink-0 flex">
+              <div className="flex-shrink-0">
                 <button
                   onClick={() => removeNotification(notification.id)}
-                  className="inline-flex text-gray-400 hover:text-gray-300 focus:outline-none focus:text-gray-300 transition-colors duration-200"
+                  className="inline-flex p-1 text-gray-400 hover:text-gray-200 focus:outline-none focus:text-gray-200 transition-colors duration-200 rounded-md hover:bg-white/10"
+                  aria-label="Cerrar notificación"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -112,7 +143,8 @@ const NotificationContainer = () => {
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

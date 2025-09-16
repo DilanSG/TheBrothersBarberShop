@@ -17,7 +17,8 @@ import {
   getCancellationReason,
   getBarberAppointmentStats,
   getDailyAppointmentReport,
-  getAvailableDates
+  getAvailableDates,
+  getCompletedDetails
 } from '../controllers/appointmentController.js';
 import { protect, adminAuth } from '../middleware/auth.js';
 import { 
@@ -43,6 +44,7 @@ router.get('/stats', adminAuth, getAppointmentStats);
 router.get('/barber/:barberId/stats', adminAuth, getBarberAppointmentStats);
 router.get('/barber/:barberId/available-dates', adminAuth, getAvailableDates);
 router.get('/daily-report', adminAuth, getDailyAppointmentReport);
+router.get('/completed-details', adminAuth, getCompletedDetails);
 router.post('/cleanup', adminAuth, cleanupDeletedAppointments);
 router.post('/cleanup-expired', adminAuth, cleanupExpiredAppointments);
 

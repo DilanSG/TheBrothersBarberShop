@@ -10,13 +10,11 @@ import { NotificationProvider } from './contexts/NotificationContext.jsx';
 const baseUrl = import.meta.env.BASE_URL || '/';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-	<React.StrictMode>
-		<BrowserRouter basename={baseUrl}>
-			<AuthProvider>
-				<NotificationProvider>
-					<App />
-				</NotificationProvider>
-			</AuthProvider>
-		</BrowserRouter>
-	</React.StrictMode>
+	<BrowserRouter basename={baseUrl}>
+		<AuthProvider>
+			<NotificationProvider>
+				<App />
+			</NotificationProvider>
+		</AuthProvider>
+	</BrowserRouter>
 );

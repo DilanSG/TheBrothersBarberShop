@@ -3,7 +3,7 @@ import {
   Plus, Edit, Trash2, Search, Package2, AlertTriangle, CheckCircle, 
   TrendingUp, TrendingDown, BarChart3, Calculator, RotateCcw, 
   ShoppingCart, Minus, ChevronDown, ChevronUp, User, Users, 
-  DollarSign, Activity, Eye, Calendar, Clock, Download, Camera
+  DollarSign, Activity, Eye, Calendar, Clock, Download, Camera, FileText, XCircle
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { inventoryService } from '../../services/api';
@@ -14,6 +14,7 @@ import GradientButton from '../../components/ui/GradientButton';
 import GradientText from '../../components/ui/GradientText';
 import InventorySnapshot from '../../components/InventorySnapshot';
 import SavedInventoriesModal from '../../components/SavedInventoriesModal';
+import InventoryLogsModal from '../../components/InventoryLogsModal';
 
 /**
  * Componente moderno de gestión de inventario para The Brothers Barber Shop
@@ -28,6 +29,7 @@ const Inventory = () => {
   const [success, setSuccess] = useState('');
   const [lastRefreshTime, setLastRefreshTime] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('alphabetical'); // 'alphabetical', 'createdAt'
   const [expandedSection, setExpandedSection] = useState(null); // 'form', 'movement', 'sale'
   const [formData, setFormData] = useState({
     name: '',
@@ -60,6 +62,10 @@ const Inventory = () => {
   });
   const [showSnapshotModal, setShowSnapshotModal] = useState(false);
   const [showSavedInventoriesModal, setShowSavedInventoriesModal] = useState(false);
+  const [showLogsModal, setShowLogsModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [deletionReason, setDeletionReason] = useState('');
 
   const categories = [
     'cannabicos', 'gorras', 'insumos', 'productos_pelo', 'lociones',
@@ -188,19 +194,34 @@ const Inventory = () => {
     setExpandedSection('form');
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este producto?')) {
-      try {
-        await inventoryService.deleteInventoryItem(id);
-        setSuccess('Producto eliminado exitosamente');
-        loadInventory();
-        setTimeout(() => setSuccess(''), 3000);
-      } catch (error) {
-        console.error('Error al eliminar producto:', error);
-        setError('Error al eliminar el producto');
-        setTimeout(() => setError(''), 3000);
-      }
+  const handleDelete = (item) => {
+    setItemToDelete(item);
+    setDeletionReason('');
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    
+    try {
+      await inventoryService.deleteInventoryItem(itemToDelete._id);
+      setSuccess('Producto eliminado exitosamente');
+      loadInventory();
+      setShowDeleteModal(false);
+      setItemToDelete(null);
+      setDeletionReason('');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error al eliminar producto:', error);
+      setError('Error al eliminar el producto');
+      setTimeout(() => setError(''), 3000);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setItemToDelete(null);
+    setDeletionReason('');
   };
 
   const handleNewProduct = () => {
@@ -245,10 +266,39 @@ const Inventory = () => {
     return { status: 'good', label: 'Stock normal', color: 'text-green-400', bgColor: 'bg-green-500/10' };
   };
 
-  const filteredInventory = Array.isArray(inventory) ? inventory.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchTerm.toLowerCase())
-  ) : [];
+  // Función para filtrar y ordenar el inventario
+  const filteredAndSortedInventory = () => {
+    let filtered = Array.isArray(inventory) ? inventory.filter(item =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchTerm.toLowerCase())
+    ) : [];
+
+    // Ordenamiento
+    switch (sortBy) {
+      case 'alphabetical':
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'createdAt':
+        filtered.sort((a, b) => new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id));
+        break;
+      case 'category':
+        filtered.sort((a, b) => a.category.localeCompare(b.category));
+        break;
+      case 'stock':
+        filtered.sort((a, b) => {
+          const stockA = a.realStock || a.stock || a.currentStock || a.quantity || 0;
+          const stockB = b.realStock || b.stock || b.currentStock || b.quantity || 0;
+          return stockB - stockA; // Mayor stock primero
+        });
+        break;
+      default:
+        break;
+    }
+
+    return filtered;
+  };
+
+  const filteredInventory = filteredAndSortedInventory();
 
   const handleMovementSubmit = async (e) => {
     e.preventDefault();
@@ -273,7 +323,9 @@ const Inventory = () => {
         stock: newCurrentStock,
         entries: newEntries,
         exits: newExits,
-        quantity: newCurrentStock
+        quantity: newCurrentStock,
+        reason: movementData.reason,
+        notes: movementData.notes
       };
       
       await inventoryService.updateInventoryItem(selectedItem._id, updateData);
@@ -384,20 +436,34 @@ const Inventory = () => {
   // Función para exportar inventario a Excel
   const exportToExcel = () => {
     try {
-      // Preparar datos para Excel
-      const excelData = filteredInventory.map(item => ({
-        'Código': item.code || '',
-        'Nombre': item.name || '',
-        'Categoría': item.category ? item.category.replace('_', ' ').toUpperCase() : '',
-        'Stock Inicial': item.initialStock || 0,
-        'Entradas': item.entries || 0,
-        'Salidas': item.exits || 0,
-        'Stock Actual': item.stock || item.currentStock || item.quantity || 0,
-        'Stock Mínimo': item.minStock || 0,
-        'Precio': item.price ? `$${item.price.toLocaleString('es-CO')}` : '$0',
-        'Estado': (item.stock || item.currentStock || item.quantity || 0) <= (item.minStock || 0) ? 'Stock Bajo' : 'Normal',
-        'Descripción': item.description || ''
-      }));
+      // Preparar datos para Excel con la misma estructura del modal InventorySnapshot
+      const excelData = filteredInventory.map(item => {
+        const initialStock = item.initialStock || 0;
+        const entries = item.entries || 0;
+        const exits = item.exits || 0;
+        const sales = item.sales || 0;
+        const currentStock = item.stock || item.currentStock || item.quantity || 0;
+        const realStock = item.realStock || currentStock;
+        const expectedStock = initialStock + entries - exits - sales; // Stock esperado según sistema
+        const difference = realStock - expectedStock; // Diferencia entre real y esperado
+
+        return {
+          'Producto': item.name || '',
+          'Categoría': item.category ? item.category.replace('_', ' ').toUpperCase() : '',
+          'Código': item.code || '',
+          'Stock Inicial': initialStock,
+          'Entradas': entries,
+          'Salidas': exits,
+          'Ventas': sales,
+          'Stock Sistema': expectedStock,
+          'Stock Real': realStock,
+          'Diferencia': difference > 0 ? `+${difference}` : difference.toString(),
+          'Stock Mínimo': item.minStock || 0,
+          'Estado': realStock <= 0 ? 'Sin Stock' : realStock <= (item.minStock || 0) ? 'Stock Bajo' : 'Normal',
+          'Precio': item.price ? `$${item.price.toLocaleString('es-CO')}` : '$0',
+          'Descripción': item.description || ''
+        };
+      });
 
       // Crear hoja de trabajo
       const worksheet = XLSX.utils.json_to_sheet(excelData);
@@ -477,7 +543,7 @@ const Inventory = () => {
                 </GradientButton>
               )}
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full sm:w-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full sm:w-auto">
                 {user?.role === 'admin' && (
                   <button
                     onClick={exportToExcel}
@@ -511,12 +577,38 @@ const Inventory = () => {
                     <span className="sm:hidden">Inventarios</span>
                   </button>
                 )}
+
+                {user?.role === 'admin' && (
+                  <button
+                    onClick={() => setShowLogsModal(true)}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/30 rounded-lg transition-colors text-sm shadow-xl shadow-blue-500/20"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span className="hidden sm:inline">Historial</span>
+                    <span className="sm:hidden">Logs</span>
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Búsqueda - Centrada en móvil */}
-            <div className="flex justify-center sm:justify-end">
-              <div className="relative w-full sm:w-64">
+            {/* Búsqueda y Ordenamiento */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center sm:justify-end items-center">
+              {/* Selector de Ordenamiento */}
+              <div className="w-full sm:w-40">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="glassmorphism-select w-full shadow-xl shadow-blue-500/20"
+                >
+                  <option value="alphabetical">Alfabético (A-Z)</option>
+                  <option value="createdAt">Fecha de Creación</option>
+                  <option value="category">Por Categoría</option>
+                  <option value="stock">Por Stock</option>
+                </select>
+              </div>
+              
+              {/* Campo de Búsqueda */}
+              <div className="relative w-full sm:w-44">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
@@ -546,108 +638,123 @@ const Inventory = () => {
                     </button>
                   </div>
 
-                  <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Nombre</label>
-                      <input
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                        className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Código</label>
-                      <input
-                        type="text"
-                        value={formData.code}
-                        onChange={(e) => setFormData({...formData, code: e.target.value})}
-                        className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
-                        placeholder="Ej: PRD001"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Categoría</label>
-                      <select
-                        value={formData.category}
-                        onChange={(e) => setFormData({...formData, category: e.target.value})}
-                        className="glassmorphism-select w-full shadow-xl shadow-blue-500/20"
-                      >
-                        {categories.map(cat => (
-                          <option key={cat} value={cat}>
-                            {cat.replace('_', ' ').toUpperCase()}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Stock Inicial</label>
-                      <input
-                        type="number"
-                        value={formData.initialStock}
-                        onChange={(e) => setFormData({...formData, initialStock: e.target.value})}
-                        className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
-                        min="0"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Stock Mínimo</label>
-                      <input
-                        type="number"
-                        value={formData.minStock}
-                        onChange={(e) => setFormData({...formData, minStock: e.target.value})}
-                        className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
-                        min="0"
-                      />
-                    </div>
-
-                    {/* Campo Stock Real - Solo para administradores */}
-                    {user?.role === 'admin' && (
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Fila 1: Información básica */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-xs font-medium text-gray-300 mb-1">Stock Real (Conteo)</label>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Nombre</label>
+                        <input
+                          type="text"
+                          value={formData.name}
+                          onChange={(e) => setFormData({...formData, name: e.target.value})}
+                          className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
+                          placeholder="Nombre del producto"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Código</label>
+                        <input
+                          type="text"
+                          value={formData.code}
+                          onChange={(e) => setFormData({...formData, code: e.target.value})}
+                          className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
+                          placeholder="Ej: PRD001"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Categoría</label>
+                        <select
+                          value={formData.category}
+                          onChange={(e) => setFormData({...formData, category: e.target.value})}
+                          className="glassmorphism-select w-full shadow-xl shadow-blue-500/20"
+                        >
+                          {categories.map(cat => (
+                            <option key={cat} value={cat}>
+                              {cat.replace('_', ' ').toUpperCase()}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Fila 2: Stocks */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Stock Inicial</label>
                         <input
                           type="number"
-                          value={formData.realStock || ''}
-                          onChange={(e) => setFormData({...formData, realStock: e.target.value})}
-                          className="w-full px-3 py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg text-blue-300 text-sm backdrop-blur-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+                          value={formData.initialStock}
+                          onChange={(e) => setFormData({...formData, initialStock: e.target.value})}
+                          className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
                           min="0"
-                          placeholder="Stock físico contado"
+                          placeholder="0"
                         />
-                        <p className="text-xs text-blue-400/70 mt-1">Stock físico verificado por conteo manual</p>
                       </div>
-                    )}
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Precio</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={formData.price}
-                        onChange={(e) => setFormData({...formData, price: e.target.value})}
-                        className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
-                        min="0"
-                      />
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Stock Mínimo</label>
+                        <input
+                          type="number"
+                          value={formData.minStock}
+                          onChange={(e) => setFormData({...formData, minStock: e.target.value})}
+                          className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
+                          min="0"
+                          placeholder="0"
+                        />
+                      </div>
+
+                      {/* Campo Stock Real - Solo para administradores */}
+                      {user?.role === 'admin' && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">Stock Real (Conteo)</label>
+                          <input
+                            type="number"
+                            value={formData.realStock || ''}
+                            onChange={(e) => setFormData({...formData, realStock: e.target.value})}
+                            className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
+                            min="0"
+                            placeholder="Stock físico contado"
+                          />
+                          <p className="text-xs text-blue-400/70 mt-1">Stock físico verificado por conteo manual</p>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Descripción</label>
-                      <input
-                        type="text"
-                        value={formData.description}
-                        onChange={(e) => setFormData({...formData, description: e.target.value})}
-                        className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
-                      />
+                    {/* Fila 3: Precio y Descripción */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Precio</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={formData.price}
+                          onChange={(e) => setFormData({...formData, price: e.target.value})}
+                          className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
+                          min="0"
+                          placeholder="0.00"
+                        />
+                      </div>
+
+                      <div className="lg:col-span-2">
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Descripción</label>
+                        <input
+                          type="text"
+                          value={formData.description}
+                          onChange={(e) => setFormData({...formData, description: e.target.value})}
+                          className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
+                          placeholder="Descripción del producto (opcional)"
+                        />
+                      </div>
                     </div>
 
-                    <div className="md:col-span-2 lg:col-span-4 flex flex-col sm:flex-row gap-3 pt-4">
+                    {/* Botones de acción */}
+                    <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/10">
                       <GradientButton type="submit" className="text-sm px-6 py-3 w-full sm:w-auto shadow-xl shadow-blue-500/20">
-                        {editingItem ? 'Actualizar' : 'Crear'}
+                        {editingItem ? 'Actualizar Producto' : 'Crear Producto'}
                       </GradientButton>
                       <button
                         type="button"
@@ -681,50 +788,90 @@ const Inventory = () => {
                     </button>
                   </div>
 
-                  <form onSubmit={handleMovementSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Tipo</label>
-                      <select
-                        value={movementData.type}
-                        onChange={(e) => setMovementData({...movementData, type: e.target.value})}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
-                      >
-                        <option value="entry">Entrada</option>
-                        <option value="exit">Salida</option>
-                      </select>
+                  <form onSubmit={handleMovementSubmit} className="space-y-6">
+                    {/* Información del movimiento */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Tipo de Movimiento</label>
+                        <select
+                          value={movementData.type}
+                          onChange={(e) => setMovementData({...movementData, type: e.target.value})}
+                          className="glassmorphism-select w-full shadow-xl shadow-blue-500/20"
+                        >
+                          <option value="entry">Entrada</option>
+                          <option value="exit">Salida</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Cantidad</label>
+                        <input
+                          type="number"
+                          value={movementData.quantity}
+                          onChange={(e) => setMovementData({...movementData, quantity: e.target.value})}
+                          className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
+                          min="1"
+                          placeholder="0"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Motivo</label>
+                        <input
+                          type="text"
+                          value={movementData.reason}
+                          onChange={(e) => setMovementData({...movementData, reason: e.target.value})}
+                          className="glassmorphism-input w-full shadow-xl shadow-blue-500/20"
+                          placeholder="Ej: Compra, Devolución, Ajuste"
+                          required
+                        />
+                      </div>
                     </div>
 
+                    {/* Notas adicionales */}
                     <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Cantidad</label>
-                      <input
-                        type="number"
-                        value={movementData.quantity}
-                        onChange={(e) => setMovementData({...movementData, quantity: e.target.value})}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
-                        min="1"
-                        required
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Notas Adicionales 
+                        <span className="text-gray-500 text-xs ml-1">(Opcional)</span>
+                      </label>
+                      <textarea
+                        value={movementData.notes}
+                        onChange={(e) => setMovementData({...movementData, notes: e.target.value})}
+                        className="glassmorphism-textarea w-full shadow-xl shadow-blue-500/20"
+                        rows="3"
+                        placeholder="Observaciones adicionales del movimiento..."
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Motivo</label>
-                      <input
-                        type="text"
-                        value={movementData.reason}
-                        onChange={(e) => setMovementData({...movementData, reason: e.target.value})}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm"
-                        required
-                      />
+                    {/* Información del producto seleccionado */}
+                    <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-blue-300 mb-2">Producto Seleccionado</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                        <div>
+                          <span className="text-gray-400">Nombre:</span>
+                          <span className="text-white ml-2">{selectedItem.name}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Stock Actual:</span>
+                          <span className="text-white ml-2">{selectedItem.stock}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Categoría:</span>
+                          <span className="text-white ml-2">{selectedItem.category?.replace('_', ' ').toUpperCase()}</span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex items-end gap-3">
-                      <GradientButton type="submit" className="text-sm px-4 py-2">
-                        Registrar
+                    {/* Botones de acción */}
+                    <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/10">
+                      <GradientButton type="submit" className="text-sm px-6 py-3 w-full sm:w-auto shadow-xl shadow-blue-500/20">
+                        Registrar Movimiento
                       </GradientButton>
                       <button
                         type="button"
                         onClick={() => setExpandedSection(null)}
-                        className="px-4 py-2 bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 transition-colors text-sm backdrop-blur-sm"
+                        className="px-6 py-3 w-full sm:w-auto bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 transition-colors text-sm backdrop-blur-sm shadow-xl shadow-blue-500/20"
                       >
                         Cancelar
                       </button>
@@ -759,44 +906,74 @@ const Inventory = () => {
                   </div>
 
                   <form onSubmit={handleSaleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">Cantidad</label>
-                        <input
-                          type="number"
-                          value={saleData.quantity}
-                          onChange={(e) => setSaleData({...saleData, quantity: e.target.value})}
-                          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white text-lg backdrop-blur-sm text-center font-semibold"
-                          min="1"
-                          max={selectedItem.stock || selectedItem.currentStock || selectedItem.quantity || 0}
-                          required
-                        />
-                        <p className="text-xs text-gray-400 mt-1 text-center">
-                          Stock disponible: {selectedItem.stock || selectedItem.currentStock || selectedItem.quantity || 0}
-                        </p>
+                    {/* Información de la venta */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">Cantidad a Vender</label>
+                          <input
+                            type="number"
+                            value={saleData.quantity}
+                            onChange={(e) => setSaleData({...saleData, quantity: e.target.value})}
+                            className="glassmorphism-input w-full text-lg text-center font-semibold shadow-xl shadow-blue-500/20"
+                            min="1"
+                            max={selectedItem.stock || selectedItem.currentStock || selectedItem.quantity || 0}
+                            placeholder="0"
+                            required
+                          />
+                          <p className="text-xs text-gray-400 mt-2 text-center">
+                            Stock disponible: <span className="text-green-400 font-medium">{selectedItem.stock || selectedItem.currentStock || selectedItem.quantity || 0}</span> unidades
+                          </p>
+                        </div>
                       </div>
 
                       <div className="flex flex-col justify-center">
                         <label className="block text-sm font-medium text-gray-300 mb-2">Total a Pagar</label>
-                        <div className="bg-green-500/20 border border-green-500/30 rounded-xl p-4 text-center">
+                        <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-xl p-6 text-center backdrop-blur-sm shadow-xl shadow-green-500/20">
+                          <div className="text-xs text-green-300 mb-1">Total</div>
                           <span className="text-4xl font-bold text-green-400">
                             ${((parseFloat(saleData.quantity) || 0) * (parseFloat(selectedItem.price) || 0)).toFixed(2)}
+                          </span>
+                          <div className="text-xs text-gray-400 mt-2">
+                            {saleData.quantity || 0} × ${selectedItem.price || 0}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Información del producto */}
+                    <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-blue-300 mb-3">Detalles del Producto</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                        <div>
+                          <span className="text-gray-400">Precio unitario:</span>
+                          <span className="text-green-400 ml-2 font-semibold">${selectedItem.price || 0}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Categoría:</span>
+                          <span className="text-white ml-2">{selectedItem.category?.replace('_', ' ').toUpperCase()}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Stock después:</span>
+                          <span className="text-blue-400 ml-2 font-semibold">
+                            {(selectedItem.stock || 0) - (parseInt(saleData.quantity) || 0)} unidades
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex gap-4 pt-4">
-                      <GradientButton type="submit" className="flex-1 text-base py-3">
+                    {/* Botones de acción */}
+                    <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/10">
+                      <GradientButton type="submit" className="text-sm px-6 py-3 w-full sm:w-auto shadow-xl shadow-green-500/20">
                         <div className="flex items-center justify-center gap-2">
-                          <Package2 className="w-5 h-5" />
+                          <Package2 className="w-4 h-4" />
                           <span>Registrar Venta</span>
                         </div>
                       </GradientButton>
                       <button
                         type="button"
                         onClick={() => setExpandedSection(null)}
-                        className="px-6 py-3 bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 transition-colors text-base backdrop-blur-sm"
+                        className="px-6 py-3 w-full sm:w-auto bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 transition-colors text-sm backdrop-blur-sm shadow-xl shadow-blue-500/20"
                       >
                         Cancelar
                       </button>
@@ -829,67 +1006,102 @@ const Inventory = () => {
                   </div>
 
                   <form onSubmit={handleCountSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Información del conteo */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">Stock Contado</label>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Stock Físico Contado</label>
                         <input
                           type="number"
                           value={countData.realStock}
                           onChange={(e) => setCountData({...countData, realStock: e.target.value})}
-                          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white text-lg backdrop-blur-sm text-center font-semibold"
+                          className="glassmorphism-input w-full text-lg text-center font-semibold shadow-xl shadow-blue-500/20"
                           min="0"
                           placeholder="Ingrese stock real"
                           required
                         />
+                        <p className="text-xs text-gray-400 mt-1 text-center">Stock verificado físicamente</p>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">Entradas</label>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Entradas Adicionales</label>
                         <input
                           type="number"
                           value={countData.entries}
                           onChange={(e) => setCountData({...countData, entries: e.target.value})}
-                          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white text-lg backdrop-blur-sm text-center"
+                          className="glassmorphism-input w-full text-lg text-center shadow-xl shadow-blue-500/20"
                           min="0"
                           placeholder="0"
                         />
+                        <p className="text-xs text-gray-400 mt-1 text-center">Productos recibidos</p>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">Salidas</label>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Salidas Adicionales</label>
                         <input
                           type="number"
                           value={countData.exits}
                           onChange={(e) => setCountData({...countData, exits: e.target.value})}
-                          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white text-lg backdrop-blur-sm text-center"
+                          className="glassmorphism-input w-full text-lg text-center shadow-xl shadow-blue-500/20"
                           min="0"
                           placeholder="0"
                         />
+                        <p className="text-xs text-gray-400 mt-1 text-center">Productos enviados</p>
                       </div>
                     </div>
 
+                    {/* Comparativa de stocks */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
+                      <div className="text-center">
+                        <div className="text-xs text-gray-400 mb-1">Stock Esperado</div>
+                        <div className="text-lg font-bold text-purple-400">
+                          {selectedItem.initialStock + (selectedItem.entries || 0) - (selectedItem.exits || 0) - (selectedItem.sales || 0)}
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-gray-400 mb-1">Stock Actual</div>
+                        <div className="text-lg font-bold text-blue-400">
+                          {selectedItem.realStock || selectedItem.stock || 0}
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-gray-400 mb-1">Diferencia</div>
+                        <div className={`text-lg font-bold ${
+                          ((selectedItem.realStock || selectedItem.stock || 0) - (selectedItem.initialStock + (selectedItem.entries || 0) - (selectedItem.exits || 0) - (selectedItem.sales || 0))) >= 0 
+                            ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {((selectedItem.realStock || selectedItem.stock || 0) - (selectedItem.initialStock + (selectedItem.entries || 0) - (selectedItem.exits || 0) - (selectedItem.sales || 0))) >= 0 ? '+' : ''}
+                          {(selectedItem.realStock || selectedItem.stock || 0) - (selectedItem.initialStock + (selectedItem.entries || 0) - (selectedItem.exits || 0) - (selectedItem.sales || 0))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Notas del conteo */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Notas (Opcional)</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Notas del Conteo 
+                        <span className="text-gray-500 text-xs ml-1">(Opcional)</span>
+                      </label>
                       <textarea
                         value={countData.notes}
                         onChange={(e) => setCountData({...countData, notes: e.target.value})}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white backdrop-blur-sm"
+                        className="glassmorphism-textarea w-full shadow-xl shadow-blue-500/20"
                         rows="3"
-                        placeholder="Observaciones del conteo..."
+                        placeholder="Observaciones del conteo, discrepancias encontradas, etc."
                       />
                     </div>
 
-                    <div className="flex gap-4 pt-4">
-                      <GradientButton type="submit" className="flex-1 text-base py-3">
+                    {/* Botones de acción */}
+                    <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/10">
+                      <GradientButton type="submit" className="text-sm px-6 py-3 w-full sm:w-auto shadow-xl shadow-yellow-500/20">
                         <div className="flex items-center justify-center gap-2">
-                          <Calculator className="w-5 h-5" />
+                          <Calculator className="w-4 h-4" />
                           <span>Guardar Conteo</span>
                         </div>
                       </GradientButton>
                       <button
                         type="button"
                         onClick={() => setExpandedSection(null)}
-                        className="px-6 py-3 bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 transition-colors text-base backdrop-blur-sm"
+                        className="px-6 py-3 w-full sm:w-auto bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 transition-colors text-sm backdrop-blur-sm shadow-xl shadow-blue-500/20"
                       >
                         Cancelar
                       </button>
@@ -933,7 +1145,7 @@ const Inventory = () => {
                   <p className="text-gray-400 text-sm">No hay productos en el inventario</p>
                 </div>
               ) : (
-                <div className="divide-y divide-white/10">
+                <div className="space-y-4 p-4">
                   {filteredInventory.map((item) => {
                     const stockStatus = getStockStatus(item);
                     const currentStock = item.stock || item.currentStock || item.quantity || 0;
@@ -949,7 +1161,7 @@ const Inventory = () => {
                     const difference = realStock - expectedStock;
                     
                     return (
-                      <div key={item._id} className="px-4 py-4 md:py-3 hover:bg-white/5 transition-colors backdrop-blur-sm border-b border-white/5 group">
+                      <div key={item._id} className="bg-white/5 border border-white/10 rounded-xl px-4 py-4 md:py-3 hover:bg-white/10 hover:border-white/20 transition-all duration-300 backdrop-blur-sm shadow-lg shadow-blue-500/10 group">
                         {/* Desktop Layout */}
                         <div className="hidden md:grid grid-cols-12 gap-2 items-center">
                           {/* Producto */}
@@ -1040,7 +1252,7 @@ const Inventory = () => {
                                 </button>
                                 
                                 <button
-                                  onClick={() => handleDelete(item._id)}
+                                  onClick={() => handleDelete(item)}
                                   className="p-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition-all duration-200 shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30"
                                   title="Eliminar"
                                 >
@@ -1080,105 +1292,105 @@ const Inventory = () => {
                           </div>
 
                           {/* Stock Information Grid */}
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-3">
-                              <div>
-                                <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Inicial</label>
-                                <div className="mt-1">
-                                  <span className="px-3 py-2 bg-gray-600/20 text-gray-300 font-semibold text-sm rounded-lg block text-center">{initialStock}</span>
-                                </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            {/* Primera fila */}
+                            <div>
+                              <label className="text-xs font-medium text-gray-400 uppercase tracking-wide block text-center">Inicial</label>
+                              <div className="mt-1">
+                                <span className="px-2 py-1.5 bg-gray-600/20 text-gray-300 font-semibold text-xs rounded block text-center">{initialStock}</span>
                               </div>
-                              <div>
-                                <label className="text-xs font-medium text-green-400 uppercase tracking-wide">Entradas</label>
-                                <div className="mt-1">
-                                  <span className="px-3 py-2 bg-green-600/20 text-green-400 font-semibold text-sm rounded-lg block text-center">{entries}</span>
-                                </div>
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium text-green-400 uppercase tracking-wide block text-center">Entradas</label>
+                              <div className="mt-1">
+                                <span className="px-2 py-1.5 bg-green-600/20 text-green-400 font-semibold text-xs rounded block text-center">{entries}</span>
                               </div>
-                              <div>
-                                <label className="text-xs font-medium text-red-400 uppercase tracking-wide">Salidas</label>
-                                <div className="mt-1">
-                                  <span className="px-3 py-2 bg-red-600/20 text-red-400 font-semibold text-sm rounded-lg block text-center">{exits}</span>
-                                </div>
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium text-red-400 uppercase tracking-wide block text-center">Salidas</label>
+                              <div className="mt-1">
+                                <span className="px-2 py-1.5 bg-red-600/20 text-red-400 font-semibold text-xs rounded block text-center">{exits}</span>
                               </div>
                             </div>
                             
-                            <div className="space-y-3">
-                              <div>
-                                <label className="text-xs font-medium text-orange-400 uppercase tracking-wide">Ventas</label>
-                                <div className="mt-1">
-                                  <span className="px-3 py-2 bg-orange-600/20 text-orange-400 font-semibold text-sm rounded-lg block text-center">{sales}</span>
-                                </div>
+                            {/* Segunda fila */}
+                            <div>
+                              <label className="text-xs font-medium text-orange-400 uppercase tracking-wide block text-center">Ventas</label>
+                              <div className="mt-1">
+                                <span className="px-2 py-1.5 bg-orange-600/20 text-orange-400 font-semibold text-xs rounded block text-center">{sales}</span>
                               </div>
-                              <div>
-                                <label className="text-xs font-medium text-purple-400 uppercase tracking-wide">Esperado</label>
-                                <div className="mt-1">
-                                  <span className="px-3 py-2 bg-purple-600/20 text-purple-400 font-semibold text-sm rounded-lg block text-center">{expectedStock}</span>
-                                </div>
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium text-purple-400 uppercase tracking-wide block text-center">Esperado</label>
+                              <div className="mt-1">
+                                <span className="px-2 py-1.5 bg-purple-600/20 text-purple-400 font-semibold text-xs rounded block text-center">{expectedStock}</span>
                               </div>
-                              <div>
-                                <label className="text-xs font-medium text-blue-400 uppercase tracking-wide">Real</label>
-                                <div className="mt-1">
-                                  <span className="px-3 py-2 bg-blue-600/20 text-blue-400 font-semibold text-sm rounded-lg block text-center">{realStock}</span>
-                                </div>
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium text-blue-400 uppercase tracking-wide block text-center">Real</label>
+                              <div className="mt-1">
+                                <span className="px-2 py-1.5 bg-blue-600/20 text-blue-400 font-semibold text-xs rounded block text-center">{realStock}</span>
                               </div>
                             </div>
                           </div>
 
                           {/* Difference Row */}
-                          <div className="pt-3 border-t border-white/10">
-                            <label className="text-xs font-medium text-yellow-400 uppercase tracking-wide">Diferencia</label>
-                            <div className="mt-2">
-                              <span className={`px-4 py-2 font-semibold text-sm rounded-lg block text-center ${difference >= 0 ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'}`}>
-                                {difference > 0 ? '+' : ''}{difference}
-                              </span>
+                          <div className="pt-3 border-t border-white/10 flex justify-center">
+                            <div className="text-center">
+                              <label className="text-xs font-medium text-yellow-400 uppercase tracking-wide block">Diferencia</label>
+                              <div className="mt-1">
+                                <span className={`px-3 py-1.5 font-semibold text-xs rounded block text-center ${difference >= 0 ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'}`}>
+                                  {difference > 0 ? '+' : ''}{difference}
+                                </span>
+                              </div>
                             </div>
                           </div>
 
                           {/* Actions */}
                           <div className="pt-4 border-t border-white/10">
                             <label className="text-xs font-medium text-pink-400 uppercase tracking-wide mb-3 block">Acciones</label>
-                            <div className="flex flex-wrap gap-3">
+                            <div className="flex justify-center gap-2">
                               {user?.role === 'admin' ? (
                                 <>
                                   <button
                                     onClick={() => handleEdit(item)}
-                                    className="flex-1 min-w-0 px-4 py-3 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 transition-all duration-200 shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 flex items-center justify-center gap-2"
+                                    className="p-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 transition-all duration-200 shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30"
+                                    title="Editar"
                                   >
                                     <Edit className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Editar</span>
                                   </button>
                                   
                                   <button
                                     onClick={() => handleMovement(item)}
-                                    className="flex-1 min-w-0 px-4 py-3 bg-purple-600/20 text-purple-400 rounded-lg hover:bg-purple-600/30 transition-all duration-200 shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 flex items-center justify-center gap-2"
+                                    className="p-2 bg-purple-600/20 text-purple-400 rounded-lg hover:bg-purple-600/30 transition-all duration-200 shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30"
+                                    title="Movimiento"
                                   >
                                     <RotateCcw className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Movimiento</span>
                                   </button>
                                   
                                   <button
                                     onClick={() => handleSale(item)}
-                                    className="flex-1 min-w-0 px-4 py-3 bg-green-600/20 text-green-400 rounded-lg hover:bg-green-600/30 transition-all duration-200 shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 flex items-center justify-center gap-2"
+                                    className="p-2 bg-green-600/20 text-green-400 rounded-lg hover:bg-green-600/30 transition-all duration-200 shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30"
+                                    title="Venta"
                                   >
                                     <ShoppingCart className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Venta</span>
                                   </button>
                                   
                                   <button
-                                    onClick={() => handleDelete(item._id)}
-                                    className="flex-1 min-w-0 px-4 py-3 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition-all duration-200 shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30 flex items-center justify-center gap-2"
+                                    onClick={() => handleDelete(item)}
+                                    className="p-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition-all duration-200 shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30"
+                                    title="Eliminar"
                                   >
                                     <Trash2 className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Eliminar</span>
                                   </button>
                                 </>
                               ) : (
                                 <button
                                   onClick={() => handleCount(item)}
-                                  className="w-full px-4 py-3 bg-yellow-600/20 text-yellow-400 rounded-lg hover:bg-yellow-600/30 transition-all duration-200 shadow-lg shadow-yellow-500/20 hover:shadow-xl hover:shadow-yellow-500/30 flex items-center justify-center gap-2"
+                                  className="p-2 bg-yellow-600/20 text-yellow-400 rounded-lg hover:bg-yellow-600/30 transition-all duration-200 shadow-lg shadow-yellow-500/20 hover:shadow-xl hover:shadow-yellow-500/30"
+                                  title="Conteo de Stock"
                                 >
                                   <Calculator className="w-4 h-4" />
-                                  <span className="text-sm font-medium">Conteo de Stock</span>
                                 </button>
                               )}
                             </div>
@@ -1207,6 +1419,95 @@ const Inventory = () => {
         isOpen={showSavedInventoriesModal}
         onClose={() => setShowSavedInventoriesModal(false)}
       />
+
+      {/* Modal de Historial de Inventario */}
+      <InventoryLogsModal
+        isOpen={showLogsModal}
+        onClose={() => setShowLogsModal(false)}
+        onRefresh={loadInventory}
+      />
+
+      {/* Modal de Confirmación de Eliminación */}
+      {showDeleteModal && itemToDelete && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 sm:p-6 lg:p-8">
+          <div className="relative w-full max-w-sm sm:max-w-md lg:max-w-lg mx-auto">
+            <div className="relative backdrop-blur-md bg-red-500/5 border border-red-500/20 shadow-red-500/20 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+              {/* Header del modal */}
+              <div className="relative z-10 flex-shrink-0 p-4 sm:p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-1.5 sm:p-2 rounded-lg bg-red-500/20">
+                      <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
+                    </div>
+                    <h3 className="text-base sm:text-lg font-semibold text-white">Eliminar Producto</h3>
+                  </div>
+                  <button
+                    onClick={handleCancelDelete}
+                    className="p-1 text-gray-400 hover:text-white transition-colors duration-200"
+                  >
+                    <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Contenido */}
+              <div className="flex-1 px-4 sm:px-6 pb-4 sm:pb-6">
+                <div className="space-y-3 sm:space-y-4">
+                  {/* Información del producto */}
+                  <div className="p-3 sm:p-4 bg-white/5 rounded-lg border border-white/10">
+                    <p className="text-white/80 text-sm sm:text-base leading-relaxed mb-2">
+                      ¿Estás seguro de que quieres eliminar este producto?
+                    </p>
+                    <div className="bg-white/10 rounded-lg p-3 border border-white/20">
+                      <div className="flex items-center gap-3">
+                        <Package2 className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                        <div>
+                          <p className="text-white font-medium">{itemToDelete.name}</p>
+                          <p className="text-white/60 text-sm">
+                            {itemToDelete.category} • Stock: {itemToDelete.realStock || itemToDelete.stock || itemToDelete.currentStock || 0}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Textarea opcional para razón */}
+                  <div className="relative">
+                    <label className="block text-white/80 text-sm font-medium mb-2">
+                      Motivo de eliminación (opcional)
+                    </label>
+                    <textarea
+                      value={deletionReason}
+                      onChange={(e) => setDeletionReason(e.target.value)}
+                      placeholder="Escriba el motivo de la eliminación..."
+                      className="glassmorphism-textarea h-20 sm:h-24 text-xs sm:text-sm shadow-xl shadow-red-500/20"
+                      maxLength={200}
+                    />
+                    <div className="text-right text-xs text-white/60 mt-1">
+                      {deletionReason.length}/200 caracteres
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end gap-2 sm:gap-3 pt-2 sm:pt-4">
+                    <button
+                      onClick={handleCancelDelete}
+                      className="px-3 sm:px-4 py-2 text-white/80 hover:text-white transition-all duration-200 text-xs sm:text-sm font-medium"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleConfirmDelete}
+                      className="px-4 sm:px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 text-xs sm:text-sm font-medium shadow-lg"
+                    >
+                      Confirmar Eliminación
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

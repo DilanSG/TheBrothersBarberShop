@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PageContainer } from '../../components/layout/PageContainer';
-import { GradientText } from '../../components/ui/GradientText';
+import GradientText from '../../components/ui/GradientText';
 import { api, appointmentService } from '../../services/api';
 import { useNotification } from '../../contexts/NotificationContext';
 import { format } from 'date-fns';

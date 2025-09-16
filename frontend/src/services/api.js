@@ -213,14 +213,6 @@ export const handleSessionExpired = () => {
 
 // Nueva función para manejar errores de autenticación
 const handleAuthError = (response, data, endpoint = '') => {
-  console.log('🔐 Manejando error de autenticación:', {
-    status: response.status,
-    message: data.message,
-    endpoint,
-    data: data,
-    notificationContext: !!notificationContext
-  });
-  
   if (response.status === 401) {
     const message = data.message || '';
     
@@ -805,6 +797,7 @@ export const barberService = {
   createBarber: (data) => api.post('/barbers', data),
   updateBarber: (id, data) => api.put(`/barbers/${id}`, data),
   removeBarber: (id) => api.put(`/barbers/${id}/remove`),
+  updateMainBarberStatus: (id, isMainBarber) => api.patch(`/barbers/${id}/main-status`, { isMainBarber }),
   getBarberProfile: async () => {
     // Para obtener el perfil del barbero autenticado, necesitamos su userId
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -866,7 +859,30 @@ export const salesService = {
   createSale: (saleData) => api.post('/sales', saleData),
   
   // Crear venta de servicio de corte  
-  createWalkInSale: (walkInData) => api.post('/sales/walk-in', walkInData)
+  createWalkInSale: (walkInData) => api.post('/sales/walk-in', walkInData),
+  
+  // Crear venta desde carrito con métodos de pago múltiples
+  createCartSale: (cartData) => api.post('/sales/cart', cartData),
+  
+  // Nuevos endpoints para reportes detallados
+  getDetailedSalesReport: (barberId, startDate, endDate) => {
+    const params = new URLSearchParams({ barberId });
+    if (startDate !== undefined && startDate !== null) params.append('startDate', startDate);
+    if (endDate !== undefined && endDate !== null) params.append('endDate', endDate);
+    return api.get(`/sales/detailed-report?${params.toString()}`, false);
+  },
+  getWalkInDetails: (barberId, startDate, endDate) => {
+    const params = new URLSearchParams({ barberId });
+    if (startDate !== undefined && startDate !== null) params.append('startDate', startDate);
+    if (endDate !== undefined && endDate !== null) params.append('endDate', endDate);
+    return api.get(`/sales/walk-in-details?${params.toString()}`, false);
+  },
+  getDetailedCutsReport: (barberId, startDate, endDate) => {
+    const params = new URLSearchParams({ barberId });
+    if (startDate !== undefined && startDate !== null) params.append('startDate', startDate);
+    if (endDate !== undefined && endDate !== null) params.append('endDate', endDate);
+    return api.get(`/sales/detailed-cuts-report?${params.toString()}`, false);
+  }
 };
 
 // Servicios de citas  
@@ -881,6 +897,13 @@ export const appointmentsService = {
     const params = new URLSearchParams({ date });
     if (barberId) params.append('barberId', barberId);
     return api.get(`/appointments/daily-report?${params.toString()}`, false);
+  },
+  // Nuevo endpoint para citas completadas detalladas
+  getCompletedDetails: (barberId, startDate, endDate) => {
+    const params = new URLSearchParams({ barberId });
+    if (startDate !== undefined && startDate !== null) params.append('startDate', startDate);
+    if (endDate !== undefined && endDate !== null) params.append('endDate', endDate);
+    return api.get(`/appointments/completed-details?${params.toString()}`, false);
   }
 };
 

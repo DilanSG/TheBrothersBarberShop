@@ -51,6 +51,10 @@ const barberSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  isMainBarber: {
+    type: Boolean,
+    default: false
+  },
   photo: {
     public_id: String,
     url: String
@@ -73,10 +77,13 @@ const barberSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Índices
+// Índices para optimización de consultas
 barberSchema.index({ isActive: 1 });
+barberSchema.index({ isMainBarber: 1 });
 barberSchema.index({ specialty: 1 });
 barberSchema.index({ 'rating.average': -1 });
+// Índice compuesto para la consulta principal de barberos activos ordenados por principales
+barberSchema.index({ isActive: 1, isMainBarber: -1, createdAt: 1 });
 
 // Virtual para años de experiencia formateados
 barberSchema.virtual('experienceFormatted').get(function() {
