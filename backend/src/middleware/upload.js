@@ -4,10 +4,17 @@ import { cloudinary } from '../config/cloudinary.js';
 import { AppError } from '../utils/errors.js';
 import fs from 'fs';
 
+// Asegurar que el directorio temp existe
+const tempDir = 'uploads/temp/';
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+  console.log('📁 Directorio temp creado:', tempDir);
+}
+
 // Configuración de multer para subida temporal
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/temp/');
+    cb(null, tempDir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);

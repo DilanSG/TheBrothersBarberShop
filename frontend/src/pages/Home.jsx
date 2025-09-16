@@ -135,11 +135,11 @@ function Home() {
 
         const fetchData = async () => {
             try {
-                console.log('Iniciando fetch de datos...');
+                // console.log('Iniciando fetch de datos...');
                 
                 const [servicesRes, barbersRes] = await Promise.all([
                     api.get('/services'),
-                    api.get('/barbers')
+                    api.get(`/barbers?_t=${Date.now()}`) // Force refresh con timestamp
                 ]);
 
                 console.log('Respuesta de servicios:', servicesRes);
@@ -163,14 +163,24 @@ function Home() {
                            (barber.isActive !== false);
                 });
 
-                console.log('Barberos activos filtrados:', activeBarbers);
+                console.log('🏠 [Home] Barberos activos filtrados:', activeBarbers.length);
+
+                // Filtrar barberos principales (isMainBarber: true)
+                const mainBarbers = activeBarbers.filter(barber => barber.isMainBarber === true);
+                console.log('🎯 [Home] Barberos principales encontrados:', mainBarbers.length);
+                console.log('🎯 [Home] Lista de principales:', mainBarbers.map(b => `${b.user?.name}: ${b.isMainBarber}`));
+
+                // Si no hay barberos principales, mostrar los primeros 3 activos
+                const barbersToShow = mainBarbers.length > 0 ? mainBarbers : activeBarbers.slice(0, 3);
+                console.log('📺 [Home] Barberos finales a mostrar:', barbersToShow.length);
+                console.log('📺 [Home] Barberos a mostrar:', barbersToShow.map(b => b.user?.name));
 
                 // Filtrar servicios que están marcados para mostrar en Home (máximo 3)
                 const homeServices = servicesData.filter(service => service.showInHome === true).slice(0, 3);
                 setServices(homeServices);
 
-                // Guardar barberos filtrados
-                setBarbers(activeBarbers);
+                // Guardar barberos para mostrar
+                setBarbers(barbersToShow);
                 setDataLoaded(true);
 
             } catch (err) {
@@ -273,7 +283,7 @@ function Home() {
                                         variant="primary"
                                         size="lg"
                                         className="inline-flex items-center justify-center whitespace-nowrap px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold rounded-2xl shadow-xl shadow-blue-500/20 transform hover:scale-105 transition-all duration-300 min-w-fit"
-                                        onClick={() => window.location.href = '/appointment'}
+                                        onClick={() => navigate('/appointment')}
                                     >
                                         <span className="flex items-center gap-2 sm:gap-3">
                                             Reserva tu cita ahora
@@ -534,7 +544,7 @@ function Home() {
                                 variant="primary"
                                 size="md"
                                 className="px-6 sm:px-8 py-2.5 sm:py-3 shadow-xl shadow-blue-500/20"
-                                onClick={() => window.location.href = '/barbers'}
+                                onClick={() => navigate('/barbers')}
                             >
                                 <span className="flex items-center gap-2">
                                     Ver todos los barberos
@@ -642,7 +652,7 @@ function Home() {
                                             variant="primary"
                                             size="md"
                                             className="w-full py-2 sm:py-2.5 shadow-xl shadow-blue-500/20"
-                                            onClick={() => window.location.href = '/appointment'}
+                                            onClick={() => navigate('/appointment')}
                                         >
                                             <span className="flex items-center justify-center gap-2">
                                                 Reservar una cita

@@ -4,12 +4,15 @@ const inventoryLogSchema = new mongoose.Schema({
   action: {
     type: String,
     required: true,
-    enum: ['create', 'update', 'delete', 'stock_adjustment']
+    enum: ['create', 'update', 'delete', 'stock_adjustment', 'movement_entry', 'movement_exit', 'sale']
   },
   itemId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Inventory',
-    required: true
+    required: function() {
+      // Solo es requerido si no es una venta de carrito
+      return this.action !== 'sale';
+    }
   },
   itemName: {
     type: String,
@@ -28,6 +31,27 @@ const inventoryLogSchema = new mongoose.Schema({
   details: {
     type: mongoose.Schema.Types.Mixed,
     required: true
+  },
+  message: {
+    type: String
+  },
+  reason: {
+    type: String
+  },
+  notes: {
+    type: String
+  },
+  quantity: {
+    type: Number
+  },
+  oldStock: {
+    type: Number
+  },
+  newStock: {
+    type: Number
+  },
+  totalAmount: {
+    type: Number
   },
   previousState: {
     type: mongoose.Schema.Types.Mixed

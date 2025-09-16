@@ -170,32 +170,32 @@ const SavedInventoriesModal = ({ isOpen, onClose }) => {
       </div>
       
       {/* Modal */}
-      <div className="relative z-10 flex min-h-full items-center justify-center p-4 py-8">
-        <div className="relative w-full max-w-4xl max-h-[85vh] bg-transparent border border-white/10 rounded-2xl backdrop-blur-sm shadow-2xl shadow-blue-500/20 flex flex-col"
+      <div className="relative z-10 flex min-h-full items-center justify-center p-2 sm:p-4 py-4 sm:py-8">
+        <div className="relative w-full max-w-sm sm:max-w-md md:max-w-3xl lg:max-w-4xl max-h-[95vh] sm:max-h-[85vh] bg-transparent border border-white/10 rounded-2xl backdrop-blur-sm shadow-2xl shadow-blue-500/20 flex flex-col"
              onClick={(e) => e.stopPropagation()}>
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-white/10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 border-b border-white/10 gap-4 sm:gap-0">
             <div className="flex items-center space-x-3">
-              <FileText className="h-8 w-8 text-blue-400" />
+              <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-blue-400" />
               <div>
-                <GradientText className="text-lg font-medium">
+                <GradientText className="text-base sm:text-lg font-medium">
                   Inventarios Guardados
                 </GradientText>
-                <p className="text-sm text-gray-300">
+                <p className="text-xs sm:text-sm text-gray-300">
                   Historial de inventarios registrados
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-gray-400 hover:text-white transition-colors self-end sm:self-auto"
             >
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-hidden p-6 pt-2">{/* Reducir padding top para evitar overlap */}
+          <div className="flex-1 overflow-hidden p-3 sm:p-6 pt-2">{/* Reducir padding top para evitar overlap */}
             {/* Loading */}
             {loading && (
               <div className="flex justify-center items-center py-12">
@@ -220,7 +220,7 @@ const SavedInventoriesModal = ({ isOpen, onClose }) => {
             {/* Snapshots List */}
             {!loading && snapshots.length > 0 && (
               <div 
-                className="space-y-4 max-h-80 overflow-y-auto custom-scrollbar"
+                className="space-y-3 sm:space-y-4 max-h-80 overflow-y-auto custom-scrollbar"
               >
                 {snapshots.map((snapshot) => {
                   const difference = formatDifference(snapshot.totalDifference);
@@ -230,9 +230,10 @@ const SavedInventoriesModal = ({ isOpen, onClose }) => {
                   return (
                     <div 
                       key={snapshot._id}
-                      className="bg-white/5 rounded-lg p-4 border border-white/10 hover:bg-white/10 transition-colors backdrop-blur-sm"
+                      className="bg-white/5 rounded-lg p-3 sm:p-4 border border-white/10 hover:bg-white/10 transition-colors backdrop-blur-sm"
                     >
-                      <div className="flex items-center justify-between">
+                      {/* Desktop Layout */}
+                      <div className="hidden sm:flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-4 mb-2">
                             <div className="flex items-center text-sm text-gray-300">
@@ -301,6 +302,78 @@ const SavedInventoriesModal = ({ isOpen, onClose }) => {
                           </button>
                         </div>
                       </div>
+
+                      {/* Mobile Layout */}
+                      <div className="block sm:hidden space-y-3">
+                        {/* Header with date and difference */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center text-xs text-gray-300 mb-1">
+                              <Calendar className="h-3 w-3 mr-1" />
+                              {formatDate(snapshot.date)}
+                            </div>
+                            <div className="flex items-center text-xs text-gray-300">
+                              <User className="h-3 w-3 mr-1" />
+                              {snapshot.createdBy?.name || 'Usuario'}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-gray-400 mb-1">Diferencia</div>
+                            <span className={`font-semibold text-sm ${difference.color === 'text-gray-600' ? 'text-gray-300' : difference.color === 'text-green-600' ? 'text-green-300' : 'text-red-300'}`}>
+                              {difference.text}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Products count */}
+                        <div className="flex items-center text-sm border-t border-white/10 pt-2">
+                          <BarChart3 className="h-4 w-4 mr-1 text-blue-400" />
+                          <span className="text-white font-medium">
+                            {snapshot.totalItems} productos
+                          </span>
+                        </div>
+
+                        {/* Notes */}
+                        {snapshot.notes && (
+                          <p className="text-xs text-gray-300 italic border-t border-white/10 pt-2">
+                            "{snapshot.notes}"
+                          </p>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                          <GradientButton
+                            onClick={() => handleDownload(snapshot)}
+                            disabled={isDownloading}
+                            className="flex-1 inline-flex items-center justify-center px-3 py-2 text-xs leading-4 font-medium"
+                          >
+                            {isDownloading ? (
+                              <div className="flex items-center">
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                <span>Descargando...</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center">
+                                <Download className="h-3 w-3 mr-1 flex-shrink-0" />
+                                <span>Descargar</span>
+                              </div>
+                            )}
+                          </GradientButton>
+                          
+                          <button
+                            onClick={() => handleDelete(snapshot)}
+                            disabled={isDeleting}
+                            className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Eliminar inventario"
+                          >
+                            {isDeleting ? (
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-400"></div>
+                            ) : (
+                              <Trash2 className="h-3 w-3" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
@@ -309,12 +382,12 @@ const SavedInventoriesModal = ({ isOpen, onClose }) => {
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end p-6 border-t border-white/10">
+          <div className="flex justify-end p-3 sm:p-6 border-t border-white/10">
             <GradientButton
               type="button"
               onClick={onClose}
               variant="secondary"
-              className="px-4 py-2 text-sm font-medium"
+              className="px-4 py-2 text-sm font-medium w-full sm:w-auto"
             >
               Cerrar
             </GradientButton>

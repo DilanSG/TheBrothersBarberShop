@@ -191,13 +191,46 @@ function BarbersPage() {
   const fetchBarbers = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/barbers/active');
+      const response = await api.get(`/barbers?_t=${Date.now()}`); // Force refresh con timestamp
       console.log('Respuesta de barberos:', response);
       
       if (response.success) {
         const barbersData = response.data || [];
-        console.log('Barberos obtenidos:', barbersData);
-        setBarbers(barbersData);
+        console.log('🧔 [Barbers] Barberos obtenidos del backend:', barbersData.length);
+        
+        // Filtrar barberos activos
+        const activeBarbers = barbersData.filter(barber => {
+          const isActive = barber.user && 
+                 barber.user.role === 'barber' && 
+                 (barber.user.isActive !== false) && 
+                 (barber.isActive !== false);
+          console.log(`👤 [Barbers] ${barber.user?.name}: isActive=${isActive}, isMainBarber=${barber.isMainBarber}`);
+          return isActive;
+        });
+
+        console.log('✅ [Barbers] Barberos activos:', activeBarbers.length);
+
+        // Filtrar barberos principales (isMainBarber: true)
+        const mainBarbers = activeBarbers.filter(barber => barber.isMainBarber === true);
+        console.log('🎯 [Barbers] Barberos principales encontrados:', mainBarbers.length);
+        console.log('🎯 [Barbers] Lista de principales:', mainBarbers.map(b => b.user?.name));
+        
+        // Si no hay barberos principales, mostrar los primeros 3 activos
+        const barbersToShow = mainBarbers.length > 0 ? mainBarbers : activeBarbers.slice(0, 3);
+        console.log('📺 [Barbers] Barberos finales a mostrar:', barbersToShow.length);
+        console.log('📺 [Barbers] Lista final:', barbersToShow.map(b => b.user?.name));
+        
+        // 🚨 DEBUG: Verificar si estamos configurando más de 3 barberos
+        if (barbersToShow.length > 3) {
+          console.error('🚨 ERROR: Se están configurando más de 3 barberos!', barbersToShow.length);
+          console.error('🚨 Detalles:', barbersToShow.map(b => ({
+            name: b.user?.name,
+            isMainBarber: b.isMainBarber,
+            id: b._id
+          })));
+        }
+        
+        setBarbers(barbersToShow);
       } else {
         throw new Error(response.message || "Error al cargar barberos");
       }

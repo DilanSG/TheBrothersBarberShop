@@ -4,24 +4,148 @@
     <meta charset="utf-8">
     <title>The Brothers Barber Shop</title>
     <script>
-        // Función para manejar la redirección
+        // Función inteligente para manejar la redirección SPA en GitHub Pages
         (function() {
-            const { pathname } = window.location;
-            const redirectURL = pathname.includes('/TheBrothersBarberShop/') 
-                ? pathname 
-                : '/TheBrothersBarberShop' + pathname;
+            const { pathname, search, hash } = window.location;
             
-            // Mantener la URL original para el historial del navegador
-            const redirectWithHistory = () => {
-                window.history.replaceState(null, null, redirectURL);
-                window.location.reload();
+            // Lista de rutas válidas conocidas
+            const validRoutes = [
+                '/',
+                '/services',
+                '/barbers',
+                '/login',
+                '/register',
+                '/profile',
+                '/profile-edit',
+                '/dashboard',
+                '/appointment',
+                '/admin'
+            ];
+            
+            // Verificar si la ruta base es válida
+            const isValidRoute = validRoutes.some(route => {
+                if (route === '/') return pathname === '/' || pathname === '/TheBrothersBarberShop/';
+                return pathname.startsWith('/TheBrothersBarberShop' + route) || pathname.startsWith(route);
+            });
+            
+            // Construir URL de redirección
+            let redirectURL = pathname;
+            if (!pathname.includes('/TheBrothersBarberShop/')) {
+                redirectURL = '/TheBrothersBarberShop' + pathname;
+            }
+            
+            // Preservar query parameters y hash
+            const fullRedirectURL = redirectURL + search + hash;
+            
+            // Función de redirección suave sin recarga
+            const redirectWithoutReload = () => {
+                // Intentar usar la History API para navegación suave
+                if (window.history && window.history.replaceState && isValidRoute) {
+                    window.history.replaceState(null, null, fullRedirectURL);
+                    
+                    // Simular evento de navegación para React Router
+                    const event = new PopStateEvent('popstate', { state: null });
+                    window.dispatchEvent(event);
+                    
+                    // Ocultar el mensaje de carga después de un breve delay
+                    setTimeout(() => {
+                        const loadingDiv = document.getElementById('loading');
+                        if (loadingDiv) {
+                            loadingDiv.style.display = 'none';
+                        }
+                    }, 500);
+                } else {
+                    // Fallback: recarga tradicional para rutas no válidas
+                    window.location.replace(fullRedirectURL);
+                }
             };
 
-            redirectWithHistory();
+            // Ejecutar redirección inmediatamente
+            redirectWithoutReload();
         })();
     </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 50%, #7c3aed 100%);
+            color: white;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .loading-container {
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 0.3s ease-in-out 0.2s forwards;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #60a5fa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        .title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+        
+        .progress-bar {
+            width: 200px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #60a5fa, #8b5cf6);
+            border-radius: 2px;
+            animation: progress 2s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        
+        @keyframes progress {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(0%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
 </head>
 <body>
-    <div>Redirigiendo...</div>
+    <div id="loading" class="loading-container">
+        <div class="spinner"></div>
+        <div class="title">The Brothers Barber Shop</div>
+        <div class="subtitle">Redirigiendo...</div>
+        <div class="progress-bar">
+            <div class="progress-fill"></div>
+        </div>
+    </div>
 </body>
 </html>

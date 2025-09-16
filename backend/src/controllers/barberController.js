@@ -461,3 +461,75 @@ export const getBarberStats = asyncHandler(async (req, res) => {
     data: result
   });
 });
+
+// @desc    Actualizar estado de barbero principal
+// @route   PATCH /api/barbers/:id/main-status
+// @access  Private/Admin
+export const updateMainBarberStatus = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { isMainBarber } = req.body;
+
+  console.log(`\n=== UPDATE MAIN BARBER STATUS ===`);
+  console.log(`Barbero ID: ${id}`);
+  console.log(`Nuevo estado isMainBarber: ${isMainBarber}`);
+  console.log(`Tipo de dato: ${typeof isMainBarber}`);
+
+  // Verificar que el barbero existe
+  const barber = await Barber.findById(id).populate('user');
+  if (!barber) {
+    throw new AppError('Barbero no encontrado', 404);
+  }
+
+  console.log(`Estado actual del barbero: ${barber.isMainBarber}`);
+
+  // Si se va a marcar como principal, verificar que no haya más de 3
+  if (isMainBarber) {
+    // Contar barberos principales actuales, excluyendo el actual
+    const currentMainBarbers = await Barber.countDocuments({ 
+      isMainBarber: true, 
+      _id: { $ne: id } 
+    });
+    
+    console.log(`Barberos principales actuales (excluyendo actual): ${currentMainBarbers}`);
+    
+    if (currentMainBarbers >= 3) {
+      console.log(`❌ ERROR: Límite de 3 barberos principales alcanzado`);
+      throw new AppError('Solo puedes tener máximo 3 barberos principales', 400);
+    }
+  }
+
+  // Actualizar el estado
+  barber.isMainBarber = isMainBarber;
+  await barber.save();
+
+  console.log(`✅ Barbero actualizado. Nuevo estado: ${barber.isMainBarber}`);
+
+  // 🧹 LIMPIAR CACHÉ DE BARBEROS de forma específica y rápida
+  try {
+    // Importar el módulo de caché de forma dinámica
+    const { memoryCache } = await import('../utils/cache.js');
+    
+    // Limpiar específicamente las entradas de barberos
+    const cacheKeys = memoryCache.keys();
+    const barberKeys = cacheKeys.filter(key => key.includes('barbers'));
+    
+    barberKeys.forEach(key => {
+      memoryCache.del(key);
+      console.log(`🧹 Cache key limpiada: ${key}`);
+    });
+    
+    console.log(`🧹 Caché de barberos limpiado: ${barberKeys.length} keys`);
+  } catch (error) {
+    console.log(`⚠️ Error limpiando caché: ${error.message}`);
+  }
+
+  res.json({
+    success: true,
+    message: `Barbero ${isMainBarber ? 'agregado a' : 'removido de'} barberos principales`,
+    data: {
+      _id: barber._id,
+      isMainBarber: barber.isMainBarber,
+      user: barber.user
+    }
+  });
+});

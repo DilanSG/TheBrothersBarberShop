@@ -5,7 +5,7 @@ class InventoryLogService {
   // Crear un log de acción en inventario
   static async createLog(action, itemId, itemName, userId, userRole, details, previousState = null, newState = null) {
     try {
-      const log = new InventoryLog({
+      const logData = {
         action,
         itemId,
         itemName,
@@ -14,7 +14,20 @@ class InventoryLogService {
         details,
         previousState,
         newState
-      });
+      };
+
+      // Agregar campos específicos si están en details
+      if (details) {
+        if (details.message) logData.message = details.message;
+        if (details.reason) logData.reason = details.reason;
+        if (details.notes) logData.notes = details.notes;
+        if (details.quantity) logData.quantity = details.quantity;
+        if (details.oldStock !== undefined) logData.oldStock = details.oldStock;
+        if (details.newStock !== undefined) logData.newStock = details.newStock;
+        if (details.totalAmount) logData.totalAmount = details.totalAmount;
+      }
+
+      const log = new InventoryLog(logData);
 
       await log.save();
       logger.info(`Inventory log created: ${action} on ${itemName} by ${userRole} ${userId}`);

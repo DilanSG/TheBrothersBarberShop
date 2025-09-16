@@ -306,7 +306,7 @@ function AppointmentPage() {
                             {user?.role === 'admin' && (
                               <>
                                 <button 
-                                  onClick={() => navigate(`/appointments/${app._id}/edit`)}
+                                  onClick={() => navigate(`/appointment/edit/${app._id}`)}
                                   className="inline-flex items-center px-3 py-1.5 text-sm bg-blue-600/20 text-blue-400 rounded-lg border border-blue-600/30 hover:bg-blue-600/30 transition-colors group-hover:border-blue-500"
                                 >
                                   <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -231,26 +231,26 @@ const InventorySnapshot = ({
       </div>
       
       {/* Modal */}
-      <div className="relative z-10 flex min-h-full items-center justify-center p-4">
-        <div className="bg-transparent border border-white/10 rounded-2xl backdrop-blur-sm shadow-2xl shadow-blue-500/20 w-full max-w-6xl h-[90vh] flex flex-col"
+      <div className="relative z-10 flex min-h-full items-center justify-center p-2 sm:p-4">
+        <div className="bg-transparent border border-white/10 rounded-2xl backdrop-blur-sm shadow-2xl shadow-blue-500/20 w-full max-w-sm sm:max-w-md md:max-w-4xl lg:max-w-6xl h-[95vh] sm:h-[90vh] flex flex-col"
              onClick={(e) => e.stopPropagation()}>
         
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 border-b border-white/10 gap-4 sm:gap-0">
           <div className="flex items-center gap-3">
-            <Camera className="w-6 h-6 text-blue-400" />
+            <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
             <div>
-              <GradientText className="text-xl font-semibold">
+              <GradientText className="text-lg sm:text-xl font-semibold">
                 Guardar Inventario
               </GradientText>
-              <p className="text-sm text-gray-300">
+              <p className="text-xs sm:text-sm text-gray-300">
                 Registra el estado actual del inventario
               </p>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <div className="text-sm text-gray-300">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="text-xs sm:text-sm text-gray-300 order-2 sm:order-1">
               Total diferencia: 
               <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
                 totalDifference > 0 ? 'text-green-300 bg-green-900/30' :
@@ -263,9 +263,9 @@ const InventorySnapshot = ({
             
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+              className="p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white order-1 sm:order-2 self-end sm:self-auto"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
@@ -273,8 +273,8 @@ const InventorySnapshot = ({
         {/* Content */}
         <div className="flex-1 overflow-hidden">
           
-          {/* Table */}
-          <div className="h-full overflow-auto custom-scrollbar">
+          {/* Desktop Table */}
+          <div className="hidden md:block h-full overflow-auto custom-scrollbar">
             <table className="w-full">
               <thead className="bg-white/5 sticky top-0 backdrop-blur-sm">
                 <tr>
@@ -367,19 +367,86 @@ const InventorySnapshot = ({
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Cards */}
+          <div className="block md:hidden h-full overflow-auto custom-scrollbar p-4 space-y-4">
+            {snapshotData.items.map((item, index) => {
+              const diff = getDifferenceDisplay(item.difference);
+              
+              return (
+                <div key={item.productId} className="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
+                  {/* Product Header */}
+                  <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
+                    <div>
+                      <h3 className="font-medium text-white text-sm">
+                        {item.productName}
+                      </h3>
+                      <p className="text-xs text-gray-400 capitalize mt-1">
+                        {item.category}
+                      </p>
+                    </div>
+                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${diff.className}`}>
+                      {diff.icon}
+                      {diff.text}
+                    </div>
+                  </div>
+
+                  {/* Stock Information Grid */}
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div>
+                      <label className="text-xs font-medium text-gray-400 uppercase tracking-wide block">Inicial</label>
+                      <div className="mt-1">
+                        <span className="px-2 py-1 bg-gray-600/20 text-gray-300 font-semibold text-xs rounded block">{item.initialStock}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-green-400 uppercase tracking-wide block">Entradas</label>
+                      <div className="mt-1">
+                        <span className="px-2 py-1 bg-green-600/20 text-green-400 font-semibold text-xs rounded block">{item.entries}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-red-400 uppercase tracking-wide block">Salidas</label>
+                      <div className="mt-1">
+                        <span className="px-2 py-1 bg-red-600/20 text-red-400 font-semibold text-xs rounded block">{item.exits}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-orange-400 uppercase tracking-wide block">Ventas</label>
+                      <div className="mt-1">
+                        <span className="px-2 py-1 bg-orange-600/20 text-orange-400 font-semibold text-xs rounded block">{item.sales}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-purple-400 uppercase tracking-wide block">Sistema</label>
+                      <div className="mt-1">
+                        <span className="px-2 py-1 bg-purple-600/20 text-purple-400 font-semibold text-xs rounded block">{item.expectedStock}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-blue-400 uppercase tracking-wide block">Real</label>
+                      <div className="mt-1">
+                        <span className="px-2 py-1 bg-blue-600/20 text-blue-400 font-semibold text-xs rounded block">{item.realStock}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-white/10 bg-white/5 backdrop-blur-sm">
-          <div className="text-sm text-gray-300">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 border-t border-white/10 bg-white/5 backdrop-blur-sm gap-4 sm:gap-0">
+          <div className="text-xs sm:text-sm text-gray-300 order-2 sm:order-1">
             {snapshotData.items.length} productos • Registro del {new Date().toLocaleDateString('es-ES')}
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 order-1 sm:order-2 w-full sm:w-auto">
             <GradientButton
               onClick={onClose}
               variant="secondary"
-              className="px-4 py-2 text-gray-200"
+              className="px-4 py-2 text-gray-200 flex-1 sm:flex-none"
             >
               Cancelar
             </GradientButton>
@@ -387,11 +454,12 @@ const InventorySnapshot = ({
             <GradientButton
               onClick={handleSaveSnapshot}
               disabled={saving || snapshotData.items.length === 0}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 flex-1 sm:flex-none"
             >
               <div className="flex items-center gap-2">
                 <Save className="w-4 h-4 flex-shrink-0" />
-                <span>{saving ? 'Guardando...' : 'Guardar Inventario'}</span>
+                <span className="hidden sm:inline">{saving ? 'Guardando...' : 'Guardar Inventario'}</span>
+                <span className="sm:hidden">{saving ? 'Guardando...' : 'Guardar'}</span>
               </div>
             </GradientButton>
           </div>

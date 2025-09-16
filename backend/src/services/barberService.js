@@ -6,35 +6,40 @@ import { logger } from '../utils/logger.js';
 export default class BarberService {
   static async getBarbers() {
     try {
-      logger.debug('Buscando usuarios barberos activos...');
-      const activeBarberUsers = await User.find({ 
-        isActive: true, 
-        role: 'barber' 
-      }).select('_id');
+      logger.debug('🚀 [OPTIMIZED] Buscando barberos con consulta optimizada...');
+      const startTime = Date.now();
       
-      logger.debug(`Encontrados ${activeBarberUsers.length} usuarios barberos activos`);
-      
-      // Usar find con populate en lugar de aggregate para mejor rendimiento
+      // 🚀 CONSULTA OPTIMIZADA: Una sola query con populate eficiente
       const barbers = await Barber.find({ 
-        isActive: true,
-        user: { $in: activeBarberUsers.map(u => u._id) }
+        isActive: true 
       })
       .populate({
         path: 'user',
-        select: 'name email phone profilePicture role',
+        select: 'name email phone profilePicture role isActive',
         match: { isActive: true, role: 'barber' }
       })
-      .select('specialty experience description services schedule rating isActive photo')
-      .lean();
+      .select('specialty experience description services schedule rating isActive photo isMainBarber user')
+      .sort({ isMainBarber: -1, createdAt: 1 }) // Principales primero, luego por fecha
+      .lean(); // Usar lean() para mejor performance
 
-      if (barbers.length > 0) {
-        await Barber.populate(barbers, { path: 'services', select: 'name price duration' });
+      // Filtrar barberos que tienen usuario válido (después del populate match)
+      const validBarbers = barbers.filter(barber => barber.user !== null);
+
+      // Populate services de forma eficiente
+      if (validBarbers.length > 0) {
+        await Barber.populate(validBarbers, { 
+          path: 'services', 
+          select: 'name price duration',
+          options: { lean: true }
+        });
       }
 
-      logger.debug(`Encontrados ${barbers.length} perfiles de barbero activos`);
-      return barbers;
+      const endTime = Date.now();
+      logger.debug(`⚡ [OPTIMIZED] Consulta completada en ${endTime - startTime}ms - ${validBarbers.length} barberos`);
+      
+      return validBarbers;
     } catch (error) {
-      logger.error('Error al obtener barberos:', error);
+      logger.error('❌ [OPTIMIZED] Error al obtener barberos:', error);
       throw new AppError('Error al obtener la lista de barberos', 500);
     }
   }

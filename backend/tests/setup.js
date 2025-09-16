@@ -1,6 +1,6 @@
-import mongoose from 'mongoose';
-import { config } from '../src/config/index.js';
-import { logger } from '../src/utils/logger.js';
+const mongoose = require('mongoose');
+const { config } = require('../src/config/index.js');
+const { logger } = require('../src/utils/logger.js');
 
 // Desactivar logs durante los tests
 logger.silent = true;

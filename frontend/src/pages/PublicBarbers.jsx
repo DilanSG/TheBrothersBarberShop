@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { PageContainer } from '../components/layout/PageContainer';
@@ -45,6 +45,7 @@ const ErrorMessage = ({ message }) => (
 
 const BarberCard = ({ barber }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   if (!barber || !barber.user) {
     console.error('Barbero inválido:', barber);
@@ -102,19 +103,27 @@ const BarberCard = ({ barber }) => {
       <div className="relative h-80 overflow-hidden rounded-t-3xl">
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent z-10"></div>
         {barber.photo?.url || barber.user?.profilePicture ? (
-          <img
-            src={barber.photo?.url || barber.user?.profilePicture}
-            alt={barber.user?.name}
-            className="w-full h-full object-cover transition-all duration-300"
-          />
+          <button
+            onClick={() => navigate(`/barbers/${barber._id}`)}
+            className="w-full h-full group/photo cursor-pointer"
+          >
+            <img
+              src={barber.photo?.url || barber.user?.profilePicture}
+              alt={barber.user?.name}
+              className="w-full h-full object-cover transition-all duration-300 group-hover/photo:scale-105"
+            />
+          </button>
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-gray-700 via-blue-900/50 to-gray-800 flex items-center justify-center">
+          <button
+            onClick={() => navigate(`/barbers/${barber._id}`)}
+            className="w-full h-full bg-gradient-to-br from-gray-700 via-blue-900/50 to-gray-800 flex items-center justify-center group/photo cursor-pointer hover:from-gray-600 hover:via-blue-800/60 hover:to-gray-700 transition-all duration-300"
+          >
             <div className="p-4 rounded-full bg-blue-600/10 backdrop-blur">
-              <svg className="w-24 h-24 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-24 h-24 text-blue-400 group-hover/photo:text-blue-300 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
-          </div>
+          </button>
         )}
           
           {/* Estado de disponibilidad mejorado */}
@@ -296,7 +305,17 @@ const PublicBarbers = () => {
           barber.isActive
         );
         
-        setBarbers(activeBarbers);
+        // Filtrar barberos principales (isMainBarber: true)
+        const mainBarbers = activeBarbers.filter(barber => barber.isMainBarber === true);
+        
+        // Si no hay barberos principales, mostrar los primeros 3 activos
+        const barbersToShow = mainBarbers.length > 0 ? mainBarbers : activeBarbers.slice(0, 3);
+        
+        console.log('🔍 [PublicBarbers] Barberos activos encontrados:', activeBarbers.length);
+        console.log('🎯 [PublicBarbers] Barberos principales encontrados:', mainBarbers.length);
+        console.log('📺 [PublicBarbers] Barberos finales a mostrar:', barbersToShow.length);
+        
+        setBarbers(barbersToShow);
         setLoading(false);
       } catch (error) {
         setError(error.message || 'Error al cargar los barberos');

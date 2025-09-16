@@ -1,5 +1,6 @@
 import InventoryService from '../services/inventoryService.js';
 import InventoryLogService from '../services/inventoryLogService.js';
+import InventoryLog from '../models/InventoryLog.js';
 import { asyncHandler } from '../middleware/index.js';
 import { AppError } from '../utils/errors.js';
 
@@ -41,9 +42,12 @@ export const createInventoryItem = asyncHandler(async (req, res) => {
     req.user._id,
     req.user.role,
     {
-      message: `Item "${item.name}" creado`,
+      message: `Producto "${item.name}" añadido al inventario`,
       category: item.category,
-      initialStock: item.stock
+      initialStock: item.stock,
+      price: item.price,
+      minStock: item.minStock,
+      description: `Nuevo producto agregado: ${item.name} - Categoría: ${item.category || 'Sin categoría'} - Stock inicial: ${item.stock || 0} unidades - Precio: $${item.price || 0}`
     },
     null,
     item
@@ -64,17 +68,96 @@ export const updateInventoryItem = asyncHandler(async (req, res) => {
   const previousItem = await InventoryService.getItemById(req.params.id);
   const item = await InventoryService.updateItem(req.params.id, req.body);
   
-  // Registrar log de actualización
+  // Detectar cambios específicos
+  const changes = [];
+  const fieldsTranslation = {
+    name: 'Nombre',
+    code: 'Código',
+    category: 'Categoría',
+    price: 'Precio',
+    description: 'Descripción',
+    minStock: 'Stock mínimo',
+    unit: 'Unidad',
+    initialStock: 'Stock inicial',
+    entries: 'Entradas',
+    exits: 'Salidas',
+    sales: 'Ventas',
+    realStock: 'Stock real',
+    stock: 'Stock'
+  };
+
+  // Analizar cambios específicos
+  Object.keys(req.body).forEach(field => {
+    const oldValue = previousItem[field];
+    const newValue = req.body[field];
+    const fieldName = fieldsTranslation[field] || field;
+    
+    if (oldValue !== newValue) {
+      if (field === 'price') {
+        changes.push(`${fieldName}: $${oldValue || 0} → $${newValue || 0}`);
+      } else if (field === 'category') {
+        changes.push(`${fieldName}: "${oldValue || 'N/A'}" → "${newValue || 'N/A'}"`);
+      } else if (field === 'minStock' || field === 'initialStock' || field === 'realStock' || field === 'stock' || field === 'entries' || field === 'exits') {
+        changes.push(`${fieldName}: ${oldValue || 0} → ${newValue || 0}`);
+      } else {
+        changes.push(`${fieldName}: "${oldValue || 'N/A'}" → "${newValue || 'N/A'}"`);
+      }
+    }
+  });
+  
+  // Detectar si es un movimiento de entrada o salida
+  const isMovement = req.body.entries !== undefined || req.body.exits !== undefined;
+  let logAction = 'update';
+  let logDetails = {
+    // Solo mostrar mensaje genérico si no hay cambios específicos
+    message: changes.length > 0 
+      ? null  // No mostrar mensaje cuando hay cambios específicos
+      : `Item "${item.name}" actualizado`,
+    updatedFields: Object.keys(req.body),
+    changes: changes
+  };
+
+  if (isMovement) {
+    const prevEntries = previousItem.entries || 0;
+    const newEntries = item.entries || 0;
+    const prevExits = previousItem.exits || 0;
+    const newExits = item.exits || 0;
+    
+    if (newEntries > prevEntries) {
+      // Es una entrada
+      logAction = 'movement_entry';
+      const quantity = newEntries - prevEntries;
+      logDetails = {
+        message: req.body.reason || `Entrada registrada: ${quantity} unidades`,
+        quantity: quantity,
+        reason: req.body.reason || 'Entrada de stock',
+        notes: req.body.notes,
+        oldStock: previousItem.stock || 0,
+        newStock: item.stock || 0
+      };
+    } else if (newExits > prevExits) {
+      // Es una salida
+      logAction = 'movement_exit';
+      const quantity = newExits - prevExits;
+      logDetails = {
+        message: req.body.reason || `Salida registrada: ${quantity} unidades`,
+        quantity: quantity,
+        reason: req.body.reason || 'Salida de stock',
+        notes: req.body.notes,
+        oldStock: previousItem.stock || 0,
+        newStock: item.stock || 0
+      };
+    }
+  }
+  
+  // Registrar log de actualización o movimiento
   await InventoryLogService.createLog(
-    'update',
+    logAction,
     item._id,
     item.name,
     req.user._id,
     req.user.role,
-    {
-      message: `Item "${item.name}" actualizado`,
-      updatedFields: Object.keys(req.body)
-    },
+    logDetails,
     previousItem,
     item
   );
@@ -90,7 +173,29 @@ export const updateInventoryItem = asyncHandler(async (req, res) => {
 // @route   DELETE /api/inventory/:id
 // @access  Privado/Admin
 export const deleteInventoryItem = asyncHandler(async (req, res) => {
+  // Obtener el item antes de eliminarlo para el log
+  const item = await InventoryService.getItemById(req.params.id);
+  
   const result = await InventoryService.deleteItem(req.params.id);
+  
+  // Registrar log de eliminación
+  await InventoryLogService.createLog(
+    'delete',
+    item._id,
+    item.name,
+    req.user._id,
+    req.user.role,
+    {
+      message: `Producto "${item.name}" eliminado del inventario`,
+      previousStock: item.stock || item.currentStock || item.quantity || 0,
+      category: item.category,
+      price: item.price,
+      description: `Producto eliminado: ${item.name} - Categoría: ${item.category || 'Sin categoría'} - Stock perdido: ${item.stock || item.currentStock || item.quantity || 0} unidades - Valor unitario: $${item.price || 0}`
+    },
+    item,
+    null
+  );
+  
   res.json({ 
     success: true, 
     message: result.message 
@@ -221,4 +326,53 @@ export const getDailyInventoryReport = asyncHandler(async (req, res) => {
     success: true,
     data: report
   });
+});
+
+// @desc    Debug - Verificar logs en la base de datos
+// @route   GET /api/v1/inventory/debug/logs
+// @access  Privado/Admin
+export const debugLogs = asyncHandler(async (req, res) => {
+  try {
+    // Obtener todas las acciones únicas
+    const actions = await InventoryLog.distinct('action');
+    
+    // Contar logs por acción
+    const actionCounts = await InventoryLog.aggregate([
+      { $group: { _id: '$action', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+    
+    // Obtener los últimos 10 logs
+    const recentLogs = await InventoryLog.find({})
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('action itemName message reason notes quantity totalAmount createdAt');
+    
+    // Verificar logs de ventas
+    const salesLogs = await InventoryLog.find({ action: 'sale' }).limit(3);
+    
+    // Verificar logs de movimientos
+    const movementLogs = await InventoryLog.find({ 
+      action: { $in: ['movement_entry', 'movement_exit'] } 
+    }).limit(3);
+    
+    res.json({
+      success: true,
+      data: {
+        uniqueActions: actions,
+        actionCounts: actionCounts,
+        recentLogs: recentLogs,
+        salesLogsCount: salesLogs.length,
+        movementLogsCount: movementLogs.length,
+        sampleSalesLog: salesLogs[0] || null,
+        sampleMovementLog: movementLogs[0] || null
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error debugging logs',
+      error: error.message
+    });
+  }
 });

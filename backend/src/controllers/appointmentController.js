@@ -516,7 +516,13 @@ export const cleanupExpiredAppointments = asyncHandler(async (req, res) => {
 // @access  Privado/Admin
 export const getBarberAppointmentStats = asyncHandler(async (req, res) => {
   const { barberId } = req.params;
-  const stats = await AppointmentService.getBarberAppointmentStats(barberId);
+  const { date, startDate, endDate } = req.query;
+  
+  const stats = await AppointmentService.getBarberAppointmentStats(barberId, {
+    date,
+    startDate,
+    endDate
+  });
   
   res.json({
     success: true,
@@ -549,5 +555,24 @@ export const getAvailableDates = asyncHandler(async (req, res) => {
     success: true,
     message: 'Fechas disponibles obtenidas correctamente',
     data: dates
+  });
+});
+
+// @desc    Obtener detalles de citas completadas por barbero y rango de fechas
+// @route   GET /api/v1/appointments/completed-details
+// @access  Privado/Admin
+export const getCompletedDetails = asyncHandler(async (req, res) => {
+  const { barberId, startDate, endDate } = req.query;
+  
+  if (!barberId) {
+    throw new AppError('barberId es requerido', 400);
+  }
+
+  const completedDetails = await AppointmentService.getCompletedDetails(barberId, startDate, endDate);
+  
+  res.status(200).json({
+    success: true,
+    message: 'Detalles de citas completadas obtenidas correctamente',
+    data: completedDetails
   });
 });

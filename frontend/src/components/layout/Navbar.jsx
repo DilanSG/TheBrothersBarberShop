@@ -4,6 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { LOGOS } from "../../utils/assets";
 import GradientText from "../ui/GradientText";
 import GradientButton from "../ui/GradientButton";
+import { useRoutePreloader } from "../../hooks/useRoutePreloader";
 
 export const NAV_HEIGHT = 'h-14 sm:h-16';
 export const NAV_HEIGHT_CLASS = 'pt-20 sm:pt-24';
@@ -195,6 +196,9 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [logoError, setLogoError] = useState(false);
+  
+  // Hook para preloading en hover
+  const { preloadOnHover } = useRoutePreloader();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -228,7 +232,11 @@ const Navbar = () => {
       <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 h-full">
         <div className="flex justify-between items-center h-full">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 sm:space-x-3 group flex-shrink-0">
+          <Link 
+            to="/" 
+            className="flex items-center space-x-2 sm:space-x-3 group flex-shrink-0"
+            {...preloadOnHover('/')}
+          >
             {!logoError ? (
               <img
                 src={LOGOS.navbar()}
@@ -262,6 +270,7 @@ const Navbar = () => {
                   <Link 
                     to="/admin/sales" 
                     className="relative px-3 lg:px-4 py-2 font-medium text-sm group backdrop-blur-sm bg-blue-500/10 rounded-lg border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40 transition-all duration-300 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 whitespace-nowrap"
+                    {...preloadOnHover('/admin/sales')}
                   >
                     <span className="relative z-10 text-white group-hover:text-blue-300 transition-colors duration-300">
                       <span className="hidden lg:inline">Punto de Venta</span>
@@ -273,6 +282,7 @@ const Navbar = () => {
                   <Link 
                     to="/barbers" 
                     className="relative px-3 lg:px-4 py-2 font-medium text-sm group backdrop-blur-sm bg-blue-500/10 rounded-lg border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40 transition-all duration-300 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 whitespace-nowrap"
+                    {...preloadOnHover('/barbers')}
                   >
                     <span className="relative z-10 text-white group-hover:text-blue-300 transition-colors duration-300">
                       Barberos
@@ -308,6 +318,7 @@ const Navbar = () => {
                 <Link 
                   to="/appointment"
                   className="relative px-3 lg:px-4 py-2 font-medium text-sm group backdrop-blur-sm bg-blue-500/10 rounded-lg border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40 transition-all duration-300 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 whitespace-nowrap"
+                  {...preloadOnHover('/appointment')}
                 >
                   <span className="relative z-10 text-white group-hover:text-blue-300 transition-colors duration-300">
                     <span className="hidden lg:inline">Reservas</span>
@@ -342,8 +353,8 @@ const Navbar = () => {
               className="md:hidden ml-2 inline-flex items-center justify-center p-2.5 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent focus:ring-blue-400/50 hover:scale-105 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-expanded="false"
+              aria-label="Menú de navegación"
             >
-              <span className="sr-only">Abrir menú principal</span>
               {!isMobileMenuOpen ? (
                 <svg className="block h-5 w-5 text-blue-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -508,6 +519,19 @@ const Navbar = () => {
                     {/* Opciones solo para Admins */}
                     {user.role === 'admin' && (
                       <div className="space-y-2">
+                        <Link
+                          to="/admin/sales"
+                          className="group flex items-center px-4 py-4 rounded-xl text-base font-medium hover:bg-green-500/20 transition-all duration-200 min-h-[48px] touch-manipulation"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <svg className="mr-3 h-5 w-5 flex-shrink-0 text-green-300 group-hover:text-green-200" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5L2 21m5-8v8a2 2 0 002 2h10a2 2 0 002-2v-8m-9 2V9a2 2 0 012-2h2a2 2 0 012 2v4.01" />
+                          </svg>
+                          <span className="bg-gradient-to-r from-white via-blue-100 to-red-100 bg-clip-text text-transparent group-hover:from-green-100 group-hover:via-white group-hover:to-green-100">
+                            Punto de Venta
+                          </span>
+                        </Link>
+                        
                         <Link
                           to="/admin/services"
                           className="group flex items-center px-4 py-4 rounded-xl text-base font-medium hover:bg-red-500/20 transition-all duration-200 min-h-[48px] touch-manipulation"

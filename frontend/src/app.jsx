@@ -13,6 +13,7 @@ import ProfileEdit from './pages/ProfileEdit';
 import AppointmentRouter from './pages/appointment/AppointmentRouter';
 import Services from './pages/Services';
 import PublicBarbers from './pages/PublicBarbers';
+import Dashboard from './pages/Dashboard';
 
 // Auth Pages
 import Login from './pages/auth/Login';
@@ -27,6 +28,7 @@ import BarberSales from './pages/barber/BarberSales';
 import UserRoleManager from './pages/admin/UserRoleManager';
 import Inventory from './pages/admin/Inventory';
 import AdminBarbers from './pages/admin/AdminBarbers';
+import AdminServices from './pages/admin/AdminServices';
 import Reports from './pages/admin/Reports';
 
 // Components
@@ -55,6 +57,7 @@ function App() {
         {/* Rutas protegidas para cualquier usuario autenticado */}
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/profile-edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         
         {/* Rutas protegidas para admin y barber */}
         {/* Ruta base de administración */}
@@ -101,7 +104,7 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="services" element={<Services />} />
+            <Route path="services" element={<AdminServices />} />
             <Route path="roles" element={<UserRoleManager />} />
             <Route path="barbers" element={<AdminBarbers />} />
             <Route path="barbers/:id" element={<BarberProfile />} />

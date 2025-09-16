@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import { PageContainer } from '../../components/layout/PageContainer';
-import { toast } from 'react-hot-toast';
-import { api } from '../../services/api';
+import { api, barberService } from '../../services/api';
 import GradientButton from '../../components/ui/GradientButton';
 import GradientText from '../../components/ui/GradientText';
 import { 
@@ -18,12 +18,19 @@ import {
   AlertCircle,
   Home,
   Check,
-  X
+  X,
+  Users,
+  Star,
+  CheckCircle
 } from 'lucide-react';
 
 const AdminServices = () => {
   const { user } = useAuth();
+  const { showSuccess, showError } = useNotification();
   const [services, setServices] = useState([]);
+  const [barbers, setBarbers] = useState([]);
+  const [mainBarbers, setMainBarbers] = useState([]); // Los 3 barberos principales seleccionados
+  const [showBarberModal, setShowBarberModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [homeServices, setHomeServices] = useState([]);
 
@@ -42,7 +49,65 @@ const AdminServices = () => {
 
   useEffect(() => {
     fetchServices();
+    fetchBarbers();
   }, []);
+
+  // Bloquear scroll del body cuando el modal está abierto
+  useEffect(() => {
+    if (showBarberModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    // Cleanup al desmontar el componente
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showBarberModal]);
+
+  const fetchBarbers = async (forceRefresh = false) => {
+    try {
+      console.log('🔍 [AdminServices] Iniciando fetchBarbers...', forceRefresh ? '(FORCE REFRESH)' : '');
+      const startTime = Date.now();
+      
+      // Si forceRefresh es true, agregar timestamp para bypass del caché
+      const url = forceRefresh ? `/barbers?_t=${Date.now()}` : '/barbers';
+      const response = await api.get(url);
+      
+      if (response.success) {
+        const barbersData = response.data || [];
+        const endTime = Date.now();
+        console.log(`📦 [AdminServices] Datos recibidos en ${endTime - startTime}ms:`, barbersData.length, 'barberos');
+        
+        // Los barberos ya vienen filtrados y ordenados desde el backend optimizado
+        const activeBarbers = barbersData.filter(barber => {
+          const isActive = barber.user && 
+                 barber.user.role === 'barber' && 
+                 (barber.user.isActive !== false) && 
+                 (barber.isActive !== false);
+          console.log(`👤 [AdminServices] ${barber.user?.name}: isActive=${isActive}, isMainBarber=${barber.isMainBarber}`);
+          return isActive;
+        });
+
+        console.log('✅ [AdminServices] Barberos activos:', activeBarbers.length);
+
+        // Identificar los barberos marcados como principales (isMainBarber: true)
+        const currentMainBarbers = activeBarbers.filter(barber => barber.isMainBarber === true);
+        console.log('🎯 [AdminServices] Barberos principales encontrados:', currentMainBarbers.length);
+        console.log('🎯 [AdminServices] Lista de principales:', currentMainBarbers.map(b => b.user?.name));
+        
+        // ⚡ ACTUALIZACIÓN ATÓMICA DEL ESTADO
+        setBarbers(activeBarbers);
+        setMainBarbers(currentMainBarbers);
+        
+        console.log('💾 [AdminServices] Estado actualizado exitosamente');
+      }
+    } catch (error) {
+      console.error('❌ [AdminServices] Error fetching barbers:', error);
+      // No mostrar error aquí, los barberos son opcionales
+    }
+  };
 
   const fetchServices = async () => {
     try {
@@ -54,7 +119,7 @@ const AdminServices = () => {
       }
     } catch (error) {
       console.error('Error fetching services:', error);
-      toast.error('Error al cargar los servicios');
+      showError('Error al cargar los servicios');
     } finally {
       setLoading(false);
     }
@@ -64,7 +129,7 @@ const AdminServices = () => {
     try {
       // Si se quiere activar y ya hay 3 servicios en home
       if (!currentStatus && homeServices.length >= 3) {
-        toast.error('Solo puedes mostrar máximo 3 servicios en el Home');
+        showError('Solo puedes mostrar máximo 3 servicios en el Home');
         return;
       }
 
@@ -73,12 +138,62 @@ const AdminServices = () => {
       });
 
       if (response.success) {
-        toast.success(response.message);
+        showSuccess(response.message);
         await fetchServices(); // Refrescar la lista
       }
     } catch (error) {
       console.error('Error updating service:', error);
-      toast.error(error.response?.data?.message || 'Error al actualizar el servicio');
+      showError(error.response?.data?.message || 'Error al actualizar el servicio');
+    }
+  };
+
+  const formatRating = (rating) => {
+    if (!rating) return null;
+    if (typeof rating === 'object' && rating.average !== undefined) {
+      return rating.average === 0 ? null : Number(rating.average).toFixed(1);
+    }
+    return rating === 0 ? null : Number(rating).toFixed(1);
+  };
+
+  const handleBarberSelect = async (barber) => {
+    try {
+      console.log('🎯 [AdminServices] handleBarberSelect called for:', barber.user?.name);
+      console.log('🎯 [AdminServices] Current isMainBarber:', barber.isMainBarber, typeof barber.isMainBarber);
+      
+      const isCurrentlyMain = barber.isMainBarber === true;
+      const willBeMain = !isCurrentlyMain;
+      console.log('🎯 [AdminServices] isCurrentlyMain:', isCurrentlyMain, '-> willBeMain:', willBeMain);
+      
+      // Si quiere marcar como principal y ya hay 3, mostrar error inmediatamente
+      if (willBeMain && mainBarbers.length >= 3) {
+        console.log('❌ [AdminServices] Max 3 barberos alcanzado');
+        showError('Solo puedes seleccionar máximo 3 barberos principales');
+        return;
+      }
+
+      // 🚀 MOSTRAR LOADING MIENTRAS SE PROCESA
+      console.log('⏳ [AdminServices] Iniciando actualización...');
+
+      // 🌐 LLAMADA AL BACKEND (source of truth)
+      console.log('📡 [AdminServices] Calling updateMainBarberStatus...');
+      const response = await barberService.updateMainBarberStatus(barber._id, willBeMain);
+      console.log('📡 [AdminServices] Response:', response);
+
+      if (response.success) {
+        console.log('✅ [AdminServices] Backend actualizado exitosamente');
+        showSuccess(response.message || `Barbero ${willBeMain ? 'agregado a' : 'removido de'} barberos principales`);
+        
+        // 🔄 REFRESCAR INMEDIATAMENTE DESDE BACKEND (sin optimistic updates)
+        console.log('🔄 [AdminServices] Refrescando datos desde backend...');
+        await fetchBarbers(true); // Force refresh para obtener estado real
+        console.log('✅ [AdminServices] Datos refrescados exitosamente');
+      } else {
+        console.log('❌ [AdminServices] Error en respuesta del backend');
+        showError('Error al actualizar el estado del barbero');
+      }
+    } catch (error) {
+      console.error('❌ [AdminServices] Error updating main barber status:', error);
+      showError(error.response?.data?.message || 'Error al actualizar el estado del barbero');
     }
   };
 
@@ -250,13 +365,17 @@ const AdminServices = () => {
               <p className="text-gray-400 text-sm">Activos</p>
             </div>
           </div>
-          <div className="backdrop-blur-sm border border-white/10 rounded-xl p-4 bg-white/5">
+          
+          {/* Card interactiva de barberos - Reemplaza Precio Promedio */}
+          <div 
+            className="backdrop-blur-sm border border-white/10 rounded-xl p-4 bg-white/5 cursor-pointer hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:border-purple-500/30 group"
+            onClick={() => setShowBarberModal(true)}
+          >
             <div className="text-center">
-              <DollarSign className="w-8 h-8 text-green-400 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-white">
-                ${services.length > 0 ? (services.reduce((sum, s) => sum + s.price, 0) / services.length).toFixed(0) : 0}
-              </p>
-              <p className="text-gray-400 text-sm">Precio Promedio</p>
+              <Users className="w-8 h-8 text-purple-400 mx-auto mb-2 group-hover:text-purple-300 transition-colors duration-300" />
+              <p className="text-2xl font-bold text-white">{mainBarbers.length}/3</p>
+              <p className="text-gray-400 text-sm">Barberos Principales</p>
+              <p className="text-purple-400 text-xs mt-1">Click para gestionar</p>
             </div>
           </div>
         </div>
@@ -291,6 +410,193 @@ const AdminServices = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de selección de barberos */}
+      {showBarberModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="relative w-full max-w-2xl mx-auto">
+            <div className="relative bg-blue-500/5 backdrop-blur-md border border-blue-500/20 rounded-2xl shadow-2xl shadow-blue-500/20 overflow-hidden">
+              {/* Header del modal */}
+              <div className="p-6 border-b border-blue-500/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-lg border border-purple-500/20 shadow-lg shadow-blue-500/20">
+                      <Users className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div>
+                      <GradientText className="text-lg font-bold">
+                        Gestionar Barberos Principales
+                      </GradientText>
+                      <p className="text-gray-400 text-sm">Selecciona hasta 3 barberos para mostrar en Home/Barbers ({mainBarbers.length}/3)</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowBarberModal(false)}
+                    className="group relative p-2 bg-gradient-to-r from-red-600/20 to-purple-600/20 rounded-lg border border-red-500/20 hover:border-purple-500/40 transition-all duration-300 backdrop-blur-sm hover:bg-gradient-to-r hover:from-red-600/30 hover:to-purple-600/30 transform hover:scale-110 shadow-lg shadow-red-500/20"
+                  >
+                    <X className="w-4 h-4 text-red-400 group-hover:text-purple-400 transition-colors duration-300" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Lista de barberos */}
+              <div className="p-6">
+                {barbers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="p-4 bg-gradient-to-r from-gray-600/20 to-blue-600/20 rounded-xl border border-gray-500/20 shadow-lg shadow-blue-500/20 inline-flex mb-4">
+                      <Users className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-400">No hay barberos disponibles</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {barbers.map((barber) => {
+                      const isMainBarber = barber.isMainBarber === true;
+                      const canSelect = !isMainBarber && mainBarbers.length < 3;
+                      const canDeselect = isMainBarber;
+                      const isClickable = canSelect || canDeselect;
+                      
+                      console.log(`🎨 [Modal] ${barber.user?.name}: isMainBarber=${isMainBarber}, canSelect=${canSelect}, canDeselect=${canDeselect}, isClickable=${isClickable}`);
+                      
+                      return (
+                        <div
+                          key={barber._id}
+                          onClick={() => {
+                            if (isClickable) {
+                              console.log(`👆 [Modal] Clicked on ${barber.user?.name}, will toggle to:`, !isMainBarber);
+                              handleBarberSelect(barber);
+                            } else {
+                              console.log(`🚫 [Modal] ${barber.user?.name} is not clickable`);
+                            }
+                          }}
+                          className={`group relative p-4 rounded-xl border transition-all duration-300 overflow-hidden backdrop-blur-sm ${
+                            isMainBarber
+                              ? 'border-green-500/50 bg-green-500/10 shadow-xl shadow-green-500/20 cursor-pointer hover:scale-105' // ✅ Seleccionado como principal (Verde)
+                              : canSelect
+                              ? 'border-blue-500/50 bg-blue-500/10 shadow-lg hover:shadow-xl hover:shadow-blue-500/20 cursor-pointer hover:scale-105' // 🔵 Disponible para seleccionar (Azul)
+                              : 'border-gray-500/50 bg-gray-500/10 shadow-lg opacity-60 cursor-not-allowed' // 🔒 No disponible - máximo alcanzado (Gris)
+                          }`}
+                        >
+                          {/* Efecto de brillo */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-xl"></div>
+                          
+                          {/* Indicador de estado */}
+                          <div className="absolute top-2 right-2">
+                            {isMainBarber ? (
+                              <div className="p-1 bg-green-500/20 rounded-full border border-green-500/40">
+                                <Check className="w-3 h-3 text-green-400" />
+                              </div>
+                            ) : canSelect ? (
+                              <div className="p-1 bg-blue-500/20 rounded-full border border-blue-500/40">
+                                <Plus className="w-3 h-3 text-blue-400" />
+                              </div>
+                            ) : (
+                              <div className="p-1 bg-gray-500/20 rounded-full border border-gray-500/40">
+                                <X className="w-3 h-3 text-gray-400" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="relative text-center">
+                            {/* Foto del barbero */}
+                            <div className="w-16 h-16 mx-auto mb-3 rounded-full overflow-hidden border-2 border-blue-500/30 shadow-lg shadow-blue-500/20">
+                              <img
+                                src={barber.user?.profilePicture || '/images/default-avatar.png'}
+                                alt={barber.user?.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.src = '/images/default-avatar.png';
+                                }}
+                              />
+                            </div>
+
+                            {/* Información del barbero */}
+                            <div className="space-y-2">
+                              <GradientText className="font-semibold text-sm">
+                                {barber.user?.name || 'Nombre no disponible'}
+                              </GradientText>
+                              
+                              {barber.specialty && (
+                                <p className="text-gray-400 text-xs">{barber.specialty}</p>
+                              )}
+                              
+                              {/* Estado del barbero */}
+                              <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                                isMainBarber
+                                  ? 'bg-green-500/20 text-green-300 border border-green-500/40'
+                                  : canSelect
+                                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+                                  : 'bg-gray-500/20 text-gray-300 border border-gray-500/40'
+                              }`}>
+                                {isMainBarber ? (
+                                  <>
+                                    <Check className="w-3 h-3" />
+                                    Principal
+                                  </>
+                                ) : canSelect ? (
+                                  <>
+                                    <Plus className="w-3 h-3" />
+                                    Disponible
+                                  </>
+                                ) : (
+                                  <>
+                                    <X className="w-3 h-3" />
+                                    Máximo
+                                  </>
+                                )}
+                              </div>
+                              
+                              {barber.rating && formatRating(barber.rating) && (
+                                <div className="flex items-center justify-center gap-1">
+                                  <Star className="w-3 h-3 text-yellow-400" fill="currentColor" />
+                                  <span className="text-yellow-400 text-xs font-medium">
+                                    {formatRating(barber.rating)}
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {/* Estado del barbero */}
+                              <div className="mt-2">
+                                {isMainBarber ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30 rounded-full shadow-sm shadow-red-500/20">
+                                    <CheckCircle className="w-3 h-3" />
+                                    Seleccionado
+                                  </span>
+                                ) : canSelect ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30 rounded-full shadow-sm shadow-green-500/20">
+                                    <Users className="w-3 h-3" />
+                                    Disponible
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-gray-500/20 text-gray-400 border border-gray-500/30 rounded-full shadow-sm shadow-gray-500/20">
+                                    <X className="w-3 h-3" />
+                                    No disponible
+                                  </span>
+                                )}
+                              </div>
+                              
+                              {/* Instrucción de acción */}
+                              {isMainBarber && (
+                                <p className="text-red-300 text-xs mt-1">Click para quitar</p>
+                              )}
+                              {canSelect && (
+                                <p className="text-green-300 text-xs mt-1">Click para seleccionar</p>
+                              )}
+                              {!canSelect && !isMainBarber && (
+                                <p className="text-gray-400 text-xs mt-1">Límite alcanzado (3/3)</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 };

@@ -12,7 +12,8 @@ import {
   getInventoryStats,
   getInventoryLogs,
   getInventoryLogStats,
-  getDailyInventoryReport
+  getDailyInventoryReport,
+  debugLogs
 } from '../controllers/inventoryController.js';
 import { protect, adminAuth, barberAuth } from '../middleware/auth.js';
 import { validateIdParam, validateInventoryItem } from '../middleware/validation.js';
@@ -26,6 +27,7 @@ router.get('/stats/overview', protect, adminAuth, getInventoryStats);
 router.get('/daily-report', protect, adminAuth, getDailyInventoryReport);
 router.get('/logs', protect, adminAuth, getInventoryLogs);
 router.get('/logs/stats', protect, adminAuth, getInventoryLogStats);
+router.get('/debug/logs', protect, adminAuth, debugLogs);
 router.get('/category/:category', protect, barberAuth, validateIdParam, getItemsByCategory);
 router.get('/:id', protect, barberAuth, validateIdParam, getInventoryItem);
 router.get('/:id/history', protect, barberAuth, validateIdParam, getMovementHistory);

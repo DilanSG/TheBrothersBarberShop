@@ -290,11 +290,11 @@ const UserProfileEdit = () => {
           {/* Header compacto con estilo de barbería */}
           <div className="text-center mb-12">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/profile')}
               className="group inline-flex items-center gap-2 mb-10 px-4 py-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg text-white hover:bg-white/10 hover:border-white/40 transition-all duration-300 shadow-xl shadow-blue-500/20 hover:scale-105"
             >
               <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform duration-300" />
-              <span className="font-medium text-sm">Volver al Dashboard</span>
+              <span className="font-medium text-sm">Volver al Perfil</span>
             </button>
             
             <h1 className="text-2xl md:text-3xl font-bold mb-3 text-white leading-tight drop-shadow-lg">
