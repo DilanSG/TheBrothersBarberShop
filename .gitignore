@@ -1,139 +1,610 @@
-# Dependencies
+# ========================================# ========================================# ========================================
+
+# THE BROTHERS BARBER SHOP - .gitignore
+
+# ========================================# THE BROTHERS BARBER SHOP - .gitignore# THE BROTHERS BARBER SHOP - .gitignore
+
+
+
+# =================# ========================================# ========================================
+
+# DEPENDENCIES
+
+# =================
+
 node_modules/
-npm-debug.log*
+
+npm-debug.log*# =================# =================
+
 yarn-debug.log*
-yarn-error.log*
+
+yarn-error.log*# DEPENDENCIES# DEPENDENCIES
+
 pnpm-debug.log*
-lerna-debug.log*
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
+lerna-debug.log*# =================# =================
 
-# Coverage directory used by tools like istanbul
-coverage/
-*.lcov
+.pnpm-debug.log*
 
-# nyc test coverage
-.nyc_output
+node_modules/node_modules/
 
-# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
-.grunt
+# =================
 
-# Bower dependency directory (https://bower.io/)
-bower_components
+# LOCK FILESnpm-debug.log*npm-debug.log*
 
-# node-waf configuration
-.lock-wscript
+# =================
 
-# Compiled binary addons (https://nodejs.org/api/addons.html)
-build/Release
+package-lock.jsonyarn-debug.log*yarn-debug.log*
 
-# Dependency directories
-jspm_packages/
+yarn.lock
 
-# TypeScript cache
-*.tsbuildinfo
+pnpm-lock.yamlyarn-error.log*yarn-error.log*
 
-# Optional npm cache directory
-.npm
 
-# Optional eslint cache
-.eslintcache
 
-# Optional stylelint cache
-.stylelintcache
+# =================pnpm-debug.log*pnpm-debug.log*
 
-# Microbundle cache
-.rpt2_cache/
-.rts2_cache_cjs/
-.rts2_cache_es/
-.rts2_cache_umd/
+# ENVIRONMENT FILES
 
-# Optional REPL history
-.node_repl_history
+# =================lerna-debug.log*lerna-debug.log*
 
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# dotenv environment variable files
 .env
+
+.env.local.pnpm-debug.log*package-lock.json
+
 .env.development.local
-.env.test.local
+
+.env.test.localyarn.lock
+
 .env.production.local
-.env.local
 
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
+.env.*.local# =================pnpm-lock.yaml
 
-# Next.js build output
-.next
-out
 
-# Nuxt.js build / generate output
-.nuxt
-dist
 
-# Gatsby files
-.cache/
-public
+# =================# ENVIRONMENT FILES
 
-# Vite build output
+# BUILD OUTPUTS
+
+# =================# =================# =================
+
 dist/
 
-# Rollup build output
-build/
+build/.env# ENVIRONMENT FILES
 
-# Serverless directories
-.serverless/
+out/
 
-# FuseBox cache
-.fusebox/
+.next/.env.local# =================
 
-# DynamoDB Local files
-.dynamodb/
+.nuxt/
 
-# TernJS port file
-.tern-port
+.cache/.env.development.local.env
 
-# Stores VSCode versions used for testing VSCode extensions
-.vscode-test
+*.tsbuildinfo
 
-# yarn v2
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
-.yarn/install-state.gz
-.pnp.*
+.env.test.local.env.local
 
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# =================
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# LOGS & RUNTIME.env.production.local.env.development.local
 
-# Logs
-logs
+# =================
+
+logs/.env.*.local.env.test.local
+
 *.log
 
-# Backend specific
-backend/uploads/
+npm-debug.log*.env.production.local
+
+yarn-debug.log*
+
+yarn-error.log*# =================.env.*.local
+
+lerna-debug.log*
+
+pids# BUILD OUTPUTS
+
+*.pid
+
+*.seed# =================# =================
+
+*.pid.lock
+
+.gruntdist/# BUILD OUTPUTS
+
+.lock-wscript
+
+build/# =================
+
+# =================
+
+# TESTING & COVERAGEout/dist/
+
+# =================
+
+coverage/.next/build/
+
+*.lcov
+
+.nyc_output.nuxt/out/
+
+jest-coverage/
+
+cypress/videos/.cache/.next/
+
+cypress/screenshots/
+
+test-results/*.tsbuildinfo.nuxt/
+
+playwright-report/
+
+.cache/
+
+# =================
+
+# CACHING# =================*.tsbuildinfo
+
+# =================
+
+.npm/# LOGS & RUNTIME
+
+.yarn/
+
+.cache/# =================# =================
+
+.eslintcache
+
+.stylelintcachelogs/# LOGS & RUNTIME
+
+.rpt2_cache/
+
+.rts2_cache_cjs/*.log# =================
+
+.rts2_cache_es/
+
+.rts2_cache_umd/npm-debug.log*logs/
+
+
+
+# =================yarn-debug.log**.log
+
+# UPLOADS & TEMP FILES
+
+# =================yarn-error.log*npm-debug.log*
+
+uploads/temp/**
+
+uploads/*.tmplerna-debug.log*yarn-debug.log*
+
+*.tmp
+
+*.temppidsyarn-error.log*
+
+.tmp/
+
+temp/*.pidlerna-debug.log*
+
+
+
+# =================*.seedpids
+
+# DATABASE & BACKUPS
+
+# =================*.pid.lock*.pid
+
+*.sqlite
+
+*.sqlite3.grunt*.seed
+
+*.db
+
+backup/.lock-wscript*.pid.lock
+
+dumps/
+
+.grunt
+
+# =================
+
+# DEVELOPMENT TOOLS# =================.lock-wscript
+
+# =================
+
+.vscode/settings.json# TESTING & COVERAGE
+
+.vscode/launch.json
+
+.idea/# =================# =================
+
+*.swp
+
+*.swocoverage/# TESTING & COVERAGE
+
+*~
+
+*.lcov# =================
+
+# =================
+
+# DEPLOYMENT.nyc_outputcoverage/
+
+# =================
+
+.vercel/jest-coverage/*.lcov
+
+.netlify/
+
+.surge/cypress/videos/.nyc_output
+
+.pm2/
+
+ecosystem.config.jscypress/screenshots/jest-coverage/
+
+
+
+# =================test-results/cypress/videos/
+
+# CLOUD SERVICES
+
+# =================playwright-report/cypress/screenshots/
+
+.aws/
+
+.gcp/test-results/
+
+.azure/
+
+# =================playwright-report/
+
+# =================
+
+# MISCELLANEOUS# CACHINGtest-results/
+
+# =================
+
+.DS_Store# =================
+
+.DS_Store?
+
+._*.npm/# =================
+
+.Spotlight-V100
+
+.Trashes.yarn/# CACHING
+
+ehthumbs.db
+
+Thumbs.db.cache/# =================
+
+*.orig
+
+.eslintcache.npm/
+
+# =================
+
+# PROJECT SPECIFIC.stylelintcache.yarn/
+
+# =================
+
+# Debug files específicos del proyecto.rpt2_cache/.cache/
+
+debug-*.js
+
+test-*.js.rts2_cache_cjs/.eslintcache
+
+temp_*.js
+
+.rts2_cache_es/.stylelintcache
+
+# Archivos de configuración temporales
+
+config.temp.js.rts2_cache_umd/.rpt2_cache/
+
+*.config.bak
+
+.rts2_cache_cjs/
+
+# Documentación generada automáticamente
+
+docs/api/# =================.rts2_cache_es/
+
+storybook-static/
+
+# UPLOADS & TEMP FILES.rts2_cache_umd/
+
+# =================
+
+# SECURITY# =================.rts2_cache_cjs/
+
+# =================
+
+# Certificados y clavesuploads/temp/**.rts2_cache_es/
+
+*.pem
+
+*.keyuploads/*.tmp.rts2_cache_umd/
+
+*.cert
+
+*.crt*.tmp
+
+*.p12
+
+*.pfx*.temp# Optional REPL history
+
+
+
+# Archivos de secretos.tmp/.node_repl_history
+
+secrets/
+
+private/temp/
+
+.secrets/
+
+# Output of 'npm pack'
+
+# =================
+
+# BACKEND SPECIFIC# =================*.tgz
+
+# =================
+
+backend/uploads/# DATABASE & BACKUPS
+
+backend/src/config/database.js
+
+backend/temp/# =================# Yarn Integrity file
+
+backend/logs/
+
+*.sqlite.yarn-integrity
+
+# =================
+
+# FRONTEND SPECIFIC*.sqlite3
+
+# =================
+
+frontend/dist/*.db# dotenv environment variable files
+
+frontend/build/
+
+backup/.env
+
+# =================
+
+# PRODUCTION BUILDdumps/.env.development.local
+
+# =================
+
+# GitHub Pages se sirve desde /docs/.env.test.local
+
+docs/
+
+# =================.env.production.local
+
+# =================
+
+# OPTIONAL FILES# DEVELOPMENT TOOLS.env.local
+
+# =================
+
+# Optional npm cache directory# =================
+
+.npm
+
+.vscode/settings.json# parcel-bundler cache (https://parceljs.org/)
+
+# Optional REPL history
+
+.node_repl_history.vscode/launch.json.cache
+
+
+
+# Output of 'npm pack'.idea/.parcel-cache
+
+*.tgz
+
+*.swp
+
+# Yarn Integrity file
+
+.yarn-integrity*.swo# Next.js build output
+
+
+
+# parcel-bundler cache*~.next
+
+.parcel-cache
+
+out
+
+# Next.js build output
+
+.next# =================
+
+out
+
+# DEPLOYMENT# Nuxt.js build / generate output
+
+# Nuxt.js build / generate output
+
+.nuxt# =================.nuxt
+
+dist
+
+.vercel/dist
+
+# Gatsby files
+
+.cache/.netlify/
+
+public
+
+.surge/# Gatsby files
+
+# Vite build output
+
+dist/.pm2/.cache/
+
+
+
+# Rollup build outputecosystem.config.jspublic
+
+build/
+
+
+
+# Serverless directories
+
+.serverless/# =================# Vite build output
+
+
+
+# FuseBox cache# CLOUD SERVICESdist/
+
+.fusebox/
+
+# =================
+
+# DynamoDB Local files
+
+.dynamodb/.aws/# Rollup build output
+
+
+
+# TernJS port file.gcp/build/
+
+.tern-port
+
+.azure/
+
+# Stores VSCode versions used for testing VSCode extensions
+
+.vscode-test# Serverless directories
+
+
+
+# yarn v2# =================.serverless/
+
+.yarn/cache
+
+.yarn/unplugged# MISCELLANEOUS
+
+.yarn/build-state.yml
+
+.yarn/install-state.gz# =================# FuseBox cache
+
+.pnp.*
+
+.DS_Store.fusebox/
+
+# Redis dump
+
+dump.rdb.DS_Store?
+
+
+
+# MongoDB data._*# DynamoDB Local files
+
+data/
+
+.Spotlight-V100.dynamodb/
+
+# Error files
+
+error.log.Trashes
+
+access.log
+
+ehthumbs.db# TernJS port file
+
+# PM2 files
+
+.pm2/Thumbs.db.tern-port
+
+
+
+# Docker files*.orig
+
+docker-compose.override.yml
+
+.dockerignore# Stores VSCode versions used for testing VSCode extensions
+
+
+
+# Sentry files# =================.vscode-test
+
+.sentryclirc
+
+# PROJECT SPECIFIC
+
+# Rush files
+
+common/temp/# =================# yarn v2
+
+
+
+# Webpack# Debug files específicos del proyecto.yarn/cache
+
+webpack-stats.json
+
+debug-*.js.yarn/unplugged
+
+# Jest backup files
+
+jest.config.js.baktest-*.js.yarn/build-state.yml
+
+temp_*.js.yarn/install-state.gz
+
+.pnp.*
+
+# Archivos de configuración temporales
+
+config.temp.js# IDE files
+
+*.config.bak.vscode/
+
+.idea/
+
+# Documentación generada automáticamente*.swp
+
+docs/api/*.swo
+
+storybook-static/*~
+
+
+
+# =================# OS generated files
+
+# SECURITY.DS_Store
+
+# =================.DS_Store?
+
+# Certificados y claves._*
+
+*.pem.Spotlight-V100
+
+*.key.Trashes
+
+*.certehthumbs.db
+
+*.crtThumbs.db
+
+*.p12
+
+*.pfx# Logs
+
+logs
+
+# Archivos de secretos*.log
+
+secrets/
+
+private/# Backend specific
+
+.secrets/backend/uploads/
 backend/src/config/database.js
 backend/temp/
 backend/logs/

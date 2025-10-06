@@ -19,12 +19,19 @@
     "verify:barber-data": "dotenv -e .env -- node src/scripts/verifyBarberData.js",
     "optimize:db": "dotenv -e .env -- node src/scripts/optimizeDatabase.js",
     "debug:reports": "dotenv -e .env -- node src/scripts/debugReports.js",
+    "init:fundador": "dotenv -e .env -- node scripts/inicializar-socio-fundador.js",
+    "fundador:rapido": "dotenv -e .env -- node scripts/fundador-rapido.js",
     "test": "cross-env NODE_ENV=test jest --detectOpenHandles",
     "test:watch": "cross-env NODE_ENV=test jest --watch",
     "test:coverage": "cross-env NODE_ENV=test jest --coverage",
     "test:unit": "cross-env NODE_ENV=test jest tests/unit",
     "test:integration": "cross-env NODE_ENV=test jest tests/integration",
-    "lint": "eslint src --ext .js"
+    "lint": "eslint src --ext .js",
+    "test:emails": "dotenv -e .env -- node scripts/test-email-system.js",
+    "test:crons": "dotenv -e .env -- node scripts/test-cron-jobs.js",
+    "create:test-data": "dotenv -e .env -- node scripts/create-complete-test-data.js",
+    "run:test-data": "dotenv -e .env -- node scripts/run-complete-test-data.js",
+    "validate:test-data": "dotenv -e .env -- node scripts/validate-test-data.js"
   },
   "keywords": [],
   "author": "",
@@ -46,11 +53,13 @@
     "hpp": "^0.2.3",
     "ioredis": "^5.7.0",
     "jsonwebtoken": "^9.0.2",
+    "moment-timezone": "0.6.0",
     "mongoose": "^8.5.0",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
     "node-cache": "^5.1.2",
+    "node-cron": "4.2.1",
     "nodemailer": "^6.9.13",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^4.6.3",
@@ -69,6 +78,7 @@
     "supertest": "^6.3.4"
   },
   "engines": {
-    "node": ">=18.0.0 <=20.x"
+    "node": "20.17.0",
+    "npm": ">=8.0.0"
   }
 }

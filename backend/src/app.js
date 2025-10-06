@@ -13,19 +13,19 @@ import swaggerUi from 'swagger-ui-express';
 import mongoose from 'mongoose';
 
 // Configuraciones
-import { config, validateEnv } from './config/index.js';
-import { corsOptions } from './config/cors.js';
-import { cloudinaryConfig } from './config/cloudinary.js';
-import { setupSwagger } from './config/swagger.js';
+import { config, validateEnv } from './shared/config/index.js';
+import { corsOptions } from './shared/config/cors.js';
+import { cloudinaryConfig } from './shared/config/cloudinary.js';
+import { setupSwagger } from './shared/config/swagger.js';
 
 // Utilidades y middleware
-import { logger } from './utils/logger.js';
-import { morganMiddleware } from './middleware/morgan.js';
-import { errorHandler } from './middleware/errorHandler.js';
-import { notFound } from './middleware/notFound.js';
+import { logger } from './shared/utils/logger.js';
+import { morganMiddleware } from './presentation/middleware/morgan.js';
+import { errorHandler } from './presentation/middleware/errorHandler.js';
+import { notFound } from './presentation/middleware/notFound.js';
 
 // Rutas
-import routes from './routes/index.js';
+import routes from './presentation/routes/index.js';
 
 // Obtener __dirname en ES modules
 const __filename = fileURLToPath(import.meta.url);

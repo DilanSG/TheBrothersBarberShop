@@ -1,217 +1,338 @@
-# 🏪 The Brothers Barber Shop
+# The Brothers Barber Shop
 
-Sistema de gestión integral para barbería desarrollado con tecnologías modernas. Incluye gestión de usuarios, barberos, servicios, citas e inventario con sistema de autenticación basado en roles.
+## Descripción General
 
-## 🚀 Características Principales
+The Brothers Barber Shop es un sistema integral de gestión para barbería desarrollado con arquitectura moderna full-stack. La aplicación proporciona una solución completa para la administración de citas, gestión de inventario, control de ventas, y administración de personal, ofreciendo interfaces diferenciadas según el rol del usuario.
 
-- **👥 Gestión de Usuarios**: Registro, autenticación y perfiles de usuario
-- **💈 Gestión de Barberos**: Perfiles especializados con estadísticas de ventas
-- **📅 Sistema de Citas**: Programación y gestión de citas con calendario
-- **🛍️ Gestión de Servicios**: Catálogo completo de servicios y precios
-- **📦 Control de Inventario**: Seguimiento de productos y stock
-- **💰 Ventas**: Sistema completo de ventas y reportes
-- **🔐 Autenticación JWT**: Sistema seguro de roles (usuario/barbero/admin)
-- **📱 Responsive Design**: Interfaz adaptable a todos los dispositivos
+## Arquitectura del Sistema
 
-## 🛠️ Tecnologías Utilizadas
+### Stack Tecnológico
 
-### Backend
-- **Node.js** con Express.js
-- **MongoDB** con Mongoose
-- **JWT** para autenticación
-- **Cloudinary** para gestión de imágenes
-- **Winston** para logging
-- **Jest** para testing
+**Backend**
+- Node.js con Express.js y arquitectura Clean Architecture
+- MongoDB con Mongoose ODM para persistencia de datos
+- Autenticación JWT con refresh tokens diferenciados por rol
+- Cloudinary para gestión de imágenes
+- Winston para logging profesional con rotación de archivos
+- Redis para caché y optimización de rendimiento
 
-### Frontend
-- **React 18** con Hooks
-- **Vite** como bundler
-- **Tailwind CSS** para estilos
-- **React Router** para navegación
-- **Context API** para estado global
+**Frontend**
+- React 18 con Hooks y Context API
+- Vite como build tool y servidor de desarrollo
+- Tailwind CSS para diseño responsivo con tema oscuro
+- React Router DOM para navegación SPA
+- Lucide React para iconografía consistente
 
-## 📋 Prerrequisitos
+### Estructura de Carpetas
 
-- Node.js (versión 16 o superior)
-- npm (versión 8 o superior)
-- MongoDB (local o MongoDB Atlas)
-- Cuenta de Cloudinary (opcional, para uploads)
-
-## ⚡ Instalación Rápida
-
-### 1. Clonar el repositorio
-```bash
-git clone https://github.com/DilanSG/TheBrothersBarberShop.git
-cd TheBrothersBarberShop
-```
-
-### 2. Instalar dependencias
-```bash
-# Instalar todas las dependencias (backend y frontend)
-npm run install:all
-
-# O instalar por separado
-npm run install:backend
-npm run install:frontend
-```
-
-### 3. Configurar variables de entorno
-
-**Backend** - Crear `backend/.env` basado en `backend/.env.example`:
-```env
-NODE_ENV=development
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/brothers_barber_shop
-JWT_SECRET=tu_jwt_secret_muy_seguro
-CLOUDINARY_CLOUD_NAME=tu_cloud_name
-CLOUDINARY_API_KEY=tu_api_key
-CLOUDINARY_API_SECRET=tu_api_secret
-```
-
-**Frontend** - Crear `frontend/.env` basado en `frontend/.env.example`:
-```env
-VITE_API_URL=http://localhost:5000/api/v1
-```
-
-### 4. Ejecutar el proyecto
-```bash
-# Desarrollo (backend y frontend simultáneamente)
-npm run dev
-
-# Solo backend
-npm run dev --prefix backend
-
-# Solo frontend  
-npm run dev --prefix frontend
-```
-
-## 📚 Scripts Disponibles
-
-```bash
-npm run dev          # Ejecutar en modo desarrollo
-npm run start        # Ejecutar en producción
-npm run build        # Construir para producción
-npm run test         # Ejecutar tests del backend
-npm run lint         # Verificar código con ESLint
-npm run seed         # Poblar base de datos con datos de ejemplo
-```
-
-## 🏗️ Estructura del Proyecto
+El proyecto implementa Clean Architecture en el backend y arquitectura por features en el frontend:
 
 ```
 TheBrothersBarberShop/
-├── backend/                 # Servidor Node.js/Express
+├── backend/                    # API REST con Clean Architecture
 │   ├── src/
-│   │   ├── controllers/     # Controladores de rutas
-│   │   ├── models/          # Modelos de MongoDB
-│   │   ├── routes/          # Definición de rutas
-│   │   ├── services/        # Lógica de negocio
-│   │   ├── middleware/      # Middlewares personalizados
-│   │   ├── utils/           # Utilidades y helpers
-│   │   └── config/          # Configuración del servidor
-│   ├── tests/               # Tests unitarios e integración
-│   └── docs/                # Documentación API (Swagger)
-├── frontend/                # Aplicación React
-│   ├── src/
-│   │   ├── components/      # Componentes reutilizables
-│   │   ├── pages/           # Páginas de la aplicación
-│   │   ├── contexts/        # Context providers
-│   │   ├── hooks/           # Custom hooks
-│   │   ├── services/        # Servicios API
-│   │   └── utils/           # Utilidades
-│   └── public/              # Archivos estáticos
-└── docs/                    # Documentación del proyecto
+│   │   ├── core/
+│   │   │   ├── domain/         # Entidades y repositorios
+│   │   │   └── application/    # Casos de uso
+│   │   ├── infrastructure/     # Configuración de BD y APIs externas
+│   │   ├── presentation/       # Controladores, rutas y middleware
+│   │   ├── services/           # Servicios de aplicación
+│   │   └── shared/            # Configuración y utilidades
+│   ├── scripts/               # Scripts de datos y mantenimiento
+│   └── docs/                  # Documentación Swagger
+├── frontend/                  # Aplicación React
+│   └── src/
+│       ├── features/          # Funcionalidades por dominio
+│       ├── pages/            # Páginas principales
+│       ├── layouts/          # Layouts compartidos
+│       └── shared/           # Componentes y servicios compartidos
+└── docs/                     # Build de producción
 ```
 
-## 🔐 Roles de Usuario
+## Funcionalidades Principales
 
-- **Usuario**: Puede agendar citas y ver su historial
-- **Barbero**: Gestiona sus citas, servicios y ve estadísticas
-- **Admin**: Control total del sistema, gestión de usuarios y reportes
+### Sistema de Autenticación y Usuarios
 
-## 🌐 API Endpoints
+**Gestión de Usuarios**
+- Registro e inicio de sesión con validación de email
+- Sistema de roles: Cliente, Barbero y Administrador
+- Perfiles de usuario con información personal y foto
+- Tokens JWT con tiempos de expiración diferenciados por rol
+- Refresh tokens automáticos para mantener sesión activa
 
-### Autenticación
-- `POST /api/v1/auth/register` - Registro de usuario
-- `POST /api/v1/auth/login` - Inicio de sesión
-- `POST /api/v1/auth/logout` - Cerrar sesión
+**Control de Acceso**
+- Rutas protegidas según rol de usuario
+- Middleware de autorización en todas las operaciones sensibles
+- Logout seguro con invalidación de tokens
 
-### Usuarios
-- `GET /api/v1/users/profile` - Obtener perfil
-- `PUT /api/v1/users/profile` - Actualizar perfil
-- `POST /api/v1/users/upload-profile-picture` - Subir foto de perfil
+### Gestión de Servicios
 
-### Citas
-- `GET /api/v1/appointments` - Listar citas
-- `POST /api/v1/appointments` - Crear cita
-- `PUT /api/v1/appointments/:id` - Actualizar cita
-- `DELETE /api/v1/appointments/:id` - Cancelar cita
+**Catálogo de Servicios**
+- Creación y edición de servicios con descripción, precio y duración
+- Categorización por tipo: corte, afeitado, lavado, combo, otros
+- Gestión de imágenes para cada servicio
+- Sistema de activación/desactivación de servicios
 
-### Servicios
-- `GET /api/v1/services` - Listar servicios
-- `POST /api/v1/services` - Crear servicio (admin)
-- `PUT /api/v1/services/:id` - Actualizar servicio (admin)
+**Administración**
+- Solo administradores pueden crear y modificar servicios
+- Historial de cambios en precios y descripciones
+- Vista pública del catálogo para clientes
 
-## 🧪 Testing
+### Sistema de Citas
 
-```bash
-# Ejecutar todos los tests
-npm run test
+**Programación de Citas**
+- Calendario interactivo para selección de fecha y hora
+- Asignación automática o manual de barberos
+- Validación de disponibilidad en tiempo real
+- Confirmación automática de citas
 
-# Tests con coverage
-npm run test:coverage
+**Estados de Citas**
+- Pendiente: Cita programada
+- Confirmada: Cita confirmada por el barbero
+- En progreso: Servicio en ejecución
+- Completada: Servicio finalizado
+- Cancelada: Cita cancelada por cliente o barbero
 
-# Tests en modo watch
-npm run test:watch
+**Gestión por Rol**
+- Clientes: Crear, ver y cancelar sus propias citas
+- Barberos: Ver agenda, confirmar y gestionar citas asignadas
+- Administradores: Control total sobre todas las citas
+
+### Gestión de Barberos
+
+**Perfiles de Barberos**
+- Información personal y profesional completa
+- Especialidades y servicios que ofrece cada barbero
+- Horarios de trabajo y disponibilidad
+- Foto de perfil y galería de trabajos
+
+**Panel de Barbero**
+- Dashboard con agenda del día
+- Historial de citas y servicios realizados
+- Estadísticas de rendimiento personal
+- Gestión de ventas y comisiones
+
+### Sistema de Inventario
+
+**Gestión de Productos**
+- Catálogo completo de productos con código, nombre y descripción
+- Control de stock con alertas de inventario bajo
+- Categorización de productos por tipo
+- Precios de compra y venta
+
+**Control de Stock**
+- Entradas y salidas de inventario
+- Snapshots diarios automáticos del inventario
+- Historial completo de movimientos
+- Reportes de consumo por período
+
+**Alertas y Notificaciones**
+- Notificaciones automáticas por stock bajo
+- Reportes de productos próximos a vencer
+- Alertas de reposición necesaria
+
+### Sistema de Ventas
+
+**Punto de Venta**
+- Interfaz intuitiva para registro de ventas
+- Selección de productos del inventario
+- Cálculo automático de totales e impuestos
+- Múltiples métodos de pago
+
+**Métodos de Pago**
+- Efectivo, tarjeta, transferencia bancaria
+- Registro detallado de cada transacción
+- Conciliación diaria de pagos
+
+**Reportes de Ventas**
+- Ventas por día, semana, mes
+- Reportes por barbero y por producto
+- Análisis de rentabilidad
+- Exportación de datos
+
+### Panel de Administración
+
+**Gestión de Usuarios**
+- Lista completa de usuarios registrados
+- Cambio de roles y permisos
+- Activación/desactivación de cuentas
+- Estadísticas de usuarios activos
+
+**Reportes y Análisis**
+- Dashboard ejecutivo con métricas clave
+- Reportes financieros detallados
+- Análisis de tendencias y patrones
+- Exportación de reportes en múltiples formatos
+
+**Configuración del Sistema**
+- Gestión de servicios y precios
+- Configuración de horarios de atención
+- Administración de barberos y sus horarios
+- Configuración de métodos de pago
+
+### Sistema de Socios
+
+**Gestión de Socios**
+- Registro de socios con porcentajes de participación
+- Control exclusivo para administradores
+- Diferenciación entre socios regulares y fundador
+- Histórico de cambios en la sociedad
+
+**Socio Fundador**
+- Un único socio fundador por sistema
+- Creación exclusiva mediante scripts autorizados
+- Control total sobre la configuración del negocio
+- Acceso a todas las métricas financieras
+
+### Monitoreo y Logs
+
+**Sistema de Logging**
+- Logs detallados con Winston y rotación diaria
+- Diferentes niveles: error, warn, info, debug
+- Logs HTTP para auditoría de requests
+- Manejo de errores no capturados
+
+**Monitoreo de Rendimiento**
+- Middleware de monitoreo en todas las rutas
+- Métricas de tiempo de respuesta
+- Detección de cuellos de botella
+- Alertas por errores frecuentes
+
+## Seguridad Implementada
+
+### Autenticación y Autorización
+- Hash seguro de contraseñas con bcrypt
+- Tokens JWT con expiración automática
+- Refresh tokens para sesiones prolongadas
+- Middleware de autorización en rutas sensibles
+
+### Protección de API
+- Rate limiting para prevenir abuso
+- Helmet para headers de seguridad
+- CORS configurado para dominios permitidos
+- Sanitización de datos MongoDB
+
+### Validación de Datos
+- Express-validator para validación robusta
+- Sanitización de inputs del usuario
+- Validación de tipos y formatos
+- Prevención de inyección de código
+
+## Scripts de Mantenimiento
+
+El sistema incluye múltiples scripts para mantenimiento y gestión de datos:
+
+**Scripts de Datos**
+- `seed.js`: Datos iniciales del sistema
+- `seed-test-data.js`: Datos de prueba para desarrollo
+- `despoblarDB.js`: Limpieza completa de la base de datos
+
+**Scripts de Socios**
+- `inicializar-socio-fundador.js`: Creación interactiva de socio fundador
+- `fundador-rapido.js`: Creación rápida de socio fundador
+
+**Scripts de Mantenimiento**
+- `purgarCitasVencidas.js`: Limpieza automática de citas antiguas
+- `normalize-payment-methods.js`: Normalización de métodos de pago
+- `test-cron-jobs.js`: Verificación de tareas programadas
+
+## Configuración del Sistema
+
+### Variables de Entorno Requeridas
+
+```env
+# Base de datos
+MONGODB_URI=mongodb://localhost:27017/barbershop
+
+# JWT Configuration
+JWT_SECRET=your-secret-key
+JWT_EXPIRES_IN=6h
+JWT_REFRESH_EXPIRES_IN=30d
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+
+# Application
+PORT=5000
+NODE_ENV=development
+FRONTEND_URL=http://localhost:5173
+CORS_ORIGIN=http://localhost:5173,http://localhost:3000
 ```
 
-## 🚀 Despliegue
+### Configuración de Rate Limiting
+- Requests generales: 100 por 15 minutos
+- Endpoints de autenticación: 5 intentos por 15 minutos
+- API completa: 1000 requests por hora
 
-### Frontend (GitHub Pages)
-```bash
-npm run build
-# Los archivos se generan en docs/ para GitHub Pages
-```
+## Flujo de Trabajo del Usuario
 
-### Backend (Render/Railway/Heroku)
-1. Configurar variables de entorno en la plataforma
-2. Conectar repositorio
-3. La aplicación se desplegará automáticamente
+### Para Clientes
+1. Registro en la plataforma con email válido
+2. Navegación por servicios disponibles
+3. Selección de barbero y horario disponible
+4. Confirmación de cita vía email
+5. Seguimiento del estado de la cita
 
-## 🔒 Contribuciones
+### Para Barberos
+1. Acceso a dashboard personalizado
+2. Visualización de agenda diaria
+3. Confirmación de citas asignadas
+4. Registro de servicios completados
+5. Acceso a estadísticas personales
+6. Acceso e sistema de conteo en inventario
 
-**Este es un proyecto privado y propietario.**
+### Para Administradores
+1. Dashboard ejecutivo completo
+2. Gestión de usuarios y roles
+3. Configuración de servicios y precios
+4. Supervisión de inventario y ventas
+5. Generación de reportes financieros
 
-❌ **NO se aceptan contribuciones externas**
-❌ **NO se permiten Pull Requests**
-❌ **NO se permite fork del repositorio**
+## Tecnologías de Desarrollo
 
-Para consultas específicas o propuestas comerciales, contactar directamente al autor.
+### Backend Dependencies
+- `express`: Framework web minimalista
+- `mongoose`: ODM para MongoDB
+- `jsonwebtoken`: Autenticación JWT
+- `bcryptjs`: Hash de contraseñas
+- `helmet`: Middleware de seguridad
+- `winston`: Sistema de logging
+- `cloudinary`: Gestión de imágenes en la nube
 
-## 📝 Licencia
+### Frontend Dependencies
+- `react`: Librería de interfaces de usuario
+- `react-router-dom`: Enrutamiento para SPA
+- `tailwindcss`: Framework de CSS utility-first
+- `lucide-react`: Librería de iconos
+- `date-fns`: Manipulación de fechas
+- `react-toastify`: Sistema de notificaciones
 
-Este proyecto está bajo **Licencia Propietaria Privada**. 
+## Documentación API
 
-⚠️ **IMPORTANTE**: Este software es de uso **RESTRINGIDO**
-- ❌ **NO está permitido** copiar, distribuir o modificar el código
-- ❌ **NO está permitido** el uso comercial
-- ❌ **NO está permitido** crear trabajos derivados
-- 👁️ **Solo se permite** visualización del código para fines educativos
-- 📧 Para consultas de licenciamiento contactar al autor
+La API está completamente documentada con Swagger/OpenAPI 3.0, incluyendo:
+- Descripción detallada de todos los endpoints
+- Esquemas de datos de request y response
+- Códigos de estado HTTP y manejo de errores
+- Ejemplos de uso para cada operación
+- Documentación de autenticación y autorización
 
-Ver el archivo `LICENSE` para términos completos y restricciones legales.
+## Derechos Reservados
 
-## 👨‍💻 Autor
+Este sistema es propiedad privada de The Brothers Barber Shop. Todos los derechos están reservados. El código fuente, la documentación, el diseño de la base de datos, la arquitectura del software y todos los componentes relacionados son confidenciales y están protegidos por derechos de autor.
 
-**DilanSG**
-- GitHub: [@DilanSG](https://github.com/DilanSG)
+**Restricciones de uso:**
+- Prohibida la reproducción, distribución o modificación sin autorización expresa
+- El acceso al código fuente está limitado a personal autorizado
+- No se permite el uso comercial o la redistribución de ninguna parte del sistema
+- Todas las marcas comerciales y nombres mencionados son propiedad de sus respectivos dueños
+
+**Contacto legal:** Para consultas sobre licencias o uso autorizado, contactar a la administración de The Brothers Barber Shop.(Dilan Steven Acuña, garaydilan2002@gmail.com)
 
 ---
 
-� **SOFTWARE PROPIETARIO** - Todos los derechos reservados © 2025 DilanSG
-
-⚠️ **ADVERTENCIA LEGAL**: El uso no autorizado de este software está estrictamente prohibido y puede resultar en acciones legales.
-
-🔒 **SOFTWARE PROPIETARIO** - Todos los derechos reservados © 2025 DilanSG
-
-⚠️ **ADVERTENCIA LEGAL**: El uso no autorizado de este software está estrictamente prohibido y puede resultar en acciones legales.
+**Versión:** 1.0.0  
+**Última actualización:** Septiembre 2025  
+**Desarrollado para:** The Brothers Barber Shop  
+**Arquitectura:** Full-Stack JavaScript (Node.js + React)

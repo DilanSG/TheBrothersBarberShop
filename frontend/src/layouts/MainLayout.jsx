@@ -1,12 +1,12 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import Navbar from '../components/layout/Navbar';
-import Breadcrumbs from '../components/navigation/Breadcrumbs';
-import { useRoutePreloader, useNavigationPerformance } from '../hooks/useRoutePreloader';
-import { useCacheMonitor } from '../components/dev/CacheMonitor';
-import { useAnalyticsDashboard } from '../components/dev/AnalyticsDashboard';
-import { useNavigationAnalytics } from '../hooks/useNavigationAnalytics';
-import { usePWA } from '../hooks/usePWA';
+import Navbar from '../shared/components/layout/Navbar';
+import Breadcrumbs from '../shared/components/navigation/Breadcrumbs';
+import { useRoutePreloader, useNavigationPerformance } from '../shared/hooks/useRoutePreloader';
+import { useCacheMonitor } from '../shared/components/dev/CacheMonitor';
+import { useAnalyticsDashboard } from '../shared/components/dev/AnalyticsDashboard';
+import { useNavigationAnalytics } from '../shared/hooks/useNavigationAnalytics';
+import { usePWA } from '../shared/hooks/usePWA';
 
 const MainLayout = () => {
   // Hooks para optimización de navegación

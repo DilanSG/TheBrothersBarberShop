@@ -9,6 +9,30 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
+// Función para encontrar el ejecutable correcto de npm
+function getNpmExecutable() {
+  if (process.platform === 'win32') {
+    // En Windows, probar diferentes opciones
+    const possiblePaths = [
+      'npm.cmd',
+      'npm.bat', 
+      'npm'
+    ];
+    
+    for (const npmPath of possiblePaths) {
+      try {
+        // Verificar si existe ejecutando which/where
+        require('child_process').execSync(`where ${npmPath}`, { stdio: 'ignore' });
+        return npmPath;
+      } catch (e) {
+        // Continuar con el siguiente
+      }
+    }
+    return 'npm'; // Fallback
+  }
+  return 'npm';
+}
+
 // Colores para terminal
 const colors = {
   reset: '\x1b[0m',
@@ -102,10 +126,11 @@ async function main() {
     
     // Iniciar backend
     colorLog('🟣 Iniciando Backend...', 'magenta');
-    const backendProcess = spawn('npm', ['run', 'dev'], { 
+    const npmExecutable = getNpmExecutable();
+    const backendProcess = spawn(npmExecutable, ['run', 'dev'], { 
       cwd: 'backend', 
       stdio: 'pipe',
-      shell: true 
+      shell: process.platform === 'win32'
     });
     
     backendProcess.stdout.on('data', (data) => {
@@ -131,10 +156,10 @@ async function main() {
     
     // Iniciar frontend
     colorLog('🔵 Iniciando Frontend...', 'blue');
-    const frontendProcess = spawn('npm', ['run', 'dev'], { 
+    const frontendProcess = spawn(npmExecutable, ['run', 'dev'], { 
       cwd: 'frontend', 
       stdio: 'pipe',
-      shell: true 
+      shell: process.platform === 'win32'
     });
     
     frontendProcess.stdout.on('data', (data) => {
@@ -160,14 +185,14 @@ async function main() {
     colorLog('   SERVIDORES EJECUTÁNDOSE', 'green');
     colorLog('========================================', 'green');
     colorLog('🌐 Backend: http://localhost:5000', 'yellow');
-    colorLog('🌐 Frontend: http://localhost:5173', 'yellow');
+    colorLog('🌐 Frontend: http://10.50.246.104:5173', 'yellow');
     colorLog('💡 Presiona Ctrl+C para detener', 'cyan');
     console.log('');
     
     // Abrir navegador después de 5 segundos
     setTimeout(() => {
       const { exec } = require('child_process');
-      exec('start http://192.168.64.104:5173');
+      exec('start http://10.50.246.104:5173');
     }, 5000);
     
     // Indicador cada 30 segundos

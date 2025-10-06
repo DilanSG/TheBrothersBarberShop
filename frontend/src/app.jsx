@@ -2,51 +2,51 @@
 import React from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
-import NotificationContainer from './components/notifications/NotificationContainer';
-import { useApiNotifications } from './hooks/useApiNotifications';
-import { InventoryProvider } from './contexts/InventoryContext';
+import NotificationContainer from './shared/components/notifications/NotificationContainer';
+import { useApiNotifications } from './shared/hooks/useApiNotifications';
+import { InventoryProvider } from './shared/contexts/InventoryContext';
+import { PaymentMethodsProvider } from './shared/contexts/PaymentMethodsContext';
 
 // Pages
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import ProfileEdit from './pages/ProfileEdit';
-import AppointmentRouter from './pages/appointment/AppointmentRouter';
-import Services from './pages/Services';
+import AppointmentRouter from './features/appointments/AppointmentRouter';
 import PublicBarbers from './pages/PublicBarbers';
 import Dashboard from './pages/Dashboard';
 
 // Auth Pages
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
+import Login from './features/auth/Login';
+import Register from './features/auth/Register';
 
 // Barber Pages
-import Barbers from './pages/barber/Barbers';
-import BarberProfile from './pages/barber/BarberProfile';
-import BarberSales from './pages/barber/BarberSales';
+import Barbers from './features/barbers/Barbers';
+import BarberProfile from './features/barbers/BarberProfile';
+import BarberSales from './features/barbers/BarberSales';
 
 // Admin Pages
-import UserRoleManager from './pages/admin/UserRoleManager';
-import Inventory from './pages/admin/Inventory';
-import AdminBarbers from './pages/admin/AdminBarbers';
-import AdminServices from './pages/admin/AdminServices';
-import Reports from './pages/admin/Reports';
+import UserRoleManager from './features/admin/UserRoleManager';
+import Inventory from './features/admin/Inventory';
+import AdminBarbers from './features/admin/AdminBarbers';
+import AdminServices from './features/admin/AdminServices';
+import Reports from './features/admin/Reports';
 
 // Components
-import ProtectedRoute from './components/auth/ProtectedRoute';
-import RequireAuth from './components/auth/RequireAuth';
-import { PublicRoute } from './components/auth/PublicRoute';
+import ProtectedRoute from './features/auth/ProtectedRoute';
+import RequireAuth from './features/auth/RequireAuth';
+import { PublicRoute } from './features/auth/PublicRoute';
 
 function App() {
   // Configurar notificaciones para el API service
   useApiNotifications();
 
   return (
-    <InventoryProvider>
-      <Routes>
+    <PaymentMethodsProvider>
+      <InventoryProvider>
+        <Routes>
       <Route element={<MainLayout />}>
         {/* Rutas públicas */}
         <Route path="/" element={<Home />} />
-        <Route path="/services" element={<Services />} />
         <Route path="/barbers" element={<PublicBarbers />} />
         <Route path="/barbers/:id" element={<BarberProfile />} />
         
@@ -115,7 +115,7 @@ function App() {
 
         {/* Ruta de citas - accesible para todos los usuarios autenticados */}
         <Route 
-          path="/appointment" 
+          path="/appointment/*" 
           element={
             <ProtectedRoute>
               <AppointmentRouter />
@@ -129,6 +129,7 @@ function App() {
     </Routes>
     <NotificationContainer />
     </InventoryProvider>
+    </PaymentMethodsProvider>
   );
 }
 

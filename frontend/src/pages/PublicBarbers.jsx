@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { api } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { PageContainer } from '../components/layout/PageContainer';
-import GradientText from '../components/ui/GradientText';
+import { api } from '../shared/services/api';
+import { useAuth } from '../shared/contexts/AuthContext';
+import { PageContainer } from '../shared/components/layout/PageContainer';
+import GradientText from '../shared/components/ui/GradientText';
 import { Star, Clock, MapPin, Calendar, Users, Award, Scissors, User } from 'lucide-react';
 
+import logger from '../shared/utils/logger';
 // Componente de loading mejorado
 const LoadingSpinner = () => (
   <PageContainer>
@@ -311,9 +312,9 @@ const PublicBarbers = () => {
         // Si no hay barberos principales, mostrar los primeros 3 activos
         const barbersToShow = mainBarbers.length > 0 ? mainBarbers : activeBarbers.slice(0, 3);
         
-        console.log('🔍 [PublicBarbers] Barberos activos encontrados:', activeBarbers.length);
-        console.log('🎯 [PublicBarbers] Barberos principales encontrados:', mainBarbers.length);
-        console.log('📺 [PublicBarbers] Barberos finales a mostrar:', barbersToShow.length);
+        logger.debug('🔍 [PublicBarbers] Barberos activos encontrados:', activeBarbers.length);
+        logger.debug('🎯 [PublicBarbers] Barberos principales encontrados:', mainBarbers.length);
+        logger.debug('📺 [PublicBarbers] Barberos finales a mostrar:', barbersToShow.length);
         
         setBarbers(barbersToShow);
         setLoading(false);
@@ -328,7 +329,7 @@ const PublicBarbers = () => {
     // También refrescar cuando la página vuelve a ser visible
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        console.log('📱 Página visible de nuevo, refrescando barberos...');
+        logger.debug('📱 Página visible de nuevo, refrescando barberos...');
         fetchBarbers();
       }
     };
@@ -405,3 +406,4 @@ const PublicBarbers = () => {
 };
 
 export default PublicBarbers;
+

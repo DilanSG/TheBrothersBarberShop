@@ -1,4 +1,5 @@
-const API_URL = import.meta.env.VITE_API_URL;
+﻿const API_URL = import.meta.env.VITE_API_URL;
+import logger from '../shared/utils/logger';
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0';
 
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -187,11 +188,11 @@ const fetchWithRetry = async (url, options, retries = 3, backoff = 1000) => {
 };
 
 export const handleSessionExpired = () => {
-  console.log('🕐 Sesión expirada - iniciando proceso de limpieza');
+  logger.debug('🕐 Sesión expirada - iniciando proceso de limpieza');
   
   // Mostrar notificación de sesión expirada
   if (notificationContext) {
-    console.log('📢 Mostrando notificación de sesión expirada');
+    logger.debug('📢 Mostrando notificación de sesión expirada');
     notificationContext.showSessionExpired();
   } else {
     console.warn('⚠️ NotificationContext no disponible para mostrar sesión expirada');
@@ -206,7 +207,7 @@ export const handleSessionExpired = () => {
   
   // Redirigir después de un breve delay
   setTimeout(() => {
-    console.log('🔄 Redirigiendo a login...');
+    logger.debug('🔄 Redirigiendo a login...');
     window.location.href = '/login';
   }, 2000);
 };
@@ -231,7 +232,7 @@ const handleAuthError = (response, data, endpoint = '') => {
         message.toLowerCase().includes('expired') ||
         message.toLowerCase().includes('jwt')) {
       // Token expirado
-      console.log('🕐 Token expirado detectado, llamando handleSessionExpired');
+      logger.debug('🕐 Token expirado detectado, llamando handleSessionExpired');
       handleSessionExpired();
       throw new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
     } else if (message.toLowerCase().includes('no proporcionado') || 
@@ -239,7 +240,7 @@ const handleAuthError = (response, data, endpoint = '') => {
                message.toLowerCase().includes('acceso denegado') ||
                message.toLowerCase().includes('unauthorized')) {
       // Token faltante o acceso denegado
-      console.log('🚫 Acceso no autorizado, mostrando notificación');
+      logger.debug('🚫 Acceso no autorizado, mostrando notificación');
       if (notificationContext) {
         notificationContext.showError(
           'Tu sesión ha expirado o no tienes los permisos necesarios. Redirigiendo al login...',
@@ -256,7 +257,7 @@ const handleAuthError = (response, data, endpoint = '') => {
       throw new Error('Se requiere autenticación. Redirigiendo al inicio de sesión...');
     } else {
       // Otros errores de autenticación
-      console.log('❌ Otro error de autenticación');
+      logger.debug('❌ Otro error de autenticación');
       if (notificationContext) {
         notificationContext.showError(
           'Error de autenticación. Por favor, inicia sesión nuevamente.',
@@ -299,10 +300,14 @@ const handleConnectionError = (error) => {
         'No Encontrado'
       );
     } else if (error.message.includes('HTTP error! status: 500')) {
-      notificationContext.showError(
-        'Error interno del servidor. Por favor, inténtalo más tarde.',
-        'Error del Servidor'
-      );
+      // No mostrar notificación genérica para errores de duplicado, 
+      // ya que el componente manejará el error específico
+      if (!(error.message.includes('duplicate key error') || error.message.includes('E11000'))) {
+        notificationContext.showError(
+          'Error interno del servidor. Por favor, inténtalo más tarde.',
+          'Error del Servidor'
+        );
+      }
     } else {
       // Solo mostrar para errores genéricos que no tienen un status HTTP específico
       if (!error.message.includes('HTTP error! status:')) {
@@ -323,7 +328,7 @@ const getValidToken = () => {
     const now = Math.floor(Date.now() / 1000);
     
     if (payload.exp && payload.exp < now) {
-      console.log('🚨 Token expirado, removiendo del localStorage');
+      logger.debug('🚨 Token expirado, removiendo del localStorage');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       return null;
@@ -370,7 +375,7 @@ export const api = {
       
       return data;
     } catch (error) {
-      console.log('🚨 Error en api.get:', error);
+      logger.debug('🚨 Error en api.get:', error);
       
       // Si el error tiene información de respuesta, intentar manejar errores de auth
       if (error.response && error.data) {
@@ -425,7 +430,7 @@ export const api = {
 
       return responseData;
     } catch (error) {
-      console.log('🚨 Error en api.post:', error);
+      logger.debug('🚨 Error en api.post:', error);
       
       // Si el error tiene información de respuesta HTTP, manejar específicamente
       if (error.response && error.data) {
@@ -468,7 +473,7 @@ export const api = {
       
       // Detectar si data es FormData
       const isFormData = data instanceof FormData;
-      console.log(`PUT ${endpoint} - isFormData: ${isFormData}`);
+      logger.debug(`PUT ${endpoint} - isFormData: ${isFormData}`);
       
       const fetchOptions = {
         method: 'PUT',
@@ -486,12 +491,12 @@ export const api = {
         fetchOptions.body = data;
       }
 
-      console.log('Enviando request con headers:', fetchOptions.headers);
+      logger.debug('Enviando request con headers:', fetchOptions.headers);
       const response = await fetchWithRetry(`${API_URL}${endpoint}`, fetchOptions);
-      console.log('Response status:', response.status, 'ok:', response.ok);
+      logger.debug('Response status:', response.status, 'ok:', response.ok);
 
       const responseData = await response.json();
-      console.log('Response data:', responseData);
+      logger.debug('Response data:', responseData);
 
       // Manejar errores de autenticación
       handleAuthError(response, responseData, endpoint);
@@ -516,7 +521,7 @@ export const api = {
 
       return responseData;
     } catch (error) {
-      console.log('🚨 Error en api.put:', error);
+      logger.debug('🚨 Error en api.put:', error);
       
       // Si el error tiene información de respuesta HTTP, manejar específicamente
       if (error.response && error.data) {
@@ -589,7 +594,7 @@ export const api = {
 
       return responseData;
     } catch (error) {
-      console.log('🚨 Error en api.delete:', error);
+      logger.debug('🚨 Error en api.delete:', error);
       
       // Si el error tiene información de respuesta HTTP, manejar específicamente
       if (error.response && error.data) {
@@ -663,7 +668,7 @@ export const api = {
 
       return responseData;
     } catch (error) {
-      console.log('🚨 Error en api.patch:', error);
+      logger.debug('🚨 Error en api.patch:', error);
       
       // Si el error tiene información de respuesta HTTP, manejar específicamente
       if (error.response && error.data) {
@@ -738,7 +743,7 @@ export const api = {
 
       return responseData;
     } catch (error) {
-      console.log('🚨 Error en api.upload:', error);
+      logger.debug('🚨 Error en api.upload:', error);
       
       // Si el error tiene información de respuesta HTTP, manejar específicamente
       if (error.response && error.data) {
@@ -990,3 +995,4 @@ export const inventorySnapshotService = {
     }
   }
 };
+
