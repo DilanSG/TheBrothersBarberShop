@@ -1,17 +1,19 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { 
   Plus, Edit, Trash2, Clock, DollarSign, 
   AlertTriangle, CheckCircle, ChevronUp, Settings, 
   Palette, Sparkles, User, Package2, Scissors, Home, Eye, EyeOff,
   Users, Star, X
 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { api } from '../services/api';
-import { PageContainer } from '../components/layout/PageContainer';
-import GradientButton from '../components/ui/GradientButton';
-import GradientText from '../components/ui/GradientText';
-import { useNavigationCache } from '../hooks/useNavigationCache';
+import { useAuth } from '../shared/contexts/AuthContext';
+import { api } from '../shared/services/api';
+import { PageContainer } from '../shared/components/layout/PageContainer';
+import GradientButton from '../shared/components/ui/GradientButton';
+import GradientText from '../shared/components/ui/GradientText';
+import UserAvatar from '../shared/components/ui/UserAvatar';
+import { useNavigationCache } from '../shared/hooks/useNavigationCache';
 
+import logger from '../shared/utils/logger';
 function ServicesPage() {
   const { user } = useAuth();
   const [services, setServices] = useState([]);
@@ -24,6 +26,26 @@ function ServicesPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [expandedSection, setExpandedSection] = useState(null); // 'form'
+  
+  // Verificar que solo admin acceda
+  if (user?.role !== 'admin') {
+    return (
+      <PageContainer>
+        <div className="text-center py-20">
+          <div className="w-16 h-16 mx-auto mb-4 p-4 bg-red-500/20 rounded-full border border-red-500/30">
+            <Scissors className="w-full h-full text-red-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Acceso Denegado</h2>
+          <p className="text-gray-400 mb-6">
+            Esta página es exclusiva para administradores.
+          </p>
+          <p className="text-gray-500 text-sm">
+            Los servicios están disponibles en la página de inicio y en los perfiles de barberos.
+          </p>
+        </div>
+      </PageContainer>
+    );
+  }
   
   // Hook de caché para optimizar carga de datos
   const { 
@@ -51,7 +73,7 @@ function ServicesPage() {
         });
         // Solo los primeros 3 barberos principales
         setBarbers(activeBarbers.slice(0, 3));
-        console.log('📦 Barbers loaded from cache');
+        logger.debug('📦 Barbers loaded from cache');
         return;
       }
 
@@ -74,7 +96,7 @@ function ServicesPage() {
         
         // Cachear los datos por 5 minutos
         cacheRouteData('/barbers', barbersData, 5 * 60 * 1000);
-        console.log('🗄️ Barbers cached for future use');
+        logger.debug('🗄️ Barbers cached for future use');
       } else {
         throw new Error(response.message || 'Error al cargar barberos');
       }
@@ -93,7 +115,7 @@ function ServicesPage() {
       if (cachedServices) {
         setServices(cachedServices);
         setLoading(false);
-        console.log('📦 Services loaded from cache');
+        logger.debug('📦 Services loaded from cache');
         return;
       }
       
@@ -105,7 +127,7 @@ function ServicesPage() {
         
         // Cachear los datos por 3 minutos
         cacheRouteData('/services', servicesData, 3 * 60 * 1000);
-        console.log('🗄️ Services cached for future use');
+        logger.debug('🗄️ Services cached for future use');
       } else {
         throw new Error(response.message || 'Error al cargar servicios');
       }
@@ -126,29 +148,34 @@ function ServicesPage() {
   const handleSubmit = async e => {
     e.preventDefault();
     try {
-      console.log('Enviando formulario:', form);
+      logger.debug('Enviando formulario:', form);
       let response;
       
       if (editing) {
-        console.log('Actualizando servicio:', editing._id);
+        logger.debug('Actualizando servicio:', editing._id);
         response = await api.put(`/services/${editing._id}`, form);
       } else {
-        console.log('Creando nuevo servicio');
+        logger.debug('Creando nuevo servicio');
         response = await api.post('/services', form);
       }
       
-      console.log('Respuesta:', response);
+      logger.debug('Respuesta:', response);
 
       if (response.success) {
-        setSuccess(editing ? '✅ Servicio actualizado.' : '✅ Servicio creado.');
-        setTimeout(() => setSuccess(''), 2500);
+        setSuccess(editing ? '✅ Servicio actualizado exitosamente' : '✅ Servicio creado exitosamente');
+        setTimeout(() => setSuccess(''), 3000);
+        
+        // Limpiar formulario y cerrar
         setEditing(null);
         setForm({ name: '', description: '', price: 0, duration: 30, category: 'corte' });
+        setExpandedSection(null);
         
         // Invalidar caché después de cambios
         invalidatePattern('/services');
-        console.log('🗑️ Services cache invalidated after update');
+        invalidatePattern('/'); // También invalidar home por si afecta los servicios mostrados
+        logger.debug('🗑️ Services cache invalidated after update');
         
+        // Recargar servicios para mostrar cambios
         fetchServices();
       } else {
         throw new Error(response.message || 'Error al guardar servicio');
@@ -161,32 +188,48 @@ function ServicesPage() {
   };
 
   const handleEdit = service => {
+    logger.debug('🔧 Editando servicio:', service);
+    if (!service || !service._id) {
+      setError('Error: Servicio no válido para editar');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+    
     setEditing(service);
     setForm({
-      name: service.name,
-      description: service.description,
-      price: service.price,
-      duration: service.duration,
-      category: service.category
+      name: service.name || '',
+      description: service.description || '',
+      price: service.price || 0,
+      duration: service.duration || 30,
+      category: service.category || 'corte'
     });
     setExpandedSection('form');
+    // Limpiar mensajes existentes
+    setError('');
+    setSuccess('');
+    logger.debug('✅ Formulario de edición configurado correctamente');
   };
 
   const handleDelete = async id => {
+    console.log('🗑️ HandleDelete called with id:', id);
     if (!id) {
+      console.log('❌ Invalid service ID');
       setError('ID de servicio inválido');
       setTimeout(() => setError(''), 2500);
       return;
     }
 
     if (!window.confirm('¿Seguro que deseas eliminar este servicio?')) {
+      console.log('❌ Delete cancelled by user');
       return;
     }
+    
+    console.log('✅ Delete confirmed, proceeding...');
 
     try {
-      console.log('Eliminando servicio:', id);
+      logger.debug('Eliminando servicio:', id);
       const response = await api.delete(`/services/${id}`);
-      console.log('Respuesta de eliminación:', response);
+      logger.debug('Respuesta de eliminación:', response);
 
       if (response.success) {
         // Actualizar el estado local inmediatamente
@@ -197,7 +240,7 @@ function ServicesPage() {
         
         // Invalidar caché después de eliminación
         invalidatePattern('/services');
-        console.log('🗑️ Services cache invalidated after deletion');
+        logger.debug('🗑️ Services cache invalidated after deletion');
         
         // Si estábamos editando este servicio, limpiar el formulario
         if (editing?._id === id) {
@@ -216,12 +259,14 @@ function ServicesPage() {
 
   const handleToggleShowInHome = async (serviceId, currentShowInHome) => {
     try {
+      logger.debug(`Toggleando servicio ${serviceId} de ${currentShowInHome} a ${!currentShowInHome}`);
+      
       const response = await api.patch(`/services/${serviceId}/show-in-home`, {
         showInHome: !currentShowInHome
       });
 
       if (response.success) {
-        // Actualizar el estado local
+        // Actualizar el estado local inmediatamente
         setServices(prevServices =>
           prevServices.map(service =>
             service._id === serviceId
@@ -230,22 +275,36 @@ function ServicesPage() {
           )
         );
 
-        setSuccess(response.message || 'Estado actualizado correctamente');
-        setTimeout(() => setSuccess(''), 2500);
+        // Invalidar cachés relacionados para forzar actualización
+        invalidatePattern('/services');
+        invalidatePattern('/'); // Para el home que también usa servicios
+
+        const mensaje = !currentShowInHome 
+          ? 'Servicio añadido al inicio exitosamente' 
+          : 'Servicio quitado del inicio exitosamente';
+          
+        setSuccess(mensaje);
+        setTimeout(() => setSuccess(''), 3000);
+        
+        logger.debug('Toggle exitoso, nuevo valor:', !currentShowInHome);
       } else {
         throw new Error(response.message || 'Error al actualizar estado');
       }
     } catch (error) {
       console.error('Error en handleToggleShowInHome:', error);
       setError(error.message || 'Error al actualizar estado del servicio');
-      setTimeout(() => setError(''), 2500);
+      setTimeout(() => setError(''), 3000);
     }
   };
 
   const handleNewService = () => {
+    logger.debug('🆕 Iniciando nuevo servicio');
     setForm({ name: '', description: '', price: 0, duration: 30, category: 'corte' });
     setEditing(null);
     setExpandedSection('form');
+    // Limpiar mensajes existentes
+    setError('');
+    setSuccess('');
   };
 
   const formatRating = (rating) => {
@@ -320,10 +379,8 @@ function ServicesPage() {
               onClick={handleNewService}
               className="shadow-xl shadow-blue-500/20"
             >
-              <div className="flex items-center justify-center gap-2">
-                <Plus className="w-4 h-4" />
-                <span>Nuevo Servicio</span>
-              </div>
+              <Plus className="w-4 h-4" />
+              <span>Nuevo Servicio</span>
             </GradientButton>
           </div>
 
@@ -512,7 +569,11 @@ function ServicesPage() {
                       {/* Acciones mejoradas */}
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleToggleShowInHome(service._id, service.showInHome)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleToggleShowInHome(service._id, service.showInHome);
+                          }}
                           className={`group relative p-2 rounded-lg transition-all duration-300 backdrop-blur-sm transform hover:scale-110 shadow-lg ${
                             service.showInHome
                               ? 'bg-gradient-to-r from-green-600/20 to-blue-600/20 border border-green-500/30 hover:border-blue-500/40 text-green-400 hover:text-blue-400 shadow-green-500/20'
@@ -524,7 +585,11 @@ function ServicesPage() {
                         </button>
                         
                         <button
-                          onClick={() => handleEdit(service)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleEdit(service);
+                          }}
                           className="group relative p-2 bg-gradient-to-r from-blue-600/20 to-cyan-600/20 rounded-lg border border-blue-500/30 hover:border-cyan-500/40 transition-all duration-300 backdrop-blur-sm transform hover:scale-110 shadow-lg shadow-blue-500/20"
                           title="Editar servicio"
                         >
@@ -532,7 +597,11 @@ function ServicesPage() {
                         </button>
                         
                         <button
-                          onClick={() => handleDelete(service._id)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDelete(service._id);
+                          }}
                           className="group relative p-2 bg-gradient-to-r from-red-600/20 to-pink-600/20 rounded-lg border border-red-500/30 hover:border-pink-500/40 transition-all duration-300 backdrop-blur-sm transform hover:scale-110 shadow-lg shadow-red-500/20"
                           title="Eliminar servicio"
                         >
@@ -575,16 +644,12 @@ function ServicesPage() {
             {selectedBarber ? (
               <div className="mb-6 p-4 bg-gradient-to-r from-green-500/5 to-blue-500/5 border border-green-500/20 rounded-xl backdrop-blur-sm shadow-lg shadow-green-500/20">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-green-500/30 shadow-lg shadow-green-500/20">
-                    <img
-                      src={selectedBarber.user?.profilePicture || '/images/default-avatar.png'}
-                      alt={selectedBarber.user?.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.src = '/images/default-avatar.png';
-                      }}
-                    />
-                  </div>
+                  <UserAvatar 
+                    user={selectedBarber.user} 
+                    size="md" 
+                    borderColor="border-green-500/30"
+                    className="shadow-lg shadow-green-500/20" 
+                  />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <GradientText className="font-semibold">
@@ -684,14 +749,11 @@ function ServicesPage() {
                           
                           <div className="relative text-center">
                             {/* Foto del barbero */}
-                            <div className="w-16 h-16 mx-auto mb-3 rounded-full overflow-hidden border-2 border-blue-500/30 shadow-lg shadow-blue-500/20">
-                              <img
-                                src={barber.user?.profilePicture || '/images/default-avatar.png'}
-                                alt={barber.user?.name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.target.src = '/images/default-avatar.png';
-                                }}
+                            <div className="mx-auto mb-3">
+                              <UserAvatar 
+                                user={barber.user} 
+                                size="lg" 
+                                className="shadow-lg shadow-blue-500/20" 
                               />
                             </div>
 
@@ -739,3 +801,4 @@ function ServicesPage() {
 }
 
 export default ServicesPage;
+

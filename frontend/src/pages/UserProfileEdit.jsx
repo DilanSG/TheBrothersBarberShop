@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useNotification } from '../contexts/NotificationContext';
-import { api } from '../services/api';
-import GradientButton from '../components/ui/GradientButton';
-import {PageContainer} from '../components/layout/PageContainer';
+import { useAuth } from '../shared/contexts/AuthContext';
+import { useSocioStatus } from '../shared/hooks/useSocioStatus';
+import { useNotification } from '../shared/contexts/NotificationContext';
+import { api } from '../shared/services/api';
+import GradientButton from '../shared/components/ui/GradientButton';
+import {PageContainer} from '../shared/components/layout/PageContainer';
 import { 
   User, 
   Mail, 
@@ -20,11 +21,13 @@ import {
   EyeOff,
   Settings,
   Bell,
-  Lock
+  Lock,
+  Crown
 } from 'lucide-react';
 
 const UserProfileEdit = () => {
   const { user, setUser } = useAuth();
+  const { isSocio, tipoSocio, isFounder } = useSocioStatus();
   const { showSuccess, showError } = useNotification();
   const navigate = useNavigate();
   
@@ -214,7 +217,15 @@ const UserProfileEdit = () => {
       showSuccess('Perfil actualizado correctamente');
     } catch (error) {
       console.error('Error al actualizar perfil:', error);
-      showError(error.message || 'Error al actualizar el perfil');
+      
+      // Handle specific error types
+      if (error.message && error.message.includes('duplicate key error') && error.message.includes('email')) {
+        showError('Este email ya está siendo usado por otro usuario. Por favor, elige un email diferente.');
+      } else if (error.message && error.message.includes('E11000')) {
+        showError('Ya existe un usuario con esta información. Verifica los datos ingresados.');
+      } else {
+        showError(error.message || 'Error al actualizar el perfil');
+      }
     } finally {
       setLoading(false);
     }
@@ -358,11 +369,28 @@ const UserProfileEdit = () => {
                         <div className="flex flex-col items-center space-y-3">
                           <div className="relative group">
                             <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-blue-900 border-2 border-red-500/30 shadow-xl hover:border-red-500/60 transition-all duration-300">
-                              <img
-                                src={previewImage || formData.profilePicture || '/images/default-avatar.png'}
-                                alt="Foto de perfil"
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                              />
+                              {(previewImage || formData.profilePicture) ? (
+                                <img
+                                  src={previewImage || formData.profilePicture}
+                                  alt="Foto de perfil"
+                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    const fallback = e.target.parentElement.querySelector('.profile-fallback');
+                                    if (fallback) fallback.style.display = 'flex';
+                                  }}
+                                />
+                              ) : null}
+                              
+                              {/* Fallback avatar */}
+                              <div 
+                                className="profile-fallback w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500/20 to-purple-600/20"
+                                style={{ display: (previewImage || formData.profilePicture) ? 'none' : 'flex' }}
+                              >
+                                <span className="text-lg font-bold text-white">
+                                  {user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
+                                </span>
+                              </div>
                               
                               {/* Overlay de hover con estilo barbería */}
                               <div 

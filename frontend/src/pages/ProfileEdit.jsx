@@ -1,6 +1,6 @@
 import React from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import BarberProfileEdit from './barber/BarberProfileEdit';
+import { useAuth } from '../shared/contexts/AuthContext';
+import BarberProfileEdit from '../features/barbers/BarberProfileEdit';
 import UserProfileEdit from './UserProfileEdit';
 
 const ProfileEdit = () => {

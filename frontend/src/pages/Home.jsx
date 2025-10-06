@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import GradientButton from '../components/ui/GradientButton';
-import GradientText from '../components/ui/GradientText';
-import { PageContainer } from '../components/layout/PageContainer';
+﻿import React, { useEffect, useState } from 'react';
+import { useAuth } from '../shared/contexts/AuthContext';
+import { useSocioStatus } from '../shared/hooks/useSocioStatus';
+import GradientButton from '../shared/components/ui/GradientButton';
+import GradientText from '../shared/components/ui/GradientText';
+import { PageContainer } from '../shared/components/layout/PageContainer';
 import { Link, useNavigate } from 'react-router-dom';
-import { api } from '../services/api';
-import { LOGOS, DEFAULT_IMAGES } from '../utils/assets';
+import { api } from '../shared/services/api';
+import { LOGOS, DEFAULT_IMAGES } from '../shared/utils/assets';
+import logger from '../shared/utils/logger';
 import { 
   Scissors, 
   Clock, 
@@ -19,7 +21,8 @@ import {
   Award,
   Heart,
   Settings,
-  User
+  User,
+  Crown
 } from 'lucide-react';                    {/* Background con efectos mejorados y mayor transparencia */}
                     <div className="absolute inset-0 bg-gradient-to-b from-gray-900/30 via-black/20 to-gray-900/30">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-red-500/5 via-transparent to-blue-500/5"></div>
@@ -120,6 +123,7 @@ function Home() {
     const [error, setError] = useState(null);
     const [dataLoaded, setDataLoaded] = useState(false);
     const { user, accessToken } = useAuth();
+    const { isSocio, tipoSocio, isFounder } = useSocioStatus();
     const navigate = useNavigate();
 
     const handleProfileNavigation = () => {
@@ -135,15 +139,15 @@ function Home() {
 
         const fetchData = async () => {
             try {
-                // console.log('Iniciando fetch de datos...');
+                // logger.debug('Iniciando fetch de datos...');
                 
                 const [servicesRes, barbersRes] = await Promise.all([
                     api.get('/services'),
                     api.get(`/barbers?_t=${Date.now()}`) // Force refresh con timestamp
                 ]);
 
-                console.log('Respuesta de servicios:', servicesRes);
-                console.log('Respuesta de barberos:', barbersRes);
+                logger.debug('Respuesta de servicios:', servicesRes);
+                logger.debug('Respuesta de barberos:', barbersRes);
 
                 if (!servicesRes.success || !barbersRes.success) {
                     throw new Error('Error al cargar los datos');
@@ -152,28 +156,28 @@ function Home() {
                 const servicesData = servicesRes.data || [];
                 const barbersData = barbersRes.data || [];
 
-                console.log('Datos de barberos recibidos:', barbersData);
+                logger.debug('Datos de barberos recibidos:', barbersData);
 
                 // Filtrar barberos que son realmente barberos y están activos
                 const activeBarbers = barbersData.filter(barber => {
-                    console.log('Evaluando barbero:', barber);
+                    logger.debug('Evaluando barbero:', barber);
                     return barber.user && 
                            barber.user.role === 'barber' && 
                            (barber.user.isActive !== false) && 
                            (barber.isActive !== false);
                 });
 
-                console.log('🏠 [Home] Barberos activos filtrados:', activeBarbers.length);
+                logger.debug('🏠 [Home] Barberos activos filtrados:', activeBarbers.length);
 
                 // Filtrar barberos principales (isMainBarber: true)
                 const mainBarbers = activeBarbers.filter(barber => barber.isMainBarber === true);
-                console.log('🎯 [Home] Barberos principales encontrados:', mainBarbers.length);
-                console.log('🎯 [Home] Lista de principales:', mainBarbers.map(b => `${b.user?.name}: ${b.isMainBarber}`));
+                logger.debug('🎯 [Home] Barberos principales encontrados:', mainBarbers.length);
+                logger.debug('🎯 [Home] Lista de principales:', mainBarbers.map(b => `${b.user?.name}: ${b.isMainBarber}`));
 
                 // Si no hay barberos principales, mostrar los primeros 3 activos
                 const barbersToShow = mainBarbers.length > 0 ? mainBarbers : activeBarbers.slice(0, 3);
-                console.log('📺 [Home] Barberos finales a mostrar:', barbersToShow.length);
-                console.log('📺 [Home] Barberos a mostrar:', barbersToShow.map(b => b.user?.name));
+                logger.debug('📺 [Home] Barberos finales a mostrar:', barbersToShow.length);
+                logger.debug('📺 [Home] Barberos a mostrar:', barbersToShow.map(b => b.user?.name));
 
                 // Filtrar servicios que están marcados para mostrar en Home (máximo 3)
                 const homeServices = servicesData.filter(service => service.showInHome === true).slice(0, 3);
@@ -358,6 +362,19 @@ function Home() {
                                                         <span className="sm:hidden">A</span>
                                                     </span>
                                                 )}
+                                                {isSocio && (
+                                                    <span className="inline-flex items-center gap-0.5 px-1 sm:px-1.5 py-0.5 bg-gradient-to-r from-yellow-600/40 to-orange-600/40 border border-yellow-400/50 text-yellow-200 rounded text-[9px] sm:text-xs font-medium shadow-lg shadow-yellow-500/30 backdrop-blur-sm leading-none">
+                                                        {isFounder ? (
+                                                            <Crown className="w-1.5 h-1.5 sm:w-2 sm:h-2" />
+                                                        ) : (
+                                                            <svg className="w-1.5 h-1.5 sm:w-2 sm:h-2" viewBox="0 0 20 20" fill="currentColor">
+                                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                            </svg>
+                                                        )}
+                                                        <span className="hidden sm:inline">{isFounder ? 'Fundador' : 'Socio'}</span>
+                                                        <span className="sm:hidden">S</span>
+                                                    </span>
+                                                )}
                                                 {user.role === 'barber' && (
                                                     <span className="inline-flex items-center gap-0.5 px-1 sm:px-1.5 py-0.5 bg-gradient-to-r from-red-600/40 to-orange-600/40 border border-red-400/50 text-red-200 rounded text-[9px] sm:text-xs font-medium shadow-lg shadow-red-500/30 backdrop-blur-sm leading-none">
                                                         <Scissors className="w-1.5 h-1.5 sm:w-2 sm:h-2" />
@@ -399,10 +416,7 @@ function Home() {
                     <div className="text-center max-w-3xl lg:max-w-4xl mx-auto mb-12 sm:mb-20 pt-16 sm:pt-12">
                         <div className="space-y-2 sm:space-y-4 mb-6 sm:mb-8">
                             <GradientText className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
-                                Servicios Profesionales
-                            </GradientText>
-                            <GradientText className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
-                                de Barbería
+                                Nuestros Servicios 
                             </GradientText>
                         </div>
                         <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 leading-relaxed max-w-xl lg:max-w-2xl mx-auto px-4">
@@ -688,3 +702,4 @@ function Home() {
 }
 
 export default Home;
+

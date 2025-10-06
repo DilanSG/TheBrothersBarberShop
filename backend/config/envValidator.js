@@ -12,7 +12,7 @@ const requiredEnvVars = {
   },
   PORT: {
     required: false,
-    default: '3000',
+    default: '5000',
     validator: (value) => !isNaN(parseInt(value)) && parseInt(value) > 0
   },
 

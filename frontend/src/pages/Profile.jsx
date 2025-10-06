@@ -1,12 +1,14 @@
 import React from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../shared/contexts/AuthContext';
+import { useSocioStatus } from '../shared/hooks/useSocioStatus';
 import { Link } from 'react-router-dom';
-import {PageContainer} from '../components/layout/PageContainer';
-import GradientButton from '../components/ui/GradientButton';
-import { User, Mail, Phone, Calendar, Edit3 } from 'lucide-react';
+import {PageContainer} from '../shared/components/layout/PageContainer';
+import GradientButton from '../shared/components/ui/GradientButton';
+import { User, Mail, Phone, Calendar, Edit3, Crown } from 'lucide-react';
 
 function Profile() {
   const { user } = useAuth();
+  const { isSocio, tipoSocio, isFounder } = useSocioStatus();
 
   if (!user) return <p className="text-center text-red-500 mt-10">No has iniciado sesión.</p>;
 
@@ -66,11 +68,24 @@ function Profile() {
                     </span>
                   </div>
                 )}
-                {/* Badge de rol */}
-                <div className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs px-2 py-1 sm:px-3 sm:py-1 rounded-full shadow-lg">
-                  <span className="bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent font-medium">
-                    {user.role === 'admin' ? 'Admin' : user.role === 'barber' ? 'Barbero' : 'Cliente'}
-                  </span>
+                {/* Badges de rol y socio compactas */}
+                <div className="absolute -bottom-1 -right-1 flex gap-1">
+                  {/* Badge de rol principal */}
+                  <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs px-2 py-1 rounded-full shadow-lg shadow-blue-500/30 border border-blue-400/30 backdrop-blur-sm">
+                    <span className="font-semibold text-white drop-shadow-sm">
+                      Admin
+                    </span>
+                  </div>
+                  
+                  {/* Badge de socio */}
+                  {isSocio && (
+                    <div className="bg-gradient-to-r from-yellow-600 to-orange-600 text-white text-xs px-2 py-1 rounded-full shadow-lg shadow-yellow-500/30 border border-yellow-400/30 backdrop-blur-sm">
+                      <span className="font-semibold text-white drop-shadow-sm flex items-center gap-0.5">
+                        {isFounder && <Crown className="w-2 h-2" />}
+                        {isFounder ? 'F' : 'S'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               
