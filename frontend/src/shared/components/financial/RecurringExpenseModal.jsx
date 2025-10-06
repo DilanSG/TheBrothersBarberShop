@@ -14,7 +14,7 @@ import {
   Zap
 } from 'lucide-react';
 import GradientButton from '../ui/GradientButton';
-import RecurringExpenseCalculator from '../../utils/RecurringExpenseCalculator';
+import { calculator as RecurringExpenseCalculator } from '../../recurring-expenses';
 
 /**
  * Modal para crear/editar gastos recurrentes

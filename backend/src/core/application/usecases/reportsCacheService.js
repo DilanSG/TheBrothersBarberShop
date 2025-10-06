@@ -1,4 +1,4 @@
-import { logger } from '../../../shared/utils/logger.js';
+import { logger } from '../../../barrel.js';
 
 // Variables para Redis (se inicializarán condicionalmente)
 let redisClient = null;

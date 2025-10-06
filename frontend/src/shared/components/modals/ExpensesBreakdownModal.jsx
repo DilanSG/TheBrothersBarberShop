@@ -11,7 +11,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
-import RecurringExpenseCalculator from '../../utils/RecurringExpenseCalculator';
+import { calculator as RecurringExpenseCalculator } from '../../recurring-expenses';
 
 /**
  * Modal para mostrar desglose detallado de gastos con lógica de filtros

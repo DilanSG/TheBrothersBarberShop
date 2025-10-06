@@ -1,7 +1,6 @@
 import Barber from '../../domain/entities/Barber.js';
 import User from '../../domain/entities/User.js';
-import { AppError } from '../../../shared/utils/errors.js';
-import { logger } from '../../../shared/utils/logger.js';
+import { AppError, logger } from '../../../barrel.js';
 
 export default class BarberService {
   static async getBarbers() {

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import { useRecurringExpenses } from '../../../features/expenses/hooks/useRecurringExpenses';
-import RecurringExpenseCalculator from '../../utils/RecurringExpenseCalculator';
+import { calculator as RecurringExpenseCalculator } from '../../recurring-expenses';
 
 /**
  * Modal para editar gastos recurrentes día a día

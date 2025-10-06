@@ -60,7 +60,14 @@ export default defineConfig({
   // Configuración de resolución
   resolve: {
     alias: {
-      '@': '/src'
+      '@': '/src',
+      '@shared': '/src/shared',
+      '@utils': '/src/shared/utils',
+      '@components': '/src/shared/components',
+      '@hooks': '/src/shared/hooks',
+      '@services': '/src/shared/services',
+      '@contexts': '/src/shared/contexts',
+      '@recurring-expenses': '/shared/recurring-expenses'
     }
   },
   

@@ -7,8 +7,8 @@
 
 import mongoose from 'mongoose';
 import Expense from '../../domain/entities/Expense.js';
-import RecurrenceCalculator from './RecurrenceCalculator.js';
-import { logger } from '../../../shared/utils/logger.js';
+import RecurrenceCalculator from './RecurrenceCalculatorAdapter.js';
+import { logger } from '../../../barrel.js';
 
 class ExpenseScheduler {
   /**

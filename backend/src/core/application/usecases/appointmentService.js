@@ -2,8 +2,7 @@ import mongoose from 'mongoose';
 import Appointment from '../../domain/entities/Appointment.js';
 import Barber from '../../domain/entities/Barber.js'; 
 import Service from '../../domain/entities/Service.js';
-import { AppError } from '../../../shared/utils/errors.js';
-import { logger } from '../../../shared/utils/logger.js';
+import { AppError, logger } from '../../../barrel.js';
 // import ReportsCacheService from './reportsCacheService.js';
 
 // const reportsCacheService = new ReportsCacheService();

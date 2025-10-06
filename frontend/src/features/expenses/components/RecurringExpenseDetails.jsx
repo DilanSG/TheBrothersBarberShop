@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { format, parseISO, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar, ChevronRight, AlertCircle, Check, Edit3, Trash2 } from 'lucide-react';
-import RecurringExpenseHelper from '../../../shared/utils/RecurringExpenseHelper';
+import { RecurringExpenseHelper } from '../../../shared/recurring-expenses';
 
 /**
  * Componente para mostrar detalles de un gasto recurrente
