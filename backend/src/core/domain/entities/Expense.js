@@ -502,7 +502,7 @@ expenseSchema.statics.processRecurringExpenses = async function() {
         nextDate = calculateNextDate(lastProcessed, config);
       } else {
         // Importar dinámicamente el calculador nuevo
-        const { default: RecurrenceCalculator } = await import('../../application/services/RecurrenceCalculator.js');
+        const { default: RecurrenceCalculator } = await import('../../application/services/RecurrenceCalculatorAdapter.js');
         const calculator = new RecurrenceCalculator();
         nextDate = calculator.getNextOccurrenceDate(recurringExpense);
       }
@@ -725,7 +725,7 @@ expenseSchema.methods.getNextExecutionDate = async function() {
   if (this.type === 'recurring-template') {
     try {
       // Importar dinámicamente para evitar dependencias circulares
-      const { default: RecurrenceCalculator } = await import('../../application/services/RecurrenceCalculator.js');
+      const { default: RecurrenceCalculator } = await import('../../application/services/RecurrenceCalculatorAdapter.js');
       const calculator = new RecurrenceCalculator();
       return calculator.getNextOccurrenceDate(this);
     } catch (error) {

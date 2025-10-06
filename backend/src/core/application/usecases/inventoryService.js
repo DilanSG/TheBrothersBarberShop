@@ -1,7 +1,6 @@
 import { Inventory } from '../../domain/entities/index.js';
 import Expense from '../../domain/entities/Expense.js';
-import { AppError } from '../../../shared/utils/errors.js';
-import { logger } from '../../../shared/utils/logger.js';
+import { AppError, logger } from '../../../barrel.js';
 
 class InventoryService {
   static async getAllItems(filters = {}) {

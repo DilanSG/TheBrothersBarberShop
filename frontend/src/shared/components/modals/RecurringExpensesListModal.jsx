@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { X, Repeat, Calendar, Edit2, Trash2, Play, Pause } from 'lucide-react';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import DailyRecurringExpenseModal from './DailyRecurringExpenseModal';
-import RecurringExpenseCalculator from '../../utils/RecurringExpenseCalculator';
+import { calculator as RecurringExpenseCalculator } from '../../recurring-expenses';
 
 /**
  * Modal para listar y gestionar gastos recurrentes

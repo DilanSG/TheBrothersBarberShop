@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../services/api';
 import { getCurrentDateColombia, getYesterdayDateColombia } from '../utils/dateUtils';
-import RecurringExpenseCalculator from '../utils/RecurringExpenseCalculator';
+import { calculator as RecurringExpenseCalculator } from '../recurring-expenses';
 
 /**
  * Hook para manejar reportes financieros optimizado con caché y agregaciones

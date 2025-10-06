@@ -36,7 +36,7 @@ import ProductsSoldModal from '../../shared/components/modals/ProductsSoldModal'
 import AppointmentsBreakdownModal from '../../shared/components/modals/AppointmentsBreakdownModal';
 import useFinancialReports from '../../shared/hooks/useFinancialReports';
 import { useRecurringExpenses } from '../../features/expenses/hooks/useRecurringExpenses';
-import RecurringExpenseCalculator from '../../shared/utils/RecurringExpenseCalculator';
+import { calculator as RecurringExpenseCalculator } from '../../shared/recurring-expenses';
 import { format, differenceInCalendarMonths } from 'date-fns'
 
 const frequencies = [

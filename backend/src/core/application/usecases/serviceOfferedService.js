@@ -1,5 +1,5 @@
 import { Service, Barber } from '../../domain/entities/index.js';
-import { AppError } from '../../../shared/utils/errors.js';
+import { AppError } from '../../../barrel.js';
 import { logger } from '../../../shared/utils/logger.js';
 
 class ServiceOfferedService {

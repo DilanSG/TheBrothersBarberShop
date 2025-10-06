@@ -71,12 +71,6 @@ const AppointmentsBreakdownModal = ({ isOpen, onClose, revenueData, dashboardDat
         border: 'border-green-500/30',
         text: 'text-green-300'
       },
-      'tarjeta': {
-        bg: 'bg-blue-500/10',
-        border: 'border-blue-500/30',
-        text: 'text-blue-300'
-      },
-
       'transferencia': {
         bg: 'bg-purple-500/10',
         border: 'border-purple-500/30',

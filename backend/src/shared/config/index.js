@@ -156,3 +156,6 @@ export * from './email.js';
 export * from './cors.js';
 export * from './rateLimit.js';
 export * from './jwt.js';
+
+// Exportar configuración principal como default
+export default config;

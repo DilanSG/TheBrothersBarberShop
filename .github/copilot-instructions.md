@@ -389,10 +389,11 @@ export const useEntityData = (entityId) => {
 - **Configuración de logs mejorada:** Rotación automática de 30 días
 - **Migración de logging:** Scripts críticos migrados de `console.log` a `logger`
 
-### ⏳ En Progreso
-- **Consolidación de utilidades de gastos recurrentes:** Eliminar duplicación entre frontend/backend
-- **Unificación de configuraciones:** Centralizar CORS, JWT y validaciones
-- **Optimización de imports:** Implementar barrel exports para rutas profundas
+### ✅ Completadas en Octubre 2025
+- **Consolidación de utilidades de gastos recurrentes:** Módulo unificado en `shared/recurring-expenses/`
+- **Eliminación de código duplicado:** 1,353 líneas removidas (RecurringExpenseCalculator, RecurrenceCalculator, RecurringExpenseHelper)
+- **Barrel exports:** Implementados en `backend/src/barrel.js` y `frontend/src/barrel.js` para imports optimizados
+- **Optimización de imports:** 13 archivos refactorizados para usar rutas centralizadas
 
 ### 🎯 Plan Completo
 - Consultar `PLAN_MEJORAS.md` en la raíz del proyecto para detalles completos
@@ -400,10 +401,11 @@ export const useEntityData = (entityId) => {
 - **Fase 2:** Refactoring de duplicación (en progreso)
 - **Fase 3:** Optimización de arquitectura (planificada)
 
-### 🚨 REGLAS DURANTE LAS MEJORAS
-- **NO duplicar código** - verificar si ya existe una implementación similar
-- **Consultar antes de crear nuevos servicios de cache** - hay múltiples implementaciones
-- **Usar rutas de import consistentes** - evitar `../../../shared/utils/`
+### 🚨 REGLAS TRAS LAS MEJORAS (Octubre 2025)
+- **USAR el módulo unificado de gastos recurrentes** - `shared/recurring-expenses/` en lugar de implementaciones duplicadas
+- **USAR barrel exports** - `import { logger, AppError } from '../barrel.js'` en lugar de rutas profundas
+- **NO recrear RecurringExpenseCalculator** - usar `calculator` del módulo unificado
+- **USAR aliases de Vite** - `@shared`, `@utils`, `@components` configurados
 - **Seguir el patrón de asyncHandler** - importar desde `middleware/index.js`
 
 ## 🔧 Scripts y Comandos

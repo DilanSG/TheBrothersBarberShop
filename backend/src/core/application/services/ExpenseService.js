@@ -7,11 +7,10 @@
 
 import Expense from '../../domain/entities/Expense.js';
 import PaymentMethod from '../../domain/entities/PaymentMethod.js';
-import RecurrenceCalculator from './RecurrenceCalculator.js';
+import RecurrenceCalculator from './RecurrenceCalculatorAdapter.js';
 import RecurrenceValidator from './RecurrenceValidator.js';
 import ExpenseScheduler from './ExpenseScheduler.js';
-import { AppError } from '../../../shared/utils/errors.js';
-import { logger } from '../../../shared/utils/logger.js';
+import { AppError, logger } from '../../../barrel.js';
 
 class ExpenseService {
   /**
