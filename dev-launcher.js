@@ -1,37 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * The Brothers Barber Shop - Development Server Launcher (Simplified)
+ * The Brothers Barber Shop - Development Server Launcher (Simplified & Modern)
  */
 
-const { spawn, exec } = require('child_process');
+const { execa } = require('execa');
 const fs = require('fs');
-const path = require('path');
 const readline = require('readline');
-
-// Función para encontrar el ejecutable correcto de npm
-function getNpmExecutable() {
-  if (process.platform === 'win32') {
-    // En Windows, probar diferentes opciones
-    const possiblePaths = [
-      'npm.cmd',
-      'npm.bat', 
-      'npm'
-    ];
-    
-    for (const npmPath of possiblePaths) {
-      try {
-        // Verificar si existe ejecutando which/where
-        require('child_process').execSync(`where ${npmPath}`, { stdio: 'ignore' });
-        return npmPath;
-      } catch (e) {
-        // Continuar con el siguiente
-      }
-    }
-    return 'npm'; // Fallback
-  }
-  return 'npm';
-}
 
 // Colores para terminal
 const colors = {
@@ -54,148 +29,192 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-function pauseForUser(message = 'Presiona ENTER para continuar...') {
-  return new Promise(resolve => {
-    rl.question(`\n${message}`, () => {
-      resolve();
-    });
-  });
+// Función para filtrar warnings de npm
+function filterNpmWarnings(output) {
+  const lines = output.split('\n');
+  return lines.filter(line => {
+    const trimmed = line.trim();
+    return !(
+      trimmed.includes('npm warn config') ||
+      trimmed.includes('Use `--omit=dev` instead') ||
+      trimmed.includes('Use `--omit=optional`') ||
+      trimmed.includes('Default value does install') ||
+      trimmed.includes('Please use --include=dev') ||
+      trimmed.includes('This option has been deprecated') ||
+      trimmed.includes('--prefer-online') ||
+      trimmed === 'npm warn config' ||
+      trimmed === ''
+    );
+  }).join('\n');
 }
 
 async function main() {
+  let frontendProcess, backendProcess;
+  
   try {
     console.clear();
-    colorLog('========================================', 'blue');
-    colorLog('   THE BROTHERS BARBER SHOP - DEV MODE', 'blue');
-    colorLog('========================================', 'blue');
+    colorLog('THE BROTHERS BARBER SHOP - DEV MODE', 'blue');
     console.log('');
-    
-    colorLog(`📁 Directorio: ${process.cwd()}`, 'cyan');
+    colorLog(`Ruta : ${process.cwd()}`, 'cyan');
     console.log('');
-    
-    // Verificar archivos básicos
+    colorLog('  SERVIDORES EJECUTÁNDOSE', 'green');
+    colorLog('Frontend: http://localhost:5173', 'blue');
+    colorLog('Backend: http://localhost:5000', 'magenta');
+    colorLog('Presiona Ctrl+C para detener', 'cyan');
+    console.log('');
+      
+ 
+    // Verificar estructura del proyecto
     if (!fs.existsSync('package.json')) {
-      colorLog('❌ package.json no encontrado', 'red');
-      await pauseForUser('❌ Error: Ejecuta desde la raíz del proyecto. Presiona ENTER...');
+      colorLog('package.json no encontrado', 'red');
       process.exit(1);
     }
     
     if (!fs.existsSync('backend') || !fs.existsSync('frontend')) {
-      colorLog('❌ Carpetas backend/frontend no encontradas', 'red');
-      await pauseForUser('❌ Error: Estructura de proyecto incorrecta. Presiona ENTER...');
+      colorLog('Carpetas backend/frontend no encontradas', 'red');
       process.exit(1);
     }
     
-    colorLog('✅ Estructura del proyecto verificada', 'green');
+    colorLog('Estructura del proyecto verificada', 'green');
     
-    // Verificar dependencias backend
-    if (!fs.existsSync('backend/node_modules')) {
-      colorLog('📦 Instalando dependencias del backend...', 'yellow');
-      await new Promise((resolve, reject) => {
-        const install = spawn('npm', ['install'], { cwd: 'backend', stdio: 'pipe' });
-        install.on('close', (code) => {
-          if (code === 0) {
-            colorLog('✅ Dependencias del backend instaladas', 'green');
-            resolve();
-          } else {
-            reject(new Error(`npm install backend falló con código ${code}`));
-          }
-        });
-      });
+    // Verificar dependencias
+    for (const folder of ['backend', 'frontend']) {
+      if (!fs.existsSync(`${folder}/node_modules`)) {
+        colorLog(`Instalando dependencias del ${folder}...`, 'yellow');
+        try {
+          await execa('npm', ['install'], { 
+            cwd: folder,
+            shell: true,
+            env: {
+              ...process.env,
+              NODE_NO_WARNINGS: '1',
+              NODE_OPTIONS: '--no-warnings --no-deprecation'
+            }
+          });
+          colorLog(`Dependencias del ${folder} instaladas`, 'green');
+        } catch (error) {
+          throw new Error(`npm install ${folder} falló: ${error.message}`);
+        }
+      }
     }
     
-    // Verificar dependencias frontend
-    if (!fs.existsSync('frontend/node_modules')) {
-      colorLog('📦 Instalando dependencias del frontend...', 'yellow');
-      await new Promise((resolve, reject) => {
-        const install = spawn('npm', ['install'], { cwd: 'frontend', stdio: 'pipe' });
-        install.on('close', (code) => {
-          if (code === 0) {
-            colorLog('✅ Dependencias del frontend instaladas', 'green');
-            resolve();
-          } else {
-            reject(new Error(`npm install frontend falló con código ${code}`));
-          }
-        });
-      });
-    }
+    colorLog('Iniciando servidores...', 'cyan');
     
-    console.log('');
-    colorLog('🚀 Iniciando servidores...', 'cyan');
-    console.log('');
+    // ===== FRONTEND PRIMERO =====
+    colorLog('Iniciando Frontend...', 'blue');
     
-    // Iniciar backend
-    colorLog('🟣 Iniciando Backend...', 'magenta');
-    const npmExecutable = getNpmExecutable();
-    const backendProcess = spawn(npmExecutable, ['run', 'dev'], { 
-      cwd: 'backend', 
-      stdio: 'pipe',
-      shell: process.platform === 'win32'
+    frontendProcess = execa('npm', ['run', 'dev'], { 
+      cwd: 'frontend',
+      shell: true,
+      env: { 
+        ...process.env, 
+        NODE_NO_WARNINGS: '1',
+        NODE_OPTIONS: '--no-warnings --no-deprecation',
+        npm_config_fund: 'false',
+        npm_config_audit: 'false',
+        npm_config_loglevel: 'error'
+      },
+      reject: false
     });
     
-    backendProcess.stdout.on('data', (data) => {
-      const output = data.toString().trim();
-      if (output) {
-        const timestamp = new Date().toLocaleTimeString();
-        output.split('\n').forEach(line => {
-          if (line.trim()) colorLog(`[${timestamp}] [Backend] ${line.trim()}`, 'magenta');
-        });
-      }
-    });
-    
-    backendProcess.stderr.on('data', (data) => {
-      const output = data.toString().trim();
-      if (output && !output.includes('Warning') && !output.includes('ExperimentalWarning')) {
-        const timestamp = new Date().toLocaleTimeString();
-        colorLog(`[${timestamp}] [Backend] ${output}`, 'red');
-      }
-    });
-    
-    // Esperar 3 segundos antes de iniciar frontend
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    // Iniciar frontend
-    colorLog('🔵 Iniciando Frontend...', 'blue');
-    const frontendProcess = spawn(npmExecutable, ['run', 'dev'], { 
-      cwd: 'frontend', 
-      stdio: 'pipe',
-      shell: process.platform === 'win32'
-    });
+    let frontendReady = false;
     
     frontendProcess.stdout.on('data', (data) => {
-      const output = data.toString().trim();
+      const output = filterNpmWarnings(data.toString().trim());
       if (output) {
         const timestamp = new Date().toLocaleTimeString();
         output.split('\n').forEach(line => {
-          if (line.trim()) colorLog(`[${timestamp}] [Frontend] ${line.trim()}`, 'blue');
+          const trimmed = line.trim();
+          if (trimmed) {
+            colorLog(`[${timestamp}] [Frontend] ${trimmed}`, 'blue');
+            
+            // Detectar cuando Vite está listo
+            if ((trimmed.includes('ready in') || 
+                trimmed.includes('Local:') || 
+                (trimmed.includes('VITE') && trimmed.includes('ready'))) && !frontendReady) {
+              frontendReady = true;
+              setTimeout(() => {
+                startBackend();
+              }, 1000);
+            }
+          }
         });
       }
     });
     
     frontendProcess.stderr.on('data', (data) => {
-      const output = data.toString().trim();
+      const output = filterNpmWarnings(data.toString().trim());
       if (output && !output.includes('Warning') && !output.includes('ExperimentalWarning')) {
         const timestamp = new Date().toLocaleTimeString();
         colorLog(`[${timestamp}] [Frontend] ${output}`, 'red');
       }
     });
-    
-    console.log('');
-    colorLog('========================================', 'green');
-    colorLog('   SERVIDORES EJECUTÁNDOSE', 'green');
-    colorLog('========================================', 'green');
-    colorLog('🌐 Backend: http://localhost:5000', 'yellow');
-    colorLog('🌐 Frontend: http://10.50.246.104:5173', 'yellow');
-    colorLog('💡 Presiona Ctrl+C para detener', 'cyan');
-    console.log('');
-    
-    // Abrir navegador después de 5 segundos
+
+    // Timeout para frontend
     setTimeout(() => {
-      const { exec } = require('child_process');
-      exec('start http://10.50.246.104:5173');
-    }, 5000);
+      if (!frontendReady) {
+        colorLog('⚠️ Frontend iniciado (timeout) - iniciando Backend...', 'yellow');
+        startBackend();
+      }
+    }, 15000);
+
     
-    // Indicador cada 30 segundos
+    // ===== FUNCIÓN PARA INICIAR BACKEND =====
+    function startBackend() {
+      if (frontendReady) {        
+      }
+      
+      colorLog('Iniciando Backend...', 'magenta');
+      
+      backendProcess = execa('npm', ['run', 'dev'], { 
+        cwd: 'backend',
+        shell: true,
+        env: { 
+          ...process.env, 
+          NODE_NO_WARNINGS: '1',
+          NODE_OPTIONS: '--no-warnings --no-deprecation',
+          npm_config_fund: 'false',
+          npm_config_audit: 'false',
+          npm_config_loglevel: 'error'
+        },
+        reject: false
+      });
+      
+      backendProcess.stdout.on('data', (data) => {
+        const output = filterNpmWarnings(data.toString().trim());
+        if (output) {
+          const timestamp = new Date().toLocaleTimeString();
+          output.split('\n').forEach(line => {
+            if (line.trim()) colorLog(`[${timestamp}] [Backend] ${line.trim()}`, 'magenta');
+          });
+        }
+      });
+      
+      backendProcess.stderr.on('data', (data) => {
+        const output = filterNpmWarnings(data.toString().trim());
+        if (output && !output.includes('Warning') && !output.includes('ExperimentalWarning') && !output.includes('DeprecationWarning')) {
+          const timestamp = new Date().toLocaleTimeString();
+          colorLog(`[${timestamp}] [Backend] ${output}`, 'red');
+        }
+      });     
+    }
+    
+    // Abrir navegador
+    setTimeout(async () => {
+      try {
+        if (process.platform === 'win32') {
+          await execa('cmd', ['/c', 'start', 'http://localhost:5173'], { reject: false });
+        } else if (process.platform === 'darwin') {
+          await execa('open', ['http://localhost:5173'], { reject: false });
+        } else {
+          await execa('xdg-open', ['http://localhost:5173'], { reject: false });
+        }
+      } catch (error) {
+        colorLog('ℹ️ No se pudo abrir el navegador automáticamente', 'yellow');
+      }
+    }, 8000);
+    
+    // Indicador cada 2 minutos
     const keepAlive = setInterval(() => {
       const timestamp = new Date().toLocaleTimeString();
       colorLog(`[${timestamp}] Servidores ejecutándose...`, 'green');
@@ -206,11 +225,24 @@ async function main() {
       clearInterval(keepAlive);
       colorLog('\n🛑 Cerrando servidores...', 'yellow');
       
-      if (backendProcess && !backendProcess.killed) {
-        backendProcess.kill('SIGTERM');
+      if (backendProcess && backendProcess.kill) {
+        try {
+          backendProcess.kill('SIGTERM');
+        } catch (error) {
+          if (backendProcess.pid) {
+            process.kill(backendProcess.pid, 'SIGTERM');
+          }
+        }
       }
-      if (frontendProcess && !frontendProcess.killed) {
-        frontendProcess.kill('SIGTERM');
+      
+      if (frontendProcess && frontendProcess.kill) {
+        try {
+          frontendProcess.kill('SIGTERM');
+        } catch (error) {
+          if (frontendProcess.pid) {
+            process.kill(frontendProcess.pid, 'SIGTERM');
+          }
+        }
       }
       
       setTimeout(() => {
@@ -230,7 +262,6 @@ async function main() {
     console.error('');
     colorLog(`❌ ERROR: ${error.message}`, 'red');
     console.error(error.stack);
-    await pauseForUser('❌ Ha ocurrido un error. Presiona ENTER para cerrar...');
     rl.close();
     process.exit(1);
   }
@@ -241,14 +272,6 @@ process.on('uncaughtException', async (error) => {
   console.error('');
   colorLog('❌ ERROR NO CAPTURADO:', 'red');
   console.error(error.message);
-  console.error(error.stack);
-  
-  try {
-    await pauseForUser('❌ Error crítico. Presiona ENTER para cerrar...');
-  } catch (e) {
-    console.error('Error en pauseForUser:', e);
-  }
-  
   process.exit(1);
 });
 
@@ -256,28 +279,13 @@ process.on('unhandledRejection', async (reason) => {
   console.error('');
   colorLog('❌ PROMESA RECHAZADA:', 'red');
   console.error(reason);
-  
-  try {
-    await pauseForUser('❌ Error en promesa. Presiona ENTER para cerrar...');
-  } catch (e) {
-    console.error('Error en pauseForUser:', e);
-  }
-  
   process.exit(1);
 });
 
 // Ejecutar
 if (require.main === module) {
-  main().catch(async (error) => {
-    console.error('');
+  main().catch((error) => {
     colorLog(`❌ ERROR PRINCIPAL: ${error.message}`, 'red');
-    
-    try {
-      await pauseForUser('❌ Error en main. Presiona ENTER para cerrar...');
-    } catch (e) {
-      console.error('Error en pauseForUser:', e);
-    }
-    
     process.exit(1);
   });
 }
