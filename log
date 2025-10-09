@@ -1,0 +1,489 @@
+[7:28:34 a.m.] [Backend] [nodemon] restarting due to changes...
+[7:28:35 a.m.] [Backend] [nodemon] starting `dotenv -e .env -- node src/index.js`
+[7:28:41 a.m.] Servidores ejecutándose...
+[7:28:47 a.m.] [Backend] 2025-10-09 07:28:47 [SYSTEM]: Inicializando sistema de inyección de dependencias
+[7:28:47 a.m.] [Backend] 2025-10-09 07:28:47 [SYSTEM]: Sistema DI disponible globalmente en app.locals.diContainer
+[7:28:48 a.m.] [Backend] 2025-10-09 07:28:48 [SYSTEM]: THE BROTHERS BARBER SHOP - BACKEND SERVER
+[7:28:48 a.m.] [Backend] 2025-10-09 07:28:48 [DATABASE]: Conectando a MongoDB...
+[7:28:50 a.m.] [Backend] 2025-10-09 07:28:50 [DATABASE]: Conexión establecida exitosamente
+[7:28:50 a.m.] [Backend] 2025-10-09 07:28:50 [SYSTEM]: Inicializando rutas de la API...
+[7:28:51 a.m.] [Backend] 2025-10-09 07:28:51 [SYSTEM]: Inicializando Contenedor de Inyección de Dependencias
+[7:28:51 a.m.] [Backend] 2025-10-09 07:28:51 [SYSTEM]: Registrando implementaciones de repositorios
+[7:28:51 a.m.] [Backend] 2025-10-09 07:28:51 [SYSTEM]: Implementaciones de repositorios registradas exitosamente
+[7:28:51 a.m.] [Backend] 2025-10-09 07:28:51 [SYSTEM]: Contenedor DI inicializado exitosamente
+[7:28:51 a.m.] [Backend] 2025-10-09 07:28:51 [DEBUG]: Obteniendo dependencia: UserRepository
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [INFO]: [CACHE] SmartCache initialized for development environment
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [INFO]: Rutas y middlewares de error inicializados correctamente
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SYSTEM]: Rutas inicializadas correctamente
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [CACHE]: Inicializando Smart Cache...
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [CACHE]: SmartCache inicializado - Singleton verificado y listo para uso
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [CACHE]: Smart Cache listo - Estado: healthy | Tipo: memory | Keys: 0
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [EMAIL]: Verificando configuración de servicio de email...
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [WARN]: Servicio no configurado - Funcionará en modo sin notificaciones
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SECURITY]: Inicializando sistema de verificación de seguridad...
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SECURITY]: Código de verificación de reembolsos generado: 223165 (Válido por 1 hora)
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SECURITY]: Sistema de códigos de verificación activo
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [BACKUP]: Inicializando sistema de backup automático...
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [BACKUP]: Inicializando sistema de backup automático...
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [BACKUP]: Trabajos programados: 3 tareas automáticas (diario 02:00, incremental cada 6hrs, limpieza semanal)
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [BACKUP]: Sistema de backup automático configurado y activo
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [BACKUP]: Sistema optimizado integrado al servidor
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [BACKUP]: Middleware y rutas API configuradas
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [BACKUP]: Sistema de backup completamente configurado
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SCHEDULER]: Inicializando sistema de trabajos programados...
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SCHEDULER]: Recordatorios de citas: Configurado (cada hora)
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SCHEDULER]: Resúmenes diarios: Configurado (20:00 hrs)
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SCHEDULER]: Resúmenes semanales: Configurado (Lunes 09:00 hrs)
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SCHEDULER]: Todos los trabajos programados están activos
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SCHEDULER]: Cron jobs inicializados correctamente
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SYSTEM]: Iniciando servidor HTTP...
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SYSTEM]: SERVIDOR INICIADO EXITOSAMENTE
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SYSTEM]: Modo: DEVELOPMENT
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SYSTEM]: Puerto: 5000
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SYSTEM]: URL Local: http://localhost:5000
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SYSTEM]: Documentación API: http://localhost:5000/api/docs
+[7:28:52 a.m.] [Backend] 2025-10-09 07:28:52 [SYSTEM]: Estado: ACTIVO Y FUNCIONANDO
+[7:30:41 a.m.] Servidores ejecutándose...
+[7:32:41 a.m.] Servidores ejecutándose...
+[7:34:41 a.m.] Servidores ejecutándose...
+[7:36:41 a.m.] Servidores ejecutándose...
+[7:38:41 a.m.] Servidores ejecutándose...
+[7:40:41 a.m.] Servidores ejecutándose...
+[7:42:41 a.m.] Servidores ejecutándose...
+[7:44:41 a.m.] Servidores ejecutándose...
+[7:46:12 a.m.] [Backend] [nodemon] restarting due to changes...
+[7:46:13 a.m.] [Backend] [nodemon] starting `dotenv -e .env -- node src/index.js`
+[7:46:13 a.m.] [Backend] node:internal/modules/cjs/loader:1413
+  throw err;
+  ^
+Error: Cannot find module 'C:\Users\ADMIN\Desktop\TheBrothersBarberShop\backend\node_modules\dotenv-cli\cli.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1410:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1051:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1056:22)
+    at Module._load (node:internal/modules/cjs/loader:1219:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:238:24)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+Node.js v24.6.0
+[7:46:13 a.m.] [Backend] [nodemon] app crashed - waiting for file changes before starting...
+[7:46:41 a.m.] Servidores ejecutándose...
+[7:47:22 a.m.] [Backend] [nodemon] restarting due to changes...
+[7:47:22 a.m.] [Backend] [nodemon] starting `dotenv -e .env -- node src/index.js`
+[7:47:22 a.m.] [Backend] node:internal/modules/package_json_reader:268
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'node-cron' imported from C:\Users\ADMIN\Desktop\TheBrothersBarberShop\backend\src\services\cronJobService.js
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:268:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:735:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:712:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at #link (node:internal/modules/esm/module_job:208:49) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+Node.js v24.6.0
+[7:47:22 a.m.] [Backend] [nodemon] app crashed - waiting for file changes before starting...
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/features/admin/AdminBarbers.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/features/admin/AdminServices.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/features/appointments/BarberAppointment.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/features/auth/Register.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/features/barbers/BarberProfile.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/features/admin/DetailedModals.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/features/admin/Inventory.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/features/admin/Reports.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/features/admin/Reports.jsx, /src/shared/components/modals/DailyRecurringExpenseModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/layouts/MainLayout.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/pages/Home.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/features/appointments/UserAppointment.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/features/barbers/BarberProfileEdit.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/features/barbers/BarberSales.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/features/barbers/Barbers.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/pages/Appointment.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/financial/ExpenseManagement.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/inventory/InventorySnapshot.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/AddPaymentMethodModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/features/admin/AdminServices.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/features/admin/AdminServices.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/pages/PublicBarbers.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/contexts/PaymentMethodsContext.jsx, /src/features/admin/Inventory.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/shared/contexts/InventoryContext.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/features/admin/AdminBarbers.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/features/admin/Reports.jsx, /src/shared/components/modals/DailyRecurringExpenseModal.jsx, /src/shared/components/modals/ExpensesBreakdownModal.jsx, /src/shared/components/modals/ExpensesBreakdownReportModal.jsx, /src/shared/components/modals/RecurringExpensesListModal.jsx, /src/shared/components/financial/RecurringExpenseModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/common/RefundSaleModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/common/RefundedSalesModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/common/SimpleDateFilter.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/shared/contexts/AuthContext.jsx, /src/app.jsx, /src/features/auth/Register.jsx, /src/features/barbers/Barbers.jsx, /src/pages/Home.jsx, /src/features/admin/Reports.jsx, /src/features/admin/UserRoleManager.jsx, /src/features/barbers/BarberProfile.jsx, /src/features/admin/Inventory.jsx, /src/features/barbers/BarberSales.jsx, /src/pages/PublicBarbers.jsx, /src/shared/components/modals/DailyRecurringExpenseModal.jsx, /src/features/admin/AdminBarbers.jsx, /src/features/appointments/AppointmentEdit.jsx, /src/pages/UserProfileEdit.jsx, /src/features/barbers/BarberProfileEdit.jsx, /src/features/appointments/BarberAppointment.jsx, /src/features/appointments/UserAppointment.jsx, /src/features/appointments/AppointmentDetail.jsx, /src/shared/components/modals/InventoryLogsModal.jsx, /src/shared/components/modals/SavedInventoriesModal.jsx, /src/shared/components/inventory/InventorySnapshot.jsx, /src/shared/components/common/RefundSaleModal.jsx, /src/features/appointments/AdminAppointment.jsx, /src/pages/Profile.jsx, /src/shared/components/financial/FinancialDashboard.jsx, /src/shared/components/modals/SociosModal.jsx, /src/shared/components/common/RefundedSalesModal.jsx, /src/shared/components/modals/DeleteRefundModal.jsx, /src/shared/components/modals/CompleteAppointmentModal.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/financial/OneTimeExpenseModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/financial/RecurringExpenseModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/AppointmentsBreakdownModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/CashBreakdownModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/CompleteAppointmentModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/DailyRecurringExpenseModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/DeleteExpenseModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/DeleteRefundModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/DigitalPaymentsBreakdownModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/ExpensesBreakdownModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/InventoryLogsModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/ProductsSoldModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/RecurringExpensesListModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/RevenueBreakdownModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/ServicesBreakdownModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/SociosModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/shared/contexts/PaymentMethodsContext.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/features/admin/AdminBarbers.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/features/admin/AdminBarbers.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/features/admin/Reports.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/layouts/MainLayout.jsx, /src/shared/components/dev/AnalyticsDashboard.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/dev/CacheMonitor.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/layouts/MainLayout.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/layouts/MainLayout.jsx, /src/shared/components/layout/Navbar.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/features/admin/AdminBarbers.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/features/admin/AdminBarbers.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/financial/FinancialDashboard.jsx, /src/shared/components/common/RefundSaleModal.jsx, /src/shared/components/common/RefundedSalesModal.jsx, /src/shared/components/modals/DeleteRefundModal.jsx
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/shared/contexts/NotificationContext.jsx, /src/shared/contexts/AuthContext.jsx, /src/app.jsx, /src/features/auth/Register.jsx, /src/features/barbers/Barbers.jsx, /src/pages/Home.jsx, /src/features/admin/Reports.jsx, /src/features/admin/UserRoleManager.jsx, /src/features/barbers/BarberProfile.jsx, /src/features/admin/Inventory.jsx, /src/features/barbers/BarberSales.jsx, /src/pages/PublicBarbers.jsx, /src/shared/components/modals/DailyRecurringExpenseModal.jsx, /src/features/admin/AdminBarbers.jsx, /src/features/appointments/AppointmentEdit.jsx, /src/pages/UserProfileEdit.jsx, /src/features/barbers/BarberProfileEdit.jsx, /src/features/appointments/BarberAppointment.jsx, /src/features/appointments/UserAppointment.jsx, /src/features/appointments/AppointmentDetail.jsx, /src/shared/components/modals/InventoryLogsModal.jsx, /src/shared/components/modals/SavedInventoriesModal.jsx, /src/shared/components/inventory/InventorySnapshot.jsx, /src/shared/components/common/RefundSaleModal.jsx, /src/features/appointments/AdminAppointment.jsx, /src/pages/Profile.jsx, /src/shared/components/financial/FinancialDashboard.jsx, /src/shared/components/modals/SociosModal.jsx, /src/shared/components/common/RefundedSalesModal.jsx, /src/shared/components/modals/DeleteRefundModal.jsx, /src/shared/components/modals/CompleteAppointmentModal.jsx, /src/shared/contexts/InventoryContext.jsx, /src/layouts/MainLayout.jsx, /src/shared/components/dev/AnalyticsDashboard.jsx, /src/shared/components/layout/Navbar.jsx, /src/features/admin/DetailedModals.jsx, /src/shared/components/dev/CacheMonitor.jsx, /src/pages/Appointment.jsx, /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css
+[7:47:28 a.m.] [Frontend] 7:47:28 a.m. [vite] (client) hmr update /src/index.css
+[7:48:41 a.m.] Servidores ejecutándose...
+[7:50:41 a.m.] Servidores ejecutándose...
+[7:52:41 a.m.] Servidores ejecutándose...
+[7:54:41 a.m.] Servidores ejecutándose...
+[7:56:41 a.m.] Servidores ejecutándose...
+[7:58:41 a.m.] Servidores ejecutándose...
+[8:00:42 a.m.] Servidores ejecutándose...
+[8:02:42 a.m.] Servidores ejecutándose...
+[8:03:31 a.m.] [Frontend] 8:03:31 a.m. [vite] (client) hmr invalidate /src/shared/contexts/PaymentMethodsContext.jsx Could not Fast Refresh ("default" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[8:03:31 a.m.] [Frontend] 8:03:31 a.m. [vite] (client) hmr update /src/app.jsx, /src/features/barbers/BarberSales.jsx, /src/shared/components/modals/RevenueBreakdownModal.jsx, /src/shared/components/modals/CompleteAppointmentModal.jsx
+[8:03:31 a.m.] [Frontend] 8:03:31 a.m. [vite] (client) hmr invalidate /src/shared/contexts/InventoryContext.jsx Could not Fast Refresh ("useInventoryRefresh" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[8:03:31 a.m.] [Frontend] 8:03:31 a.m. [vite] (client) hmr update /src/app.jsx, /src/features/admin/Inventory.jsx, /src/features/barbers/BarberSales.jsx
+[8:03:33 a.m.] [Frontend] 8:03:33 a.m. [vite] (client) hmr invalidate /src/shared/contexts/AuthContext.jsx Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[8:03:33 a.m.] [Frontend] 8:03:33 a.m. [vite] (client) page reload src/shared/contexts/AuthContext.jsx
+[8:03:34 a.m.] [Frontend] 8:03:34 a.m. [vite] (client) hmr invalidate /src/shared/components/dev/AnalyticsDashboard.jsx Could not Fast Refresh ("useAnalyticsDashboard" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[8:03:34 a.m.] [Frontend] 8:03:34 a.m. [vite] (client) hmr update /src/layouts/MainLayout.jsx
+[8:03:35 a.m.] [Frontend] 8:03:35 a.m. [vite] (client) hmr invalidate /src/shared/components/dev/CacheMonitor.jsx Could not Fast Refresh ("useCacheMonitor" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[8:03:35 a.m.] [Frontend] 8:03:35 a.m. [vite] (client) hmr update /src/layouts/MainLayout.jsx
+[8:04:42 a.m.] Servidores ejecutándose...
+[8:06:42 a.m.] Servidores ejecutándose...
+[8:08:42 a.m.] Servidores ejecutándose...
+[8:10:42 a.m.] Servidores ejecutándose...
+[8:12:42 a.m.] Servidores ejecutándose...
+[8:14:42 a.m.] Servidores ejecutándose...
+[8:15:59 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/features/admin/AdminBarbers.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/features/admin/DetailedModals.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/features/admin/Inventory.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/features/admin/Reports.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/features/admin/UserRoleManager.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/features/admin/AdminServices.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/features/appointments/AdminAppointment.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/features/appointments/AppointmentDetail.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/features/appointments/AppointmentEdit.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/features/appointments/AppointmentRouter.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/features/appointments/BarberAppointment.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/features/appointments/UserAppointment.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/features/auth/Login.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/features/auth/ProtectedRoute.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/features/auth/PublicRoute.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/features/auth/Register.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/features/auth/RequireAuth.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/features/barbers/BarberProfile.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/features/barbers/BarberProfileEdit.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/features/barbers/Barbers.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/features/barbers/BarberSales.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/DailyRecurringExpenseModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/pages/Dashboard.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/common/RefundedSalesModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/common/RefundSaleModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/common/SimpleDateFilter.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/pages/UserProfileEdit.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/shared/components/dev/AnalyticsDashboard.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/shared/components/dev/CacheMonitor.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/financial/ExpenseManagement.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/financial/ExpenseTypeSelector.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/financial/FinancialDashboard.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/financial/OneTimeExpenseModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/financial/RecurringExpenseModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/shared/components/layout/Navbar.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/layout/PageContainer.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/inventory/InventorySnapshot.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/AddPaymentMethodModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/AppointmentsBreakdownModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/CalendarModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/CashBreakdownModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/CompleteAppointmentModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/DailyRecurringExpenseModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/DateRangeModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/DeleteExpenseModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/DeleteRefundModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/DeleteServiceModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/DigitalPaymentsBreakdownModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/EditServiceModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/ExpensesBreakdownModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/ExpensesBreakdownReportModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/InventoryLogsModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/OneTimeExpensesListModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/PaymentMethodsModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/ProductsSoldModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/RecurringExpensesListModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/RevenueBreakdownModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/RevenueTypesModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/SavedInventoriesModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/ServicesBreakdownModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/modals/SociosModal.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/shared/components/navigation/Breadcrumbs.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/shared/components/notifications/NotificationContainer.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/ui/GradientButton.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/ui/GradientText.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/ui/LoadingSpinner.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/ui/StatusBadge.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/shared/components/ui/UserAvatar.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/config/api.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/config/paymentMethods.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/constants/salesConstants.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/shared/contexts/AuthContext.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/shared/contexts/InventoryContext.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/shared/contexts/NotificationContext.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/shared/contexts/PaymentMethodsContext.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/app.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/hooks/useBarberStats.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/hooks/useBarberUI.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/hooks/useBodyScrollLock.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/hooks/useDetailedReports.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/hooks/useFinancialReports.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/hooks/useModalData.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/layouts/MainLayout.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/hooks/useNavigationCache.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/layouts/MainLayout.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/layouts/MainLayout.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/pages/Profile.jsx, /src/pages/Home.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/hooks/useUnifiedModal.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/recurring-expenses/calculator.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/recurring-expenses/constants.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/recurring-expenses/formatter.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/recurring-expenses/index.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/recurring-expenses/validator.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/pages/Home.jsx, /src/pages/PublicBarbers.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/services/authService.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/services/availableDatesService.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/services/batchProcessingService.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/services/cacheService.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/services/refundService.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/services/sociosService.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css, /src/pages/Home.jsx
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/utils/dateUtils.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/utils/expenseCalculations.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/pages/Home.jsx, /src/pages/PublicBarbers.jsx, /src/pages/Appointment.jsx, /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) hmr update /src/index.css
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/utils/scrollLockManager.js
+[8:16:00 a.m.] [Frontend] 8:15:59 a.m. [vite] (client) page reload src/shared/utils/expenseCategories.js
+[8:16:01 a.m.] [Frontend] 8:16:01 a.m. [vite] .env changed, restarting server...
+[8:16:01 a.m.] [Frontend] 8:16:01 a.m. [vite] .env.development changed, restarting server...
+[8:16:01 a.m.] [Frontend] 8:16:01 a.m. [vite] .env.local changed, restarting server...
+[8:16:01 a.m.] [Frontend] 8:16:01 a.m. [vite] (client) page reload dist/404.html
+[8:16:02 a.m.] [Frontend] 8:16:02 a.m. [vite] (client) page reload index.html
+[8:16:02 a.m.] [Frontend] 8:16:02 a.m. [vite] (client) page reload dist/index.html
+[8:16:02 a.m.] [Backend] [nodemon] restarting due to changes...
+[8:16:02 a.m.] [Backend] [nodemon] starting `dotenv -e .env -- node src/index.js`
+[8:16:04 a.m.] [Frontend] 8:16:04 a.m. [vite] (client) Forced re-optimization of dependencies
+[8:16:06 a.m.] [Frontend] 8:16:06 a.m. [vite] server restarted.
+[8:16:42 a.m.] Servidores ejecutándose...
+[8:18:35 a.m.] [Backend] 🚀 Starting server...
+[8:18:35 a.m.] [Backend] 📍 Port: 5000
+[8:18:35 a.m.] [Backend] 🌍 Environment: development
+[8:18:35 a.m.] [Backend] 🚀 Iniciando servidor...
+[8:18:35 a.m.] [Backend] 📍 Puerto configurado: 5000
+[8:18:35 a.m.] [Backend] 🌍 Entorno: development
+[8:18:35 a.m.] [Backend] ✅ Servidor iniciado exitosamente en puerto 5000
+[8:18:35 a.m.] [Backend] 📡 Servidor escuchando en http://0.0.0.0:5000
+[8:18:35 a.m.] [Backend] 2025-10-09 08:18:35 undefined info:
+[8:18:35 a.m.] [Backend] 🚀 Servidor iniciado en modo development
+[8:18:35 a.m.] [Backend] 📡 API escuchando en:
+[8:18:35 a.m.] [Backend]    - http://localhost:5000
+[8:18:35 a.m.] [Backend]    - http://localhost:5000
+[8:18:35 a.m.] [Backend] 📚 Documentación API: http://localhost:5000/api/docs
+[8:18:35 a.m.] [Backend]
+[8:18:38 a.m.] [Backend] --Mongoose conectado a la base de datos--
+[8:18:38 a.m.] [Backend] --MongoDB Conectado--
+[8:18:38 a.m.] [Backend] 2025-10-09 08:18:38 undefined info: ✅ Conexión a la base de datos establecida
+[8:18:42 a.m.] Servidores ejecutándose...
+[8:20:21 a.m.] [Frontend] 8:20:21 a.m. [vite] (client) page reload public/404.html
+[8:20:23 a.m.] [Frontend] 8:20:23 a.m. [vite] vite.config.js changed, restarting server...
+[8:20:26 a.m.] [Frontend] 8:20:26 a.m. [vite] (client) Re-optimizing dependencies because vite config has changed
+[8:20:26 a.m.] [Frontend] 8:20:26 a.m. [vite] server restarted.
+[8:20:26 a.m.] [Frontend] ➜  Local:   http://localhost:5173/
+[8:20:26 a.m.] [Frontend] ➜  Network: http://10.163.212.104:5173/
+[8:20:42 a.m.] Servidores ejecutándose...
+[8:22:42 a.m.] Servidores ejecutándose...
+[8:24:42 a.m.] Servidores ejecutándose...
+
+🛑 Cerrando servidores...
+
+🛑 Cerrando servidores...
+
+🛑 Cerrando servidores...
+✅ Servidores cerrados
+ ADMIN@DESKTOP-IQ5TFM6  ~  Desktop  TheBrothersBarberShop  main   
+❯ Taskkill /f /im esbuild.exe
+ERROR: no se encontró el proceso "esbuild.exe".
+ ADMIN@DESKTOP-IQ5TFM6  ~  Desktop  TheBrothersBarberShop  main   
+❯ taskkill /f /im node.exe
+Correcto: se terminó el proceso "node.exe" con PID 14116.
+Correcto: se terminó el proceso "node.exe" con PID 14052.
+Correcto: se terminó el proceso "node.exe" con PID 13924.
+Correcto: se terminó el proceso "node.exe" con PID 9340.
+Correcto: se terminó el proceso "node.exe" con PID 8640.
+Correcto: se terminó el proceso "node.exe" con PID 5020.
+ ADMIN@DESKTOP-IQ5TFM6  ~  Desktop  TheBrothersBarberShop  main 
+❯ cd backend
+ ADMIN@DESKTOP-IQ5TFM6  ~  Desktop  TheBrothersBarberShop  backend  main 
+❯ npm run dev
+npm warn config production Use `--omit=dev` instead.
+npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+npm warn config `--include=optional` to include them.
+npm warn config
+npm warn config       Default value does install optional deps unless otherwise omitted.
+npm warn config dev Please use --include=dev instead.
+npm warn config cache-max This option has been deprecated in favor of `--prefer-online`
+
+> the-brothers-barbershop-backend@1.0.0 dev
+> nodemon --exec "dotenv -e .env -- node" src/index.js
+
+========================================
+   THE BROTHERS BARBER SHOP - DEV MODE
+========================================
+
+📁 Directorio: C:\Users\ADMIN\Desktop\TheBrothersBarberShop
+
+✅ Estructura del proyecto verificada
+
+🚀 Iniciando servidores...
+
+🟣 Iniciando Backend...
+(node:720) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[9:06:45 a.m.] [Backend] npm warn config production Use `--omit=dev` instead.
+[9:06:45 a.m.] [Backend] > the-brothers-barbershop-backend@1.0.0 dev
+[9:06:45 a.m.] [Backend] > nodemon --exec "dotenv -e .env -- node" src/index.js
+[9:06:45 a.m.] [Backend] npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+npm warn config `--include=optional` to include them.
+npm warn config
+npm warn config       Default value does install optional deps unless otherwise omitted.
+npm warn config dev Please use --include=dev instead.
+npm warn config cache-max This option has been deprecated in favor of `--prefer-online`
+[9:06:46 a.m.] [Backend] [nodemon] 3.1.10
+[9:06:46 a.m.] [Backend] [nodemon] to restart at any time, enter `rs`
+[9:06:46 a.m.] [Backend] [nodemon] watching path(s): *.*
+[9:06:46 a.m.] [Backend] [nodemon] watching extensions: js,mjs,cjs,json
+[9:06:46 a.m.] [Backend] [nodemon] starting `dotenv -e .env -- node src/index.js`
+[9:06:46 a.m.] [Backend] node:internal/modules/package_json_reader:268
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'node-cron' imported from C:\Users\ADMIN\Desktop\TheBrothersBarberShop\backend\src\services\cronJobService.js
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:268:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:735:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:712:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at #link (node:internal/modules/esm/module_job:208:49) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.6.0
+[9:06:46 a.m.] [Backend] [nodemon] app crashed - waiting for file changes before starting...
+🔵 Iniciando Frontend...
+
+========================================
+   SERVIDORES EJECUTÁNDOSE
+========================================
+🌐 Backend: http://localhost:5000
+🌐 Frontend: http://10.50.246.104:5173
+💡 Presiona Ctrl+C para detener
+
+[9:06:48 a.m.] [Frontend] npm warn config production Use `--omit=dev` instead.
+[9:06:48 a.m.] [Frontend] npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+npm warn config `--include=optional` to include them.
+npm warn config
+npm warn config       Default value does install optional deps unless otherwise omitted.
+npm warn config dev Please use --include=dev instead.
+[9:06:48 a.m.] [Frontend] npm warn config cache-max This option has been deprecated in favor of `--prefer-online`
+[9:06:49 a.m.] [Frontend] > thebrothersbarbershop-frontend@1.0.0 dev
+[9:06:49 a.m.] [Frontend] > vite --mode development
+[9:06:49 a.m.] [Frontend] node:internal/modules/esm/resolve:274
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\Users\ADMIN\Desktop\TheBrothersBarberShop\frontend\node_modules\vite\dist\node\chunks\dep-827b23df.js' imported from C:\Users\ADMIN\Desktop\TheBrothersBarberShop\frontend\node_modules\vite\dist\node\cli.js
+    at finalizeResolution (node:internal/modules/esm/resolve:274:11)
+    at moduleResolve (node:internal/modules/esm/resolve:864:10)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:735:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:712:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at #link (node:internal/modules/esm/module_job:208:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///C:/Users/ADMIN/Desktop/TheBrothersBarberShop/frontend/node_modules/vite/dist/node/chunks/dep-827b23df.js'
+}
