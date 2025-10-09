@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "vite --mode development",
     "dev:network": "vite --mode network --host",
-    "build": "vite build",
+    "build": "npx vite build",
     "preview": "vite preview",
-    "vercel-build": "npm run build",
+    "vercel-build": "npx vite build",
     "config:local": "node scripts/config-api.js local",
     "config:network": "node scripts/config-api.js network",
     "config:help": "node scripts/config-api.js"
