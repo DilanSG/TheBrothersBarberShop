@@ -93,21 +93,25 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // Rutas de la API
 app.use(`/api/${config.app.apiVersion}`, routes);
 
-// Ruta raíz - Bienvenida de la API
+// Ruta raíz - Bienvenida de la API  
 app.get('/', (req, res) => {
-  res.status(200).json({
-    success: true,
-    service: 'The Brothers Barber Shop API',
-    version: config.app.apiVersion,
-    message: 'API funcionando correctamente',
-    endpoints: {
-      health: '/health',
-      api: `/api/${config.app.apiVersion}`,
-      documentation: '/api/docs'
-    },
-    timestamp: new Date().toISOString(),
-    environment: config.app.nodeEnv
-  });
+  try {
+    logger.info('🎯 Root route accessed successfully');
+    res.status(200).json({
+      success: true,
+      service: 'The Brothers Barber Shop API',
+      version: 'v1',
+      message: 'API funcionando correctamente',
+      timestamp: new Date().toISOString(),
+      status: 'online'
+    });
+  } catch (error) {
+    logger.error('Error in root route:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
 });
 
 // Ruta de estado de salud
