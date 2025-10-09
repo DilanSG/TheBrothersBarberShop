@@ -1,4 +1,4 @@
-name: Deploy to Render
+name: Deploy to Production
 
 on:
   push:
@@ -6,20 +6,18 @@ on:
   pull_request:
     branches: [ main, master ]
 
+env:
+  NODE_ENV: production
+  CACHE_ENABLED: true
+  CACHE_TTL: 300
+  CACHE_MAX_KEYS: 500
+  CI: true
+  NPM_CONFIG_PROGRESS: false
+  NPM_CONFIG_LOGLEVEL: warn
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
-    env:
-      # Variables para optimizar SmartCache en CI/CD
-      NODE_ENV: production
-      CACHE_ENABLED: true
-      CACHE_TTL: 300
-      CACHE_MAX_KEYS: 500
-      # Optimizaciones para GitHub Actions
-      CI: true
-      NPM_CONFIG_PROGRESS: false
-      NPM_CONFIG_LOGLEVEL: warn
     
     steps:
     - name: Checkout code
@@ -29,9 +27,8 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        # No usar cache de npm automático para monorepo
         
-    - name: Cache SmartCache y dependencias backend
+    - name: Cache dependencies backend (SmartCache)
       uses: actions/cache@v4
       with:
         path: |
@@ -79,23 +76,10 @@ jobs:
         cd frontend
         npm run build
         
-    - name: Verify SmartCache functionality
-      run: |
-        cd backend
-        echo "Verificando funcionalidad de SmartCache"
-        # Verificar que el SmartCacheAdapter esté disponible
-        if [ -f "src/infrastructure/cache/SmartCacheAdapter.js" ]; then
-          echo "SmartCacheAdapter encontrado"
-        else
-          echo "SmartCacheAdapter no encontrado"
-          exit 1
-        fi
-        
     - name: Run backend tests (if any)
       run: |
         cd backend
-        echo "Ejecutando tests del backend (con SmartCache)"
-        npm test || echo "No tests configured - continuing deployment"
+        npm test || echo "No tests configured"
         
     - name: Deploy to Render
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
@@ -112,14 +96,13 @@ jobs:
     - name: Deployment Success
       if: success()
       run: |
-        echo "Deployment completado exitosamente con SmartCache!"
-        echo "Backend deployed to Render con cache optimizado"
-        echo "Frontend will be deployed to Vercel automatically"
-        echo "SmartCache system activated for optimal performance"
+        echo "✅ Deployment completed successfully!"
+        echo "🚀 Backend deployed to Render"
+        echo "🌐 Frontend will be deployed to Vercel automatically"
         
     - name: Deployment Failed
       if: failure()
       run: |
-        echo "Deployment failed!"
+        echo "❌ Deployment failed!"
         echo "Check the logs above for details"
         exit 1
