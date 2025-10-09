@@ -93,14 +93,20 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // Rutas de la API
 app.use(`/api/${config.app.apiVersion}`, routes);
 
-// Ruta raíz para verificación de estado
+// Ruta raíz - Bienvenida de la API
 app.get('/', (req, res) => {
   res.status(200).json({
-    status: 'success',
-    message: 'The Brothers Barber Shop API',
+    success: true,
+    service: 'The Brothers Barber Shop API',
     version: config.app.apiVersion,
-    docs: `/api/docs`,
-    health: `/health`
+    message: 'API funcionando correctamente',
+    endpoints: {
+      health: '/health',
+      api: `/api/${config.app.apiVersion}`,
+      documentation: '/api/docs'
+    },
+    timestamp: new Date().toISOString(),
+    environment: config.app.nodeEnv
   });
 });
 
