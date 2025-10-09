@@ -11,20 +11,30 @@ import mongoose from 'mongoose';
 
 const startServer = async () => {
   try {
+    console.log('INICIANDO SERVIDOR...');
+    console.log('Puerto configurado:', config.app.port);
+    console.log('Entorno:', config.app.nodeEnv);
+    
     // Conectar a la base de datos
     await connectDB();
     logger.info('Conexión a la base de datos establecida');
+    console.log('Base de datos conectada exitosamente');
 
-    // Verificar configuración de email
-    try {
-      await emailService.verifyConnection();
-      logger.info('📧 Servicio de email configurado y listo');
-    } catch (error) {
-      logger.warn('📧 Servicio de email no configurado o con errores:', error.message);
-    }
+    // Verificar configuración de email (no bloquear el startup)
+    emailService.verifyConnection()
+      .then(() => {
+        logger.info('Servicio de email configurado y listo');
+      })
+      .catch((error) => {
+        logger.warn('Servicio de email no configurado o con errores:', error.message);
+      });
 
     // Inicializar trabajos programados (cron jobs)
     cronJobService.initializeJobs();
+    console.log('Cron jobs inicializados');
+    
+    console.log('Iniciando servidor en puerto:', config.app.port);
+    console.log('Host configurado: 0.0.0.0');
     
     // Iniciar el servidor
     const server = app.listen(config.app.port, '0.0.0.0', () => {
