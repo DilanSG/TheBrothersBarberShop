@@ -1,338 +1,428 @@
 # The Brothers Barber Shop
+**Sistema Integral de Gestión para Barbería Profesional**
 
-## Descripción General
+The Brothers Barber Shop es una solución empresarial completa desarrollada específicamente para la gestión integral de establecimientos de barbería. El sistema combina tecnologías modernas con una arquitectura robusta para ofrecer control total sobre operaciones diarias, finanzas, inventario y administración de personal.
 
-The Brothers Barber Shop es un sistema integral de gestión para barbería desarrollado con arquitectura moderna full-stack. La aplicación proporciona una solución completa para la administración de citas, gestión de inventario, control de ventas, y administración de personal, ofreciendo interfaces diferenciadas según el rol del usuario.
+## Visión General del Sistema
 
-## Arquitectura del Sistema
+Esta plataforma proporciona una experiencia unificada que abarca desde la programación de citas hasta el análisis financiero detallado, diseñada para barberos, administradores y clientes. El sistema se distingue por su enfoque en la escalabilidad, seguridad y facilidad de uso, adaptándose a las necesidades específicas del negocio de barbería profesional.
 
-### Stack Tecnológico
+### Características Distintivas
 
-**Backend**
-- Node.js con Express.js y arquitectura Clean Architecture
-- MongoDB con Mongoose ODM para persistencia de datos
-- Autenticación JWT con refresh tokens diferenciados por rol
-- Cloudinary para gestión de imágenes
-- Winston para logging profesional con rotación de archivos
-- Redis para caché y optimización de rendimiento
+- **Arquitectura Clean Architecture**: Implementación de patrones de diseño avanzados para máxima mantenibilidad y escalabilidad
+- **Sistema de Roles Diferenciado**: Interfaces específicas optimizadas para clientes, barberos y administradores
+- **Gestión Financiera Avanzada**: Control completo de gastos recurrentes, categorización inteligente y reportes detallados
+- **Punto de Venta Integrado**: Sistema POS completo con múltiples métodos de pago y control de inventario en tiempo real
+- **Programación Inteligente**: Sistema de citas con validación de disponibilidad y optimización de horarios
 
-**Frontend**
-- React 18 con Hooks y Context API
-- Vite como build tool y servidor de desarrollo
-- Tailwind CSS para diseño responsivo con tema oscuro
-- React Router DOM para navegación SPA
-- Lucide React para iconografía consistente
+## Stack Tecnológico
 
-### Estructura de Carpetas
+### Backend - API REST Robusta
+- **Runtime**: Node.js 20+ con módulos ES6
+- **Framework**: Express.js con middleware especializado
+- **Arquitectura**: Clean Architecture con patrón Repository y Dependency Injection
+- **Base de Datos**: MongoDB con Mongoose ODM y validaciones avanzadas
+- **Autenticación**: JWT con refresh tokens diferenciados por rol y tiempos de expiración adaptativos
+- **Almacenamiento**: Cloudinary para gestión profesional de imágenes
+- **Logging**: Winston con rotación diaria y niveles diferenciados
+- **Cache**: Redis con Node-cache para optimización de rendimiento
+- **Seguridad**: Helmet, CORS, Rate Limiting, Sanitización MongoDB, XSS Protection
 
-El proyecto implementa Clean Architecture en el backend y arquitectura por features en el frontend:
+### Frontend - Aplicación React Moderna
+- **Framework**: React 18+ con Hooks y Context API para gestión de estado
+- **Build Tool**: Vite para desarrollo y producción optimizada
+- **Enrutamiento**: React Router DOM v6 con rutas protegidas
+- **Estilos**: Tailwind CSS con tema oscuro personalizado y componentes reutilizables
+- **Iconografía**: Lucide React para consistencia visual
+- **Fechas**: Date-fns con React Day Picker para manejo profesional de fechas
+- **Notificaciones**: React Toastify integrado con sistema centralizado
+- **Performance**: Lazy loading, code splitting y optimización de bundle
+
+### Arquitectura del Proyecto
 
 ```
 TheBrothersBarberShop/
-├── backend/                    # API REST con Clean Architecture
+├── backend/                           # API REST con Clean Architecture
 │   ├── src/
 │   │   ├── core/
-│   │   │   ├── domain/         # Entidades y repositorios
-│   │   │   └── application/    # Casos de uso
-│   │   ├── infrastructure/     # Configuración de BD y APIs externas
-│   │   ├── presentation/       # Controladores, rutas y middleware
-│   │   ├── services/           # Servicios de aplicación
-│   │   └── shared/            # Configuración y utilidades
-│   ├── scripts/               # Scripts de datos y mantenimiento
-│   └── docs/                  # Documentación Swagger
-├── frontend/                  # Aplicación React
+│   │   │   ├── domain/               # Entidades de negocio y interfaces
+│   │   │   │   ├── entities/         # Modelos MongoDB
+│   │   │   │   └── repositories/     # Interfaces Repository
+│   │   │   └── application/
+│   │   │       ├── usecases/         # Lógica de negocio encapsulada
+│   │   │       └── services/         # Servicios de aplicación
+│   │   ├── infrastructure/           # Capa de infraestructura
+│   │   │   ├── database/             # Implementaciones Repository
+│   │   │   ├── external/             # APIs externas (Cloudinary)
+│   │   │   └── cache/                # Adaptadores de cache
+│   │   ├── presentation/             # Capa de presentación
+│   │   │   ├── controllers/          # Controladores HTTP
+│   │   │   ├── middleware/           # Middleware personalizado
+│   │   │   └── routes/               # Definición de rutas API
+│   │   └── shared/
+│   │       ├── config/               # Configuraciones centralizadas
+│   │       ├── utils/                # Utilidades comunes
+│   │       └── constants/            # Constantes del sistema
+│   ├── scripts/                      # Scripts de mantenimiento
+│   └── docs/                         # Documentación Swagger
+├── frontend/                         # Aplicación React SPA
 │   └── src/
-│       ├── features/          # Funcionalidades por dominio
-│       ├── pages/            # Páginas principales
-│       ├── layouts/          # Layouts compartidos
-│       └── shared/           # Componentes y servicios compartidos
-└── docs/                     # Build de producción
+│       ├── features/                 # Funcionalidades por dominio
+│       │   ├── admin/                # Panel administrativo
+│       │   ├── appointments/         # Sistema de citas
+│       │   ├── auth/                 # Autenticación
+│       │   ├── barbers/              # Panel de barberos
+│       │   └── expenses/             # Gestión de gastos
+│       ├── pages/                    # Páginas principales
+│       ├── layouts/                  # Layouts reutilizables
+│       └── shared/
+│           ├── components/           # Componentes reutilizables
+│           ├── contexts/             # Context providers
+│           ├── hooks/                # Custom hooks
+│           ├── services/             # APIs y servicios
+│           └── utils/                # Utilidades frontend
+└── deployment/                      # Configuraciones de deployment
 ```
 
 ## Funcionalidades Principales
 
-### Sistema de Autenticación y Usuarios
+### Sistema de Autenticación y Gestión de Usuarios
 
-**Gestión de Usuarios**
-- Registro e inicio de sesión con validación de email
-- Sistema de roles: Cliente, Barbero y Administrador
-- Perfiles de usuario con información personal y foto
-- Tokens JWT con tiempos de expiración diferenciados por rol
-- Refresh tokens automáticos para mantener sesión activa
+**Autenticación Robusta**
+- Sistema de registro con validación de email y verificación de cuentas
+- Inicio de sesión seguro con tokens JWT y refresh automático
+- Gestión de sesiones con tiempos de expiración diferenciados por rol
+- Logout seguro con invalidación completa de tokens
 
-**Control de Acceso**
-- Rutas protegidas según rol de usuario
-- Middleware de autorización en todas las operaciones sensibles
-- Logout seguro con invalidación de tokens
+**Sistema de Roles Avanzado**
+- **Cliente**: Acceso a programación de citas, historial personal y gestión de perfil
+- **Barbero**: Panel especializado con agenda, ventas, estadísticas y gestión de servicios
+- **Administrador**: Control total del sistema, reportes financieros y gestión de usuarios
+- **Socio**: Acceso privilegiado a métricas financieras y análisis de rentabilidad
 
-### Gestión de Servicios
+### Sistema de Citas Inteligente
 
-**Catálogo de Servicios**
-- Creación y edición de servicios con descripción, precio y duración
-- Categorización por tipo: corte, afeitado, lavado, combo, otros
-- Gestión de imágenes para cada servicio
-- Sistema de activación/desactivación de servicios
+**Programación Avanzada**
+- Calendario interactivo con disponibilidad en tiempo real
+- Validación automática de horarios y prevención de dobles reservas
+- Asignación inteligente de barberos según especialidades y disponibilidad
+- Sistema de confirmación automática con notificaciones por email
 
-**Administración**
-- Solo administradores pueden crear y modificar servicios
-- Historial de cambios en precios y descripciones
-- Vista pública del catálogo para clientes
+**Estados de Cita Optimizados**
+- **Pendiente**: Cita programada esperando confirmación del barbero
+- **Confirmada**: Cita verificada y confirmada por el barbero asignado
+- **En Progreso**: Servicio siendo ejecutado actualmente
+- **Completada**: Servicio finalizado con registro de pago
+- **Cancelada**: Cita cancelada con registro de motivo y timestamps
 
-### Sistema de Citas
+**Gestión por Roles**
+- Clientes: Programar, visualizar y cancelar citas personales
+- Barberos: Gestionar agenda diaria, confirmar citas y actualizar estados
+- Administradores: Supervisión completa con reasignación y reportes
 
-**Programación de Citas**
-- Calendario interactivo para selección de fecha y hora
-- Asignación automática o manual de barberos
-- Validación de disponibilidad en tiempo real
-- Confirmación automática de citas
+### Gestión Completa de Barberos
 
-**Estados de Citas**
-- Pendiente: Cita programada
-- Confirmada: Cita confirmada por el barbero
-- En progreso: Servicio en ejecución
-- Completada: Servicio finalizado
-- Cancelada: Cita cancelada por cliente o barbero
+**Perfiles Profesionales**
+- Información personal y profesional detallada con fotografías
+- Especialidades específicas y servicios que ofrece cada barbero
+- Configuración de horarios de trabajo con disponibilidad personalizada
+- Galería de trabajos realizados y portafolio digital
 
-**Gestión por Rol**
-- Clientes: Crear, ver y cancelar sus propias citas
-- Barberos: Ver agenda, confirmar y gestionar citas asignadas
-- Administradores: Control total sobre todas las citas
+**Panel de Barbero Especializado**
+- Dashboard personalizado con agenda del día y próximas citas
+- Sistema de ventas integrado con carrito de compras y múltiples métodos de pago
+- Estadísticas de rendimiento personal con métricas de productividad
+- Gestión de comisiones y seguimiento de ingresos por período
 
-### Gestión de Barberos
+### Sistema de Inventario Profesional
 
-**Perfiles de Barberos**
-- Información personal y profesional completa
-- Especialidades y servicios que ofrece cada barbero
-- Horarios de trabajo y disponibilidad
-- Foto de perfil y galería de trabajos
+**Gestión de Productos Avanzada**
+- Catálogo completo con códigos únicos, descripciones detalladas y categorización
+- Control de stock en tiempo real con alertas automáticas de inventario bajo
+- Gestión de precios de compra y venta con seguimiento de márgenes
+- Sistema de códigos de barras y búsqueda inteligente
 
-**Panel de Barbero**
-- Dashboard con agenda del día
-- Historial de citas y servicios realizados
-- Estadísticas de rendimiento personal
-- Gestión de ventas y comisiones
+**Control de Stock Inteligente**
+- Registro automático de entradas y salidas con timestamps
+- Snapshots diarios del inventario con histórico completo
+- Reportes de rotación de productos y análisis de consumo
+- Predicción de reposición basada en patrones de uso
 
-### Sistema de Inventario
+**Alertas y Monitoreo**
+- Notificaciones automáticas por stock crítico configurable
+- Alertas de productos próximos a vencer con fechas de caducidad
+- Reportes de productos sin movimiento y análisis de inventario muerto
+- Dashboard de métricas de inventario con indicadores clave
 
-**Gestión de Productos**
-- Catálogo completo de productos con código, nombre y descripción
-- Control de stock con alertas de inventario bajo
-- Categorización de productos por tipo
-- Precios de compra y venta
+### Sistema de Ventas y Punto de Venta
 
-**Control de Stock**
-- Entradas y salidas de inventario
-- Snapshots diarios automáticos del inventario
-- Historial completo de movimientos
-- Reportes de consumo por período
+**Punto de Venta Completo**
+- Interfaz táctil optimizada para registro rápido de ventas
+- Carrito de compras con capacidad multi-producto y servicios
+- Cálculo automático de totales, descuentos e impuestos
+- Sistema de códigos de barras para agilizar el proceso
 
-**Alertas y Notificaciones**
-- Notificaciones automáticas por stock bajo
-- Reportes de productos próximos a vencer
-- Alertas de reposición necesaria
+**Métodos de Pago Múltiples**
+- Efectivo con cálculo de cambio automático
+- Tarjetas de débito y crédito con validación
+- Transferencias bancarias y pagos digitales (Nequi, Daviplata)
+- Registro detallado de cada transacción con trazabilidad completa
 
-### Sistema de Ventas
+**Comisiones y Rentabilidad**
+- Cálculo automático de comisiones por barbero
+- Seguimiento de ventas individuales y grupales
+- Análisis de rentabilidad por producto y servicio
+- Reportes de performance con comparativas mensuales
 
-**Punto de Venta**
-- Interfaz intuitiva para registro de ventas
-- Selección de productos del inventario
-- Cálculo automático de totales e impuestos
-- Múltiples métodos de pago
+### Gestión Financiera Avanzada
 
-**Métodos de Pago**
-- Efectivo, tarjeta, transferencia bancaria
-- Registro detallado de cada transacción
-- Conciliación diaria de pagos
+**Sistema de Gastos Recurrentes**
+- Configuración de gastos automáticos (arriendo, servicios, nómina)
+- Cinco categorías estáticas principales: arriendo, nómina, insumos, servicios, equipos
+- Categorías dinámicas personalizables según necesidades del negocio
+- Generación automática de instancias de gastos con programación inteligente
 
-**Reportes de Ventas**
-- Ventas por día, semana, mes
-- Reportes por barbero y por producto
-- Análisis de rentabilidad
-- Exportación de datos
+**Reportes Financieros Detallados**
+- Dashboard ejecutivo con métricas financieras clave
+- Análisis de ingresos vs gastos con proyecciones
+- Reportes de flujo de caja con períodos personalizables
+- Exportación de datos financieros en múltiples formatos
 
-### Panel de Administración
+**Control de Costos**
+- Seguimiento detallado de gastos por categoría y período
+- Análisis de tendencias con alertas de desviaciones
+- Presupuestos configurables con seguimiento de cumplimiento
+- Reportes de rentabilidad por barbero y por servicio
 
-**Gestión de Usuarios**
-- Lista completa de usuarios registrados
-- Cambio de roles y permisos
-- Activación/desactivación de cuentas
-- Estadísticas de usuarios activos
+### Panel de Administración Ejecutivo
 
-**Reportes y Análisis**
-- Dashboard ejecutivo con métricas clave
-- Reportes financieros detallados
-- Análisis de tendencias y patrones
-- Exportación de reportes en múltiples formatos
+**Gestión de Personal**
+- Administración completa de usuarios con roles y permisos
+- Control de acceso granular por funcionalidad
+- Seguimiento de actividad de usuarios con logs detallados
+- Sistema de activación/desactivación de cuentas
 
 **Configuración del Sistema**
-- Gestión de servicios y precios
-- Configuración de horarios de atención
-- Administración de barberos y sus horarios
-- Configuración de métodos de pago
+- Gestión centralizada de servicios con precios y duraciones
+- Configuración de horarios de atención por barbero
+- Administración de métodos de pago y comisiones
+- Personalización de categorías de gastos y productos
 
-### Sistema de Socios
+**Análisis y Reportes**
+- Reportes ejecutivos con métricas de negocio
+- Análisis de tendencias y patrones de comportamiento
+- Dashboard de KPIs con indicadores personalizables
+- Exportación automática de reportes programados
 
-**Gestión de Socios**
-- Registro de socios con porcentajes de participación
-- Control exclusivo para administradores
-- Diferenciación entre socios regulares y fundador
-- Histórico de cambios en la sociedad
+### Sistema de Socios y Participaciones
 
-**Socio Fundador**
-- Un único socio fundador por sistema
-- Creación exclusiva mediante scripts autorizados
-- Control total sobre la configuración del negocio
-- Acceso a todas las métricas financieras
+**Gestión de Sociedad**
+- Registro de socios con porcentajes de participación exactos
+- Control exclusivo para administradores autorizados
+- Diferenciación entre socios regulares y socio fundador
+- Histórico completo de cambios en la estructura societaria
 
-### Monitoreo y Logs
+**Socio Fundador Especial**
+- Un único socio fundador por sistema con privilegios especiales
+- Creación exclusiva mediante scripts de seguridad autorizados
+- Control total sobre configuraciones críticas del negocio
+- Acceso privilegiado a todas las métricas financieras sensibles
 
-**Sistema de Logging**
-- Logs detallados con Winston y rotación diaria
-- Diferentes niveles: error, warn, info, debug
-- Logs HTTP para auditoría de requests
-- Manejo de errores no capturados
+## Seguridad y Monitoreo
+
+### Seguridad Multicapa
+
+**Autenticación y Autorización**
+- Hash seguro de contraseñas con bcrypt y salt personalizado
+- Tokens JWT con algoritmos robustos y claves de firma seguras
+- Refresh tokens con expiración diferenciada por rol de usuario
+- Middleware de autorización granular en rutas críticas
+
+**Protección de API Avanzada**
+- Rate limiting inteligente para prevenir ataques de fuerza bruta
+- Helmet para configuración segura de headers HTTP
+- CORS configurado específicamente para dominios autorizados
+- Sanitización completa de datos MongoDB para prevenir inyecciones
+
+**Validación y Sanitización**
+- Express-validator para validación robusta de todos los inputs
+- Sanitización automática de datos de entrada del usuario
+- Validación de tipos de datos y formatos específicos
+- Prevención activa de inyección de código malicioso
+
+### Sistema de Logging Profesional
+
+**Logging Centralizado**
+- Winston como sistema principal con rotación automática diaria
+- Niveles diferenciados: error, warn, info, debug con filtrado inteligente
+- Logs HTTP detallados para auditoría completa de requests
+- Manejo especializado de errores no capturados con stack traces
 
 **Monitoreo de Rendimiento**
-- Middleware de monitoreo en todas las rutas
-- Métricas de tiempo de respuesta
-- Detección de cuellos de botella
-- Alertas por errores frecuentes
+- Middleware de monitoreo en tiempo real en todas las rutas críticas
+- Métricas de tiempo de respuesta con alertas automáticas
+- Detección proactiva de cuellos de botella en el sistema
+- Sistema de alertas por errores frecuentes con notificaciones
 
-## Seguridad Implementada
+## Flujos de Trabajo del Sistema
 
-### Autenticación y Autorización
-- Hash seguro de contraseñas con bcrypt
-- Tokens JWT con expiración automática
-- Refresh tokens para sesiones prolongadas
-- Middleware de autorización en rutas sensibles
+### Experiencia del Cliente
+1. **Registro**: Creación de cuenta con verificación de email obligatoria
+2. **Exploración**: Navegación por catálogo de servicios con precios actualizados
+3. **Programación**: Selección intuitiva de barbero, fecha y horario disponible
+4. **Confirmación**: Validación automática de disponibilidad y confirmación por email
+5. **Seguimiento**: Monitoreo en tiempo real del estado de la cita
+6. **Finalización**: Confirmación de servicio completado y registro de satisfacción
 
-### Protección de API
-- Rate limiting para prevenir abuso
-- Helmet para headers de seguridad
-- CORS configurado para dominios permitidos
-- Sanitización de datos MongoDB
+### Panel del Barbero
+1. **Dashboard Personalizado**: Vista consolidada de agenda diaria y métricas personales
+2. **Gestión de Citas**: Confirmación, actualización de estados y gestión de horarios
+3. **Punto de Venta**: Registro de ventas con carrito multi-producto y servicios
+4. **Control de Inventario**: Seguimiento de stock y alertas de productos críticos
+5. **Estadísticas**: Análisis de rendimiento personal y seguimiento de comisiones
+6. **Reportes**: Generación de reportes de ventas y análisis de productividad
 
-### Validación de Datos
-- Express-validator para validación robusta
-- Sanitización de inputs del usuario
-- Validación de tipos y formatos
-- Prevención de inyección de código
+### Administración Ejecutiva
+1. **Dashboard Ejecutivo**: Métricas consolidadas de todo el negocio
+2. **Gestión de Personal**: Administración de usuarios, roles y permisos
+3. **Control Financiero**: Supervisión de gastos, ingresos y rentabilidad
+4. **Configuración**: Personalización de servicios, precios y métodos de pago
+5. **Reportes Avanzados**: Generación de análisis financieros y operativos
+6. **Toma de Decisiones**: Acceso a métricas clave para decisiones estratégicas
 
-## Scripts de Mantenimiento
+## Scripts de Gestión y Mantenimiento
 
-El sistema incluye múltiples scripts para mantenimiento y gestión de datos:
+### Scripts de Datos
+- **seed.js**: Inicialización completa del sistema con datos base
+- **master-population.js**: Población completa para ambiente de desarrollo
+- **fundador-rapido.js**: Creación ágil de socio fundador con configuración básica
+- **despoblarDB.js**: Limpieza controlada de base de datos con confirmaciones
 
-**Scripts de Datos**
-- `seed.js`: Datos iniciales del sistema
-- `seed-test-data.js`: Datos de prueba para desarrollo
-- `despoblarDB.js`: Limpieza completa de la base de datos
+### Scripts de Mantenimiento
+- **check-data.js**: Verificación integral de consistencia de datos
+- **optimize-database.js**: Optimización automática de índices y consultas
+- **backup-system.js**: Sistema automatizado de respaldos con rotación
+- **health-monitor.js**: Monitoreo continuo de salud del sistema
 
-**Scripts de Socios**
-- `inicializar-socio-fundador.js`: Creación interactiva de socio fundador
-- `fundador-rapido.js`: Creación rápida de socio fundador
+### Scripts Financieros
+- **process-recurring-expenses.js**: Procesamiento automático de gastos recurrentes
+- **financial-summary.js**: Generación de resúmenes financieros periódicos
+- **commission-calculator.js**: Cálculo preciso de comisiones por barbero
 
-**Scripts de Mantenimiento**
-- `purgarCitasVencidas.js`: Limpieza automática de citas antiguas
-- `normalize-payment-methods.js`: Normalización de métodos de pago
-- `test-cron-jobs.js`: Verificación de tareas programadas
+## Configuración Técnica
 
-## Configuración del Sistema
-
-### Variables de Entorno Requeridas
+### Variables de Entorno Esenciales
 
 ```env
-# Base de datos
+# Configuración de Base de Datos
 MONGODB_URI=mongodb://localhost:27017/barbershop
+MONGODB_URI_TEST=mongodb://localhost:27017/barbershop_test
 
-# JWT Configuration
-JWT_SECRET=your-secret-key
+# Configuración JWT
+JWT_SECRET=clave-secreta-ultra-segura-256-bits
 JWT_EXPIRES_IN=6h
 JWT_REFRESH_EXPIRES_IN=30d
 
-# Cloudinary
-CLOUDINARY_CLOUD_NAME=your-cloud-name
-CLOUDINARY_API_KEY=your-api-key
-CLOUDINARY_API_SECRET=your-api-secret
+# Configuración Cloudinary
+CLOUDINARY_CLOUD_NAME=nombre-de-tu-nube
+CLOUDINARY_API_KEY=tu-api-key
+CLOUDINARY_API_SECRET=tu-api-secret
 
-# Application
+# Configuración de Aplicación
 PORT=5000
-NODE_ENV=development
-FRONTEND_URL=http://localhost:5173
-CORS_ORIGIN=http://localhost:5173,http://localhost:3000
+NODE_ENV=production
+FRONTEND_URL=https://tu-dominio-frontend.com
+
+# Configuración de Seguridad
+CORS_ORIGIN=https://tu-dominio.com,https://www.tu-dominio.com
+RATE_LIMIT_WINDOW=15
+RATE_LIMIT_MAX_REQUESTS=100
 ```
 
-### Configuración de Rate Limiting
-- Requests generales: 100 por 15 minutos
-- Endpoints de autenticación: 5 intentos por 15 minutos
-- API completa: 1000 requests por hora
+### Rate Limiting Configurado
+- **Requests Generales**: 100 solicitudes por ventana de 15 minutos
+- **Endpoints de Autenticación**: 5 intentos por 15 minutos máximo
+- **API Completa**: 1000 requests por hora con reset automático
+- **Uploads de Archivos**: 10 uploads por hora con validación de tamaño
 
-## Flujo de Trabajo del Usuario
+### Optimizaciones de Rendimiento
+- **Cache Redis**: Implementado para consultas frecuentes con TTL inteligente
+- **Compresión**: Gzip habilitado para todas las respuestas del servidor
+- **Índices MongoDB**: Optimizados para consultas críticas y búsquedas
+- **Lazy Loading**: Componentes React cargados bajo demanda
+- **Code Splitting**: Bundle dividido por rutas para carga optimizada
 
-### Para Clientes
-1. Registro en la plataforma con email válido
-2. Navegación por servicios disponibles
-3. Selección de barbero y horario disponible
-4. Confirmación de cita vía email
-5. Seguimiento del estado de la cita
+## Tecnologías y Dependencias
 
-### Para Barberos
-1. Acceso a dashboard personalizado
-2. Visualización de agenda diaria
-3. Confirmación de citas asignadas
-4. Registro de servicios completados
-5. Acceso a estadísticas personales
-6. Acceso e sistema de conteo en inventario
+### Dependencias Backend Principales
+- **express**: Framework web minimalista y robusto v4.18+
+- **mongoose**: ODM para MongoDB con validaciones v7.5+
+- **jsonwebtoken**: Implementación completa de JWT v9.0+
+- **bcryptjs**: Hash seguro de contraseñas v2.4+
+- **helmet**: Middleware de seguridad HTTP v7.0+
+- **winston**: Sistema de logging profesional v3.10+
+- **cloudinary**: Gestión de imágenes en la nube v1.40+
+- **express-validator**: Validación robusta de datos v7.0+
+- **cors**: Control de acceso de origen cruzado v2.8+
 
-### Para Administradores
-1. Dashboard ejecutivo completo
-2. Gestión de usuarios y roles
-3. Configuración de servicios y precios
-4. Supervisión de inventario y ventas
-5. Generación de reportes financieros
+### Dependencias Frontend Principales
+- **react**: Librería de interfaz de usuario v18.2+
+- **react-router-dom**: Enrutamiento para SPA v6.15+
+- **tailwindcss**: Framework CSS utility-first v3.3+
+- **lucide-react**: Librería de iconos moderna v0.280+
+- **date-fns**: Manipulación avanzada de fechas v2.30+
+- **react-toastify**: Sistema de notificaciones v9.1+
+- **vite**: Build tool optimizado v4.4+
 
-## Tecnologías de Desarrollo
+## Documentación API Completa
 
-### Backend Dependencies
-- `express`: Framework web minimalista
-- `mongoose`: ODM para MongoDB
-- `jsonwebtoken`: Autenticación JWT
-- `bcryptjs`: Hash de contraseñas
-- `helmet`: Middleware de seguridad
-- `winston`: Sistema de logging
-- `cloudinary`: Gestión de imágenes en la nube
+### OpenAPI/Swagger Integrado
+La API está completamente documentada con especificación OpenAPI 3.0:
 
-### Frontend Dependencies
-- `react`: Librería de interfaces de usuario
-- `react-router-dom`: Enrutamiento para SPA
-- `tailwindcss`: Framework de CSS utility-first
-- `lucide-react`: Librería de iconos
-- `date-fns`: Manipulación de fechas
-- `react-toastify`: Sistema de notificaciones
+- **Descripción Detallada**: Todos los endpoints con parámetros y respuestas
+- **Esquemas de Datos**: Modelos completos de request y response
+- **Códigos de Estado**: Documentación de todos los códigos HTTP utilizados
+- **Autenticación**: Flujos de autenticación y autorización detallados
+- **Ejemplos Prácticos**: Casos de uso reales para cada operación
+- **Testing Integrado**: Interfaz interactiva para pruebas de API
 
-## Documentación API
+### Endpoints Principales
+- **Autenticación**: `/api/auth/*` - Login, registro, refresh tokens
+- **Usuarios**: `/api/users/*` - Gestión de perfiles y roles
+- **Citas**: `/api/appointments/*` - Sistema completo de citas
+- **Servicios**: `/api/services/*` - Catálogo de servicios
+- **Inventario**: `/api/inventory/*` - Gestión de productos y stock
+- **Ventas**: `/api/sales/*` - Punto de venta y reportes
+- **Gastos**: `/api/expenses/*` - Sistema financiero avanzado
+- **Barberos**: `/api/barbers/*` - Gestión de barberos y horarios
 
-La API está completamente documentada con Swagger/OpenAPI 3.0, incluyendo:
-- Descripción detallada de todos los endpoints
-- Esquemas de datos de request y response
-- Códigos de estado HTTP y manejo de errores
-- Ejemplos de uso para cada operación
-- Documentación de autenticación y autorización
+## Propiedad Intelectual
 
-## Derechos Reservados
+**AVISO LEGAL IMPORTANTE**
 
-Este sistema es propiedad privada de The Brothers Barber Shop. Todos los derechos están reservados. El código fuente, la documentación, el diseño de la base de datos, la arquitectura del software y todos los componentes relacionados son confidenciales y están protegidos por derechos de autor.
+Este sistema es propiedad intelectual exclusiva y confidencial de **The Brothers Barber Shop**. Todos los derechos están estrictamente reservados. El código fuente, la documentación técnica, el diseño de la base de datos, la arquitectura del software, los algoritmos implementados y todos los componentes relacionados están protegidos por derechos de autor y constituyen secretos comerciales.
 
-**Restricciones de uso:**
-- Prohibida la reproducción, distribución o modificación sin autorización expresa
-- El acceso al código fuente está limitado a personal autorizado
-- No se permite el uso comercial o la redistribución de ninguna parte del sistema
-- Todas las marcas comerciales y nombres mencionados son propiedad de sus respectivos dueños
+### Restricciones Estrictas de Uso
 
-**Contacto legal:** Para consultas sobre licencias o uso autorizado, contactar a la administración de The Brothers Barber Shop.(Dilan Steven Acuña, garaydilan2002@gmail.com)
+- **Prohibición Absoluta**: Queda estrictamente prohibida la reproducción, distribución, modificación, ingeniería inversa o cualquier forma de copia sin autorización expresa y por escrito
+- **Acceso Controlado**: El acceso al código fuente está limitado exclusivamente a personal técnico autorizado con acuerdos de confidencialidad firmados
+- **Uso Comercial Restringido**: No se permite el uso comercial, redistribución, sublicenciamiento o creación de obras derivadas bajo ninguna circunstancia
+- **Confidencialidad**: Toda la información técnica, algoritmos y metodologías son estrictamente confidenciales y están sujetas a acuerdos de no divulgación
+
+### Marcas y Derechos
+
+Todas las marcas comerciales, nombres comerciales, logotipos y denominaciones mencionadas son propiedad de sus respectivos propietarios y se utilizan únicamente con fines identificativos.
+
+**Contacto Legal y Licencias**: Para consultas sobre licencias comerciales, uso autorizado o colaboraciones técnicas, contactar exclusivamente a la administración legal de The Brothers Barber Shop.
+
+**Desarrollador Principal**: Dilan Steven Acuña  
+**Contacto Técnico**: garaydilan2002@gmail.com  
+**Licencia**: Propietaria - Todos los Derechos Reservados
 
 ---
 
-**Versión:** 1.0.0  
-**Última actualización:** Septiembre 2025  
-**Desarrollado para:** The Brothers Barber Shop  
-**Arquitectura:** Full-Stack JavaScript (Node.js + React)
+**Versión del Sistema**: 1.0.0  
+**Última Actualización Técnica**: Octubre 2025  
+**Arquitectura**: Full-Stack JavaScript Empresarial (Node.js + React)  
+**Estado de Desarrollo**: Producción Estable  
+**Nivel de Seguridad**: Empresarial con Validaciones Múltiples
