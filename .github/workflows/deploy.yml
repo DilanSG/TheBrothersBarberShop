@@ -66,13 +66,13 @@ jobs:
       run: |
         cd backend
         echo "Instalando dependencias del backend con SmartCache"
-        npm ci --only=production --prefer-offline
+        npm ci --omit=dev --prefer-offline --legacy-peer-deps
         
     - name: Install frontend dependencies
       run: |
         cd frontend
         echo "Instalando dependencias del frontend"
-        npm ci --only=production --prefer-offline
+        npm ci --omit=dev --prefer-offline
         
     - name: Build frontend
       run: |
