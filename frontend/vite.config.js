@@ -4,12 +4,12 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: process.env.NODE_ENV === 'production' ? '/TheBrothersBarberShop/' : '/',
+  base: '/',
   
   // Configuración de construcción optimizada
   build: {
     target: 'es2020',
-    outDir: '../docs',
+    outDir: 'dist',
     assetsDir: 'assets',
     emptyOutDir: true,
     copyPublicDir: true,
@@ -21,7 +21,19 @@ export default defineConfig({
           router: ['react-router-dom'],
           ui: ['lucide-react', 'react-toastify'],
           utils: ['date-fns', 'xlsx']
-        }
+        },
+        assetFileNames: (assetInfo) => {
+          const info = assetInfo.name.split('.');
+          let extType = info[info.length - 1];
+          if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(extType)) {
+            extType = 'img';
+          } else if (/woff|woff2|eot|ttf|otf/i.test(extType)) {
+            extType = 'fonts';
+          }
+          return `assets/${extType}/[name]-[hash][extname]`;
+        },
+        chunkFileNames: 'assets/js/[name]-[hash].js',
+        entryFileNames: 'assets/js/[name]-[hash].js'
       }
     }
   },
