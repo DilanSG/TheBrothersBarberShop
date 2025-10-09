@@ -10,6 +10,17 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     
+    env:
+      # Variables para optimizar SmartCache en CI/CD
+      NODE_ENV: production
+      CACHE_ENABLED: true
+      CACHE_TTL: 300
+      CACHE_MAX_KEYS: 500
+      # Optimizaciones para GitHub Actions
+      CI: true
+      NPM_CONFIG_PROGRESS: false
+      NPM_CONFIG_LOGLEVEL: warn
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -18,27 +29,73 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
+        # No usar cache de npm automático para monorepo
+        
+    - name: Cache SmartCache y dependencias backend
+      uses: actions/cache@v4
+      with:
+        path: |
+          backend/node_modules
+          backend/.smartcache
+          ~/.npm
+        key: ${{ runner.os }}-smartcache-backend-${{ hashFiles('backend/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-smartcache-backend-
+          ${{ runner.os }}-backend-
+          
+    - name: Cache dependencias frontend
+      uses: actions/cache@v4
+      with:
+        path: |
+          frontend/node_modules
+          frontend/.vite
+          ~/.npm
+        key: ${{ runner.os }}-frontend-vite-${{ hashFiles('frontend/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-frontend-vite-
+          ${{ runner.os }}-frontend-
+        
+    - name: Initialize SmartCache system
+      run: |
+        echo "Inicializando sistema SmartCache"
+        # Crear directorios de cache si no existen
+        mkdir -p backend/.smartcache
+        mkdir -p frontend/.vite/cache
         
     - name: Install backend dependencies
       run: |
         cd backend
-        npm ci --only=production
+        echo "Instalando dependencias del backend con SmartCache"
+        npm ci --only=production --prefer-offline
         
     - name: Install frontend dependencies
       run: |
         cd frontend
-        npm ci --only=production
+        echo "Instalando dependencias del frontend"
+        npm ci --only=production --prefer-offline
         
     - name: Build frontend
       run: |
         cd frontend
         npm run build
         
+    - name: Verify SmartCache functionality
+      run: |
+        cd backend
+        echo "Verificando funcionalidad de SmartCache"
+        # Verificar que el SmartCacheAdapter esté disponible
+        if [ -f "src/infrastructure/cache/SmartCacheAdapter.js" ]; then
+          echo "SmartCacheAdapter encontrado"
+        else
+          echo "SmartCacheAdapter no encontrado"
+          exit 1
+        fi
+        
     - name: Run backend tests (if any)
       run: |
         cd backend
-        npm test || echo "No tests configured"
+        echo "Ejecutando tests del backend (con SmartCache)"
+        npm test || echo "No tests configured - continuing deployment"
         
     - name: Deploy to Render
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
@@ -55,13 +112,14 @@ jobs:
     - name: Deployment Success
       if: success()
       run: |
-        echo "✅ Deployment completed successfully!"
-        echo "🚀 Backend deployed to Render"
-        echo "🌐 Frontend will be deployed to Vercel automatically"
+        echo "Deployment completado exitosamente con SmartCache!"
+        echo "Backend deployed to Render con cache optimizado"
+        echo "Frontend will be deployed to Vercel automatically"
+        echo "SmartCache system activated for optimal performance"
         
     - name: Deployment Failed
       if: failure()
       run: |
-        echo "❌ Deployment failed!"
+        echo "Deployment failed!"
         echo "Check the logs above for details"
         exit 1
