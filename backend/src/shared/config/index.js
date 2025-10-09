@@ -10,6 +10,18 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 // Validar variables de entorno requeridas
 export const validateEnv = () => {
+  console.log('=== DEBUGGING VARIABLES DE ENTORNO ===');
+  console.log('NODE_ENV:', process.env.NODE_ENV);
+  console.log('PORT:', process.env.PORT);
+  console.log('JWT_SECRET presente:', !!process.env.JWT_SECRET);
+  console.log('MONGODB_URI presente:', !!process.env.MONGODB_URI);
+  console.log('EMAIL_USER presente:', !!process.env.EMAIL_USER);
+  console.log('EMAIL_PASSWORD presente:', !!process.env.EMAIL_PASSWORD);
+  console.log('CLOUDINARY_CLOUD_NAME presente:', !!process.env.CLOUDINARY_CLOUD_NAME);
+  console.log('CLOUDINARY_API_KEY presente:', !!process.env.CLOUDINARY_API_KEY);
+  console.log('CLOUDINARY_API_SECRET presente:', !!process.env.CLOUDINARY_API_SECRET);
+  console.log('=== FIN DEBUGGING VARIABLES ===');
+
   const requiredEnvVars = [
     'JWT_SECRET',
     'MONGODB_URI',
