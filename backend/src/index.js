@@ -7,6 +7,12 @@ import cronJobService from './services/cronJobService.js';
 import emailService from './services/emailService.js';
 import mongoose from 'mongoose';
 
+// Logs inmediatos al inicio
+console.log('=== INICIO DEL ARCHIVO INDEX.JS ===');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT:', process.env.PORT);
+console.log('=== IMPORTS COMPLETADOS ===');
+
 // Server starting...
 
 const startServer = async () => {
@@ -97,4 +103,5 @@ Sistema de notificaciones: ${process.env.EMAIL_ENABLED === 'true' ? 'Activo' : '
 };
 
 // Iniciar el servidor
+console.log('=== LLAMANDO A startServer() ===');
 startServer();
