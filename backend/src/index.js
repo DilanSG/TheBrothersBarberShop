@@ -13,7 +13,7 @@ const startServer = async () => {
   try {
     // Conectar a la base de datos
     await connectDB();
-    logger.info('✅ Conexión a la base de datos establecida');
+    logger.info('Conexión a la base de datos establecida');
 
     // Verificar configuración de email
     try {
@@ -28,13 +28,24 @@ const startServer = async () => {
     
     // Iniciar el servidor
     const server = app.listen(config.app.port, '0.0.0.0', () => {
+      console.log(`
+==============================================
+SERVER STARTED SUCCESSFULLY
+==============================================
+Environment: ${config.app.nodeEnv}
+Port: ${config.app.port}
+Host: 0.0.0.0
+URL: http://localhost:${config.app.port}
+API Docs: http://localhost:${config.app.port}/api/docs
+==============================================`);
+      
       logger.info(`
-🚀 Servidor iniciado en modo ${config.app.nodeEnv}
-📡 API escuchando en:
+Servidor iniciado en modo ${config.app.nodeEnv}
+API escuchando en:
    - http://localhost:${config.app.port}
    - http://${process.env.HOST || 'localhost'}:${config.app.port}
-📚 Documentación API: http://localhost:${config.app.port}/api/docs
-📧 Sistema de notificaciones: ${process.env.EMAIL_ENABLED === 'true' ? '✅ Activo' : '❌ Deshabilitado'}
+Documentación API: http://localhost:${config.app.port}/api/docs
+Sistema de notificaciones: ${process.env.EMAIL_ENABLED === 'true' ? 'Activo' : 'Deshabilitado'}
       `);
     });
 
@@ -43,11 +54,11 @@ const startServer = async () => {
       logger.info(`\n${signal} recibido. Iniciando apagado elegante...`);
       
       server.close(async () => {
-        logger.info('👋 Servidor HTTP cerrado');
+        logger.info('Servidor HTTP cerrado');
         
         // Detener trabajos programados
         cronJobService.stopAllJobs();
-        logger.info('📅 Cron Jobs detenidos');
+        logger.info('Cron Jobs detenidos');
         
         try {
           await mongoose.connection.close();
@@ -61,7 +72,7 @@ const startServer = async () => {
 
       // Si el servidor no se cierra en 10 segundos, forzar el cierre
       setTimeout(() => {
-        logger.error('❌ No se pudo cerrar el servidor elegantemente, forzando cierre');
+        logger.error('No se pudo cerrar el servidor elegantemente, forzando cierre');
         process.exit(1);
       }, 10000);
     };
@@ -70,7 +81,7 @@ const startServer = async () => {
     process.on('SIGINT', () => shutdown('SIGINT'));
 
   } catch (error) {
-    logger.error('❌ Error iniciando el servidor:', error);
+    logger.error('Error iniciando el servidor:', error);
     process.exit(1);
   }
 };
