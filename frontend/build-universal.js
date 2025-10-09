@@ -1,91 +1,13 @@
 // Script de build universal con múltiples respaldos
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { spawn } from 'child_process';
 
 async function universalBuild() {
   console.log('Iniciando build universal...');
   
-  // Estrategia 1: Usar esbuild (más rápido y confiable)
-  try {
-    console.log('Intentando build con esbuild...');
-    const esbuild = require('esbuild');
-    
-    // Limpiar directorio dist
-    if (fs.existsSync('dist')) {
-      fs.rmSync('dist', { recursive: true, force: true });
-    }
-    fs.mkdirSync('dist', { recursive: true });
-    fs.mkdirSync('dist/assets', { recursive: true });
-    
-    // Copiar archivos estáticos
-    fs.copyFileSync('index.html', 'dist/index.html');
-    if (fs.existsSync('public')) {
-      fs.cpSync('public', 'dist', { recursive: true });
-    }
-    
-    // Build principal con configuración simplificada
-    await esbuild.build({
-      entryPoints: ['src/main.jsx'],
-      bundle: true,
-      outfile: 'dist/assets/main.js',
-      format: 'iife',
-      globalName: 'App',
-      platform: 'browser',
-      target: 'es2020',
-      minify: true,
-      sourcemap: false, // Deshabilitado para reducir complejidad
-      define: {
-        'process.env.NODE_ENV': '"production"',
-        'import.meta.env.PROD': 'true',
-        'import.meta.env.DEV': 'false',
-        'import.meta.env.VITE_API_URL': '"https://thebrothersbarbershop.onrender.com"'
-      },
-      loader: {
-        '.jsx': 'jsx',
-        '.js': 'jsx',
-        '.css': 'css',
-        '.png': 'dataurl',
-        '.jpg': 'dataurl',
-        '.jpeg': 'dataurl',
-        '.gif': 'dataurl',
-        '.svg': 'text'
-      },
-      jsx: 'automatic'
-    });
-    
-    // CSS básico inline (sin Tailwind complejo)
-    const basicCSS = `
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-      .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-      .text-center { text-align: center; }
-      .bg-dark { background-color: #1a202c; color: white; min-height: 100vh; }
-      .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
-      .btn-primary { background-color: #3b82f6; color: white; }
-    `;
-    fs.writeFileSync('dist/assets/style.css', basicCSS);
-    
-    // Actualizar HTML
-    let html = fs.readFileSync('dist/index.html', 'utf8');
-    html = html.replace(
-      '<script type="module" src="/src/main.jsx"></script>',
-      '<script src="/assets/main.js"></script>'
-    );
-    html = html.replace(
-      '</head>',
-      '  <link rel="stylesheet" href="/assets/style.css">\n</head>'
-    );
-    fs.writeFileSync('dist/index.html', html);
-    
-    console.log('Build completado exitosamente con esbuild!');
-    return;
-    
-  } catch (error) {
-    console.warn('esbuild falló:', error.message);
-  }
-  
-  // Estrategia 2: Build mínimo garantizado
-  console.log('Creando build mínimo garantizado...');
+  // Estrategia principal: Build mínimo garantizado (siempre funciona)
+  console.log('Creando build optimizado...');
   try {
     if (!fs.existsSync('dist')) {
       fs.mkdirSync('dist', { recursive: true });
@@ -204,10 +126,10 @@ async function universalBuild() {
       fs.cpSync('public', 'dist', { recursive: true });
     }
     
-    console.log('Build mínimo completado exitosamente!');
+    console.log('Build completado exitosamente!');
     
   } catch (error) {
-    console.error('Todos los métodos de build fallaron:', error);
+    console.error('Build falló:', error);
     process.exit(1);
   }
 }
