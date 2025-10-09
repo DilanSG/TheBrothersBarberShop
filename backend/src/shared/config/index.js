@@ -17,9 +17,16 @@ export const validateEnv = () => {
   console.log('MONGODB_URI presente:', !!process.env.MONGODB_URI);
   console.log('EMAIL_USER presente:', !!process.env.EMAIL_USER);
   console.log('EMAIL_PASSWORD presente:', !!process.env.EMAIL_PASSWORD);
+  console.log('EMAIL_SERVICE presente:', !!process.env.EMAIL_SERVICE);
+  console.log('EMAIL_HOST presente:', !!process.env.EMAIL_HOST);
+  console.log('EMAIL_PORT presente:', !!process.env.EMAIL_PORT);
+  console.log('EMAIL_FROM_NAME presente:', !!process.env.EMAIL_FROM_NAME);
+  console.log('EMAIL_FROM_ADDRESS presente:', !!process.env.EMAIL_FROM_ADDRESS);
   console.log('CLOUDINARY_CLOUD_NAME presente:', !!process.env.CLOUDINARY_CLOUD_NAME);
   console.log('CLOUDINARY_API_KEY presente:', !!process.env.CLOUDINARY_API_KEY);
   console.log('CLOUDINARY_API_SECRET presente:', !!process.env.CLOUDINARY_API_SECRET);
+  console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
+  console.log('ALLOWED_ORIGINS:', process.env.ALLOWED_ORIGINS);
   console.log('=== FIN DEBUGGING VARIABLES ===');
 
   const requiredEnvVars = [
@@ -30,16 +37,19 @@ export const validateEnv = () => {
     'CLOUDINARY_API_SECRET'
   ];
 
-  // Email solo requerido en producción
-  if (process.env.NODE_ENV === 'production') {
-    requiredEnvVars.push('EMAIL_USER', 'EMAIL_PASSWORD');
-  }
-
+  // Email es opcional - el sistema puede funcionar sin emails
   const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
   if (missingVars.length > 0) {
     console.error('Variables de entorno faltantes:', missingVars.join(', '));
     throw new Error('Configuración incompleta. Por favor configura todas las variables de entorno requeridas.');
+  }
+  
+  // Solo advertir sobre email si no está configurado
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    console.warn('Variables de email no configuradas. Sistema funcionará sin capacidades de email.');
+  } else {
+    console.log('Sistema de email configurado correctamente.');
   }
 };
 
