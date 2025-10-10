@@ -78,10 +78,10 @@ Sistema de notificaciones: ${process.env.EMAIL_ENABLED === 'true' ? 'Activo' : '
         
         try {
           await mongoose.connection.close();
-          logger.info('📥 Conexión a MongoDB cerrada');
+          logger.info('Conexión a MongoDB cerrada');
           process.exit(0);
         } catch (err) {
-          logger.error('❌ Error cerrando conexión a MongoDB:', err);
+          logger.error('Error cerrando conexión a MongoDB:', err);
           process.exit(1);
         }
       });
