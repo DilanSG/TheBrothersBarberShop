@@ -6,12 +6,8 @@
   "scripts": {
     "dev": "vite --mode development",
     "dev:network": "vite --mode network --host",
-    "build": "node build-universal.js",
-    "build:vite": "vite build",
-    "build:esbuild": "node build-esbuild.js",
-    "build:fallback": "npm run build:esbuild || npm run build:vite || node build.mjs",
+    "build": "vite build",
     "preview": "vite preview",
-    "vercel-build": "node build-universal.js",
     "config:local": "node scripts/config-api.js local",
     "config:network": "node scripts/config-api.js network",
     "config:help": "node scripts/config-api.js"

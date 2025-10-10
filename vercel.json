@@ -1,6 +1,10 @@
 {
   "version": 2,
   "name": "the-brothers-barbershop",
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "cd frontend && npm install",
+  "framework": "vite",
   "headers": [
     {
       "source": "/assets/(.*)",
@@ -19,7 +23,7 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "https://thebrothersbarbershop.onrender.com/api/v1",
+    "VITE_API_URL": "https://thebrothersbarbershop.onrender.com",
     "VITE_NODE_ENV": "production"
   }
 }
