@@ -135,14 +135,14 @@ app.use(errorHandler);
 
 // Manejo de errores no capturados
 process.on('unhandledRejection', (err) => {
-  console.error('UNHANDLED REJECTION! 💥');
+  console.error('UNHANDLED REJECTION! ');
   console.error('Error:', err);
   console.error('Stack:', err.stack);
   process.exit(1);
 });
 
 process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT EXCEPTION! 💥');
+  console.error('UNCAUGHT EXCEPTION! ');
   console.error('Error:', err);
   console.error('Stack:', err.stack);
   process.exit(1);
