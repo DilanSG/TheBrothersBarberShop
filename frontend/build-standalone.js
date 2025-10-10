@@ -21,12 +21,13 @@ async function buildWithoutVite() {
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <link rel="icon" type="image/png" href="/images/icon-32x32.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The Brothers Barber Shop</title>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/react-router-dom@6.15.0/dist/umd/react-router-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-router@6.15.0/dist/umd/react-router.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-router-dom@6.15.0/dist/umd/react-router-dom.production.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
@@ -158,6 +159,19 @@ async function buildWithoutVite() {
     const API_URL = 'https://thebrothersbarbershop.onrender.com/api/v1';
     
     const { useState, useEffect, useContext, createContext } = React;
+    
+    // Verificar que ReactRouterDOM se cargó correctamente
+    if (typeof ReactRouterDOM === 'undefined') {
+      console.error('ReactRouterDOM no se cargó correctamente');
+      document.getElementById('root').innerHTML = `
+        <div class="loading">
+          <h2>Error de carga</h2>
+          <p>No se pudo cargar React Router. Recargue la página.</p>
+        </div>
+      `;
+      return;
+    }
+    
     const { BrowserRouter, Routes, Route, Navigate, Link, useNavigate, useLocation } = ReactRouterDOM;
 
     // Context de autenticación
@@ -530,9 +544,28 @@ async function buildWithoutVite() {
               path: '/services', 
               element: React.createElement(ProtectedRoute, null, React.createElement(ServicesPage))
             }),
-            React.createElement(Route, { 
-              path: '/', 
-              element: React.createElement(Navigate, { to: '/dashboard', replace: true })
+    // Renderizar la aplicación
+    console.log('Verificando dependencias...');
+    console.log('React disponible:', typeof React !== 'undefined');
+    console.log('ReactDOM disponible:', typeof ReactDOM !== 'undefined');
+    console.log('ReactRouterDOM disponible:', typeof ReactRouterDOM !== 'undefined');
+    
+    if (typeof React === 'undefined' || typeof ReactDOM === 'undefined' || typeof ReactRouterDOM === 'undefined') {
+      document.getElementById('root').innerHTML = `
+        <div class="loading">
+          <h2>Error de dependencias</h2>
+          <p>No se pudieron cargar las librerías necesarias.</p>
+          <p>React: ${typeof React !== 'undefined' ? 'OK' : 'ERROR'}</p>
+          <p>ReactDOM: ${typeof ReactDOM !== 'undefined' ? 'OK' : 'ERROR'}</p>
+          <p>ReactRouterDOM: ${typeof ReactRouterDOM !== 'undefined' ? 'OK' : 'ERROR'}</p>
+          <button onclick="location.reload()" class="btn mt-4">Recargar página</button>
+        </div>
+      `;
+      return;
+    }
+    
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));(Navigate, { to: '/dashboard', replace: true })
             }),
             React.createElement(Route, { 
               path: '*', 
