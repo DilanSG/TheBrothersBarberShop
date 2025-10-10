@@ -1,6 +1,7 @@
 {
   "version": 2,
   "name": "the-brothers-barbershop",
+  "buildCommand": "npm run build",
   "headers": [
     {
       "source": "/assets/(.*)",
