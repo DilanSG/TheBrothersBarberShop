@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite --mode development",
     "dev:network": "vite --mode network --host",
-    "build": "node build-standalone.js",
+    "build": "node build-production.js",
     "build:vite": "node build-vite-api.js",
+    "build:standalone": "node build-standalone.js",
     "build:npx": "npx vite build",
     "build:direct": "node ./node_modules/vite/bin/vite.js build",
     "preview": "vite preview",
