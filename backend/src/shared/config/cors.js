@@ -8,12 +8,10 @@ const allowedOrigins = [
   'http://localhost:3000',
   
   // Producción - Vercel
-  'https://the-brothers-barbershop-frontend.vercel.app',
-  'https://thebrothersbarbershop.vercel.app',
+  'https://the-bro-barbershop.vercel.app/',
   
   // GitHub Pages (backup)
   'https://dilansg.github.io',
-  
   // Variable de entorno personalizada
   process.env.FRONTEND_URL,
   process.env.ALLOWED_ORIGINS?.split(',')
