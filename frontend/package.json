@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:simple": "vite --config vite.config.simple.js",
-    "build": "npx vite build",
+    "build": "npm install vite@4.5.5 && npx vite build",
     "build:simple": "vite build --config vite.config.simple.js",
     "preview": "vite preview"
   },
