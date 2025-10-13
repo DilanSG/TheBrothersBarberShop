@@ -2,9 +2,9 @@
   "version": 2,
   "name": "the-brothers-barbershop",
   "framework": "vite",
-  "buildCommand": "npm run build:vercel",
+  "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
-  "installCommand": "npm run install:all",
+  "installCommand": "cd frontend && npm install",
   "headers": [
     {
       "source": "/assets/(.*)",
