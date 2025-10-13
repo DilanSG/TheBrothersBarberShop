@@ -7,19 +7,16 @@
     "dev-launcher": "./dev-launcher.js"
   },
   "scripts": {
-    "dev": "node dev-launcher.js",
-    "start": "npm start --prefix backend",
-    "build": "cd frontend && npm ci && npm run build",
-    "vercel-build": "cd frontend && npm ci && npm run build",
-    "build:exe": "pkg dev-launcher.js --output dev-launcher.exe --targets node18-win-x64",
-    "install:all": "npm install --prefix backend && npm install --prefix frontend",
-    "install:backend": "npm install --prefix backend",
-    "install:frontend": "npm install --prefix frontend",
-    "backend": "npm run dev --prefix backend",
-    "frontend": "npm run dev --prefix frontend",
-    "test": "npm test --prefix backend",
-    "lint": "npm run lint --prefix backend && npm run lint --prefix frontend",
-    "seed": "npm run seed --prefix backend"
+  "dev": "node dev-launcher.js",
+  "dev:frontend": "cd frontend && npm run dev",
+  "dev:backend": "cd backend && npm run dev",
+  "build": "cd frontend && npm ci && npm run build",
+  "install:all": "node scripts/install-all.js",
+  "setup:dev": "node scripts/setup-env.js development",
+  "setup:prod": "node scripts/setup-env.js production",
+  "setup:network": "node scripts/setup-env.js network",
+  "fix:frontend": "node scripts/fix-frontend.js",
+  "diagnose": "node scripts/diagnose.js"
   },
   "keywords": [
     "barberia",
@@ -54,5 +51,8 @@
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "execa": "^5.1.1"
   }
 }

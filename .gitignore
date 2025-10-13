@@ -1,302 +1,602 @@
-# ========================================# ========================================# ========================================
+# ============================================# ========================================# ========================================# ========================================
 
-# THE BROTHERS BARBER SHOP - .gitignore
+# .gitignore - The Brothers Barber Shop
+
+# Optimizado para Vercel (Frontend) + Render (Backend)# THE BROTHERS BARBER SHOP - .gitignore
+
+# ============================================
 
 # ========================================# THE BROTHERS BARBER SHOP - .gitignore# THE BROTHERS BARBER SHOP - .gitignore
 
+# ==========================================
 
+# DEPENDENCIAS Y MÓDULOS
 
-# =================# ========================================# ========================================
+# ==========================================
 
-# DEPENDENCIES
+node_modules/# =================# ========================================# ========================================
 
-# =================
+npm-debug.log*
 
-node_modules/
+yarn-debug.log*# DEPENDENCIES
 
-npm-debug.log*# =================# =================
+yarn-error.log*
 
-yarn-debug.log*
+pnpm-debug.log*# =================
 
-yarn-error.log*# DEPENDENCIES# DEPENDENCIES
+package-lock.json
 
-pnpm-debug.log*
+yarn.locknode_modules/
 
-lerna-debug.log*# =================# =================
+pnpm-lock.yaml
 
-.pnpm-debug.log*
-
-node_modules/node_modules/
-
-# =================
-
-# LOCK FILESnpm-debug.log*npm-debug.log*
-
-# =================
-
-package-lock.jsonyarn-debug.log*yarn-debug.log*
-
-yarn.lock
-
-pnpm-lock.yamlyarn-error.log*yarn-error.log*
+.pnpm-store/npm-debug.log*# =================# =================
 
 
 
-# =================pnpm-debug.log*pnpm-debug.log*
+# ==========================================yarn-debug.log*
 
-# ENVIRONMENT FILES
+# VARIABLES DE ENTORNO Y CONFIGURACIÓN
 
-# =================lerna-debug.log*lerna-debug.log*
+# ==========================================yarn-error.log*# DEPENDENCIES# DEPENDENCIES
 
 .env
 
-.env.local.pnpm-debug.log*package-lock.json
+.env.localpnpm-debug.log*
 
 .env.development.local
 
-.env.test.localyarn.lock
+.env.test.locallerna-debug.log*# =================# =================
 
 .env.production.local
 
-.env.*.local# =================pnpm-lock.yaml
+.env.*.local.pnpm-debug.log*
 
+*.env
 
+node_modules/node_modules/
 
-# =================# ENVIRONMENT FILES
+# Mantener archivos de ejemplo
 
-# BUILD OUTPUTS
+!.env.example# =================
 
-# =================# =================# =================
+!.env.production.example
 
-dist/
+# LOCK FILESnpm-debug.log*npm-debug.log*
 
-build/.env# ENVIRONMENT FILES
+# ==========================================
 
-out/
+# ARCHIVOS DE LOGS Y MONITOREO# =================
 
-.next/.env.local# =================
+# ==========================================
 
-.nuxt/
-
-.cache/.env.development.local.env
-
-*.tsbuildinfo
-
-.env.test.local.env.local
-
-# =================
-
-# LOGS & RUNTIME.env.production.local.env.development.local
-
-# =================
-
-logs/.env.*.local.env.test.local
+logs/package-lock.jsonyarn-debug.log*yarn-debug.log*
 
 *.log
 
-npm-debug.log*.env.production.local
+npm-debug.log*yarn.lock
 
 yarn-debug.log*
 
-yarn-error.log*# =================.env.*.local
+yarn-error.log*pnpm-lock.yamlyarn-error.log*yarn-error.log*
 
 lerna-debug.log*
 
-pids# BUILD OUTPUTS
+.npm
 
-*.pid
 
-*.seed# =================# =================
 
-*.pid.lock
+# Winston logs (backend)# =================pnpm-debug.log*pnpm-debug.log*
 
-.gruntdist/# BUILD OUTPUTS
+backend/logs/
 
-.lock-wscript
+backend/*.log# ENVIRONMENT FILES
 
-build/# =================
+combined.log
 
-# =================
+error.log# =================lerna-debug.log*lerna-debug.log*
 
-# TESTING & COVERAGEout/dist/
+exceptions.log
 
-# =================
+rejections.log.env
 
-coverage/.next/build/
+http.log
 
-*.lcov
+.env.local.pnpm-debug.log*package-lock.json
 
-.nyc_output.nuxt/out/
+# ==========================================
 
-jest-coverage/
+# BUILDS Y ARCHIVOS DE PRODUCCIÓN.env.development.local
 
-cypress/videos/.cache/.next/
+# ==========================================
 
-cypress/screenshots/
+dist/.env.test.localyarn.lock
 
-test-results/*.tsbuildinfo.nuxt/
+build/
 
-playwright-report/
+out/.env.production.local
+
+.next/
+
+.nuxt/.env.*.local# =================pnpm-lock.yaml
 
 .cache/
 
-# =================
-
-# CACHING# =================*.tsbuildinfo
-
-# =================
-
-.npm/# LOGS & RUNTIME
-
-.yarn/
-
-.cache/# =================# =================
-
-.eslintcache
-
-.stylelintcachelogs/# LOGS & RUNTIME
-
-.rpt2_cache/
-
-.rts2_cache_cjs/*.log# =================
-
-.rts2_cache_es/
-
-.rts2_cache_umd/npm-debug.log*logs/
+.parcel-cache/
 
 
 
-# =================yarn-debug.log**.log
+# Frontend builds# =================# ENVIRONMENT FILES
 
-# UPLOADS & TEMP FILES
+frontend/dist/
 
-# =================yarn-error.log*npm-debug.log*
+frontend/build/# BUILD OUTPUTS
 
-uploads/temp/**
+frontend/.vite/
 
-uploads/*.tmplerna-debug.log*yarn-debug.log*
-
-*.tmp
-
-*.temppidsyarn-error.log*
-
-.tmp/
-
-temp/*.pidlerna-debug.log*
+frontend/.vercel/# =================# =================# =================
 
 
 
-# =================*.seedpids
+# Backend buildsdist/
 
-# DATABASE & BACKUPS
+backend/dist/
 
-# =================*.pid.lock*.pid
+backend/build/build/.env# ENVIRONMENT FILES
+
+
+
+# ==========================================out/
+
+# BASES DE DATOS Y BACKUPS
+
+# ==========================================.next/.env.local# =================
 
 *.sqlite
 
-*.sqlite3.grunt*.seed
+*.sqlite3.nuxt/
 
 *.db
 
-backup/.lock-wscript*.pid.lock
+*.db-journal.cache/.env.development.local.env
 
-dumps/
 
-.grunt
+
+# MongoDB backups*.tsbuildinfo
+
+backend/backups/
+
+backups/.env.test.local.env.local
+
+*.dump
+
+*.bson# =================
+
+
+
+# ==========================================# LOGS & RUNTIME.env.production.local.env.development.local
+
+# ARCHIVOS TEMPORALES Y CACHE
+
+# ==========================================# =================
+
+.DS_Store
+
+.DS_Store?logs/.env.*.local.env.test.local
+
+._*
+
+.Spotlight-V100*.log
+
+.Trashes
+
+ehthumbs.dbnpm-debug.log*.env.production.local
+
+Thumbs.db
+
+*.swpyarn-debug.log*
+
+*.swo
+
+*~yarn-error.log*# =================.env.*.local
+
+.idea/
+
+.vscode/*lerna-debug.log*
+
+!.vscode/settings.json
+
+!.vscode/tasks.jsonpids# BUILD OUTPUTS
+
+!.vscode/launch.json
+
+!.vscode/extensions.json*.pid
+
+
+
+# Cache de editores*.seed# =================# =================
+
+*.suo
+
+*.ntvs**.pid.lock
+
+*.njsproj
+
+*.sln.gruntdist/# BUILD OUTPUTS
+
+*.sw?
+
+.lock-wscript
+
+# ==========================================
+
+# UPLOADS Y ARCHIVOS DE USUARIObuild/# =================
+
+# ==========================================
+
+uploads/# =================
+
+uploads/temp/
+
+backend/uploads/# TESTING & COVERAGEout/dist/
+
+backend/uploads/temp/
+
+public/uploads/# =================
+
+
+
+# Mantener directorios necesarios con .gitkeepcoverage/.next/build/
+
+!uploads/.gitkeep
+
+!backend/uploads/.gitkeep*.lcov
+
+!backend/uploads/temp/.gitkeep
+
+.nyc_output.nuxt/out/
+
+# ==========================================
+
+# TESTING Y COVERAGEjest-coverage/
+
+# ==========================================
+
+coverage/cypress/videos/.cache/.next/
+
+*.lcov
+
+.nyc_output/cypress/screenshots/
+
+.coverage
+
+.pytest_cache/test-results/*.tsbuildinfo.nuxt/
+
+.jest/
+
+playwright-report/
+
+# Test results
+
+test-results/.cache/
+
+junit.xml
 
 # =================
 
-# DEVELOPMENT TOOLS# =================.lock-wscript
+# ==========================================
 
-# =================
+# VERCEL (FRONTEND DEPLOYMENT)# CACHING# =================*.tsbuildinfo
 
-.vscode/settings.json# TESTING & COVERAGE
+# ==========================================
 
-.vscode/launch.json
+.vercel# =================
 
-.idea/# =================# =================
+.vercel.json
 
-*.swp
-
-*.swocoverage/# TESTING & COVERAGE
-
-*~
-
-*.lcov# =================
-
-# =================
-
-# DEPLOYMENT.nyc_outputcoverage/
-
-# =================
-
-.vercel/jest-coverage/*.lcov
-
-.netlify/
-
-.surge/cypress/videos/.nyc_output
-
-.pm2/
-
-ecosystem.config.jscypress/screenshots/jest-coverage/
+*.vercel-build-output/.npm/# LOGS & RUNTIME
 
 
 
-# =================test-results/cypress/videos/
+# ==========================================.yarn/
 
-# CLOUD SERVICES
+# RENDER (BACKEND DEPLOYMENT)
 
-# =================playwright-report/cypress/screenshots/
+# ==========================================.cache/# =================# =================
 
-.aws/
+.render/
 
-.gcp/test-results/
+.eslintcache
 
-.azure/
+# ==========================================
 
-# =================playwright-report/
+# DOCKER (SI SE USA EN DESARROLLO).stylelintcachelogs/# LOGS & RUNTIME
 
-# =================
+# ==========================================
 
-# MISCELLANEOUS# CACHINGtest-results/
+.dockerignore.rpt2_cache/
 
-# =================
+Dockerfile.dev
 
-.DS_Store# =================
+docker-compose.override.yml.rts2_cache_cjs/*.log# =================
 
-.DS_Store?
+docker-compose.dev.yml
 
-._*.npm/# =================
+.rts2_cache_es/
 
-.Spotlight-V100
+# ==========================================
 
-.Trashes.yarn/# CACHING
+# CLOUDINARY Y SERVICIOS EXTERNOS.rts2_cache_umd/npm-debug.log*logs/
+
+# ==========================================
+
+cloudinary-config.json
+
+
+
+# ==========================================# =================yarn-debug.log**.log
+
+# CERTIFICADOS Y CLAVES
+
+# ==========================================# UPLOADS & TEMP FILES
+
+*.pem
+
+*.key# =================yarn-error.log*npm-debug.log*
+
+*.cert
+
+*.crtuploads/temp/**
+
+*.p12
+
+*.pfxuploads/*.tmplerna-debug.log*yarn-debug.log*
+
+ssl/
+
+certs/*.tmp
+
+
+
+# ==========================================*.temppidsyarn-error.log*
+
+# ARCHIVOS DE SISTEMA OPERATIVO
+
+# ==========================================.tmp/
+
+# Windows
+
+Thumbs.dbtemp/*.pidlerna-debug.log*
 
 ehthumbs.db
 
-Thumbs.db.cache/# =================
+Desktop.ini
 
-*.orig
+$RECYCLE.BIN/
 
-.eslintcache.npm/
+# =================*.seedpids
+
+# macOS
+
+.DS_Store# DATABASE & BACKUPS
+
+.AppleDouble
+
+.LSOverride# =================*.pid.lock*.pid
+
+._*
+
+*.sqlite
+
+# Linux
+
+*~*.sqlite3.grunt*.seed
+
+.directory
+
+.Trash-**.db
+
+
+
+# ==========================================backup/.lock-wscript*.pid.lock
+
+# IDEs Y EDITORES
+
+# ==========================================dumps/
+
+# VSCode
+
+.vscode/*.grunt
+
+!.vscode/settings.json
+
+!.vscode/tasks.json# =================
+
+!.vscode/launch.json
+
+!.vscode/extensions.json# DEVELOPMENT TOOLS# =================.lock-wscript
+
+!.vscode/*.code-snippets
+
+.history/# =================
+
+*.vsix
+
+.vscode/settings.json# TESTING & COVERAGE
+
+# JetBrains (WebStorm, IntelliJ, etc.)
+
+.idea/.vscode/launch.json
+
+*.iml
+
+*.iws.idea/# =================# =================
+
+*.ipr
+
+out/*.swp
+
+
+
+# Sublime Text*.swocoverage/# TESTING & COVERAGE
+
+*.sublime-workspace
+
+*.sublime-project*~
+
+
+
+# Vim*.lcov# =================
+
+[._]*.s[a-v][a-z]
+
+[._]*.sw[a-p]# =================
+
+[._]s[a-rt-v][a-z]
+
+[._]ss[a-gi-z]# DEPLOYMENT.nyc_outputcoverage/
+
+[._]sw[a-p]
 
 # =================
 
-# PROJECT SPECIFIC.stylelintcache.yarn/
+# ==========================================
 
-# =================
+# SCRIPTS DE DESARROLLO OBSOLETOS.vercel/jest-coverage/*.lcov
+
+# ==========================================
+
+*.backup.netlify/
+
+*.old
+
+*.temp.surge/cypress/videos/.nyc_output
+
+*.tmp
+
+*.bak.pm2/
+
+*-old.*
+
+*-backup.*ecosystem.config.jscypress/screenshots/jest-coverage/
+
+
+
+# ==========================================
+
+# ARCHIVOS DE DOCUMENTACIÓN TEMPORAL
+
+# ==========================================# =================test-results/cypress/videos/
+
+TODO.md
+
+NOTES.md# CLOUD SERVICES
+
+scratch.md
+
+# =================playwright-report/cypress/screenshots/
+
+# ==========================================
+
+# DATOS SENSIBLES Y ESPECÍFICOS.aws/
+
+# ==========================================
+
+# Secrets de Render/Vercel.gcp/test-results/
+
+secrets.json
+
+credentials.json.azure/
+
+
+
+# Archivos de sesión# =================playwright-report/
+
+sessions/
+
+*.session# =================
+
+
+
+# Archivos de configuración local# MISCELLANEOUS# CACHINGtest-results/
+
+config.local.js
+
+config.local.json# =================
+
+
+
+# ==========================================.DS_Store# =================
+
+# ARCHIVOS GENERADOS AUTOMÁTICAMENTE
+
+# ==========================================.DS_Store?
+
+# Sourcemaps de producción (opcional, comentar si se necesitan)
+
+*.map._*.npm/# =================
+
+
+
+# Archivos de tipo de TypeScript.Spotlight-V100
+
+*.tsbuildinfo
+
+.Trashes.yarn/# CACHING
+
+# ==========================================
+
+# ANÁLISIS Y REPORTESehthumbs.db
+
+# ==========================================
+
+.eslintcacheThumbs.db.cache/# =================
+
+.stylelintcache
+
+*.report.json*.orig
+
+stats.json
+
+bundle-analyzer-report.html.eslintcache.npm/
+
+
+
+# ==========================================# =================
+
+# REDIS (SI SE USA LOCALMENTE)
+
+# ==========================================# PROJECT SPECIFIC.stylelintcache.yarn/
+
+dump.rdb
+
+appendonly.aof# =================
+
+redis.conf
 
 # Debug files específicos del proyecto.rpt2_cache/.cache/
 
-debug-*.js
+# ==========================================
 
-test-*.js.rts2_cache_cjs/.eslintcache
+# MISCELÁNEOSdebug-*.js
 
-temp_*.js
+# ==========================================
 
-.rts2_cache_es/.stylelintcache
+*.seedtest-*.js.rts2_cache_cjs/.eslintcache
 
-# Archivos de configuración temporales
+*.pid
+
+*.pid.locktemp_*.js
+
+.venv/
+
+venv/.rts2_cache_es/.stylelintcache
+
+ENV/
+
+env/# Archivos de configuración temporales
+
+.Python
 
 config.temp.js.rts2_cache_umd/.rpt2_cache/
 
