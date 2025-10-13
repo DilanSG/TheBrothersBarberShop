@@ -4,65 +4,8 @@
     <meta charset="utf-8">
     <title>The Brothers Barber Shop</title>
     <script>
-        // Función inteligente para manejar la redirección SPA en GitHub Pages
-        (function() {
-            const { pathname, search, hash } = window.location;
-            
-            // Lista de rutas válidas conocidas
-            const validRoutes = [
-                '/',
-                '/services',
-                '/barbers',
-                '/login',
-                '/register',
-                '/profile',
-                '/profile-edit',
-                '/dashboard',
-                '/appointment',
-                '/admin'
-            ];
-            
-            // Verificar si la ruta base es válida
-            const isValidRoute = validRoutes.some(route => {
-                if (route === '/') return pathname === '/' || pathname === '/TheBrothersBarberShop/';
-                return pathname.startsWith('/TheBrothersBarberShop' + route) || pathname.startsWith(route);
-            });
-            
-            // Construir URL de redirección
-            let redirectURL = pathname;
-            if (!pathname.includes('/TheBrothersBarberShop/')) {
-                redirectURL = '/TheBrothersBarberShop' + pathname;
-            }
-            
-            // Preservar query parameters y hash
-            const fullRedirectURL = redirectURL + search + hash;
-            
-            // Función de redirección suave sin recarga
-            const redirectWithoutReload = () => {
-                // Intentar usar la History API para navegación suave
-                if (window.history && window.history.replaceState && isValidRoute) {
-                    window.history.replaceState(null, null, fullRedirectURL);
-                    
-                    // Simular evento de navegación para React Router
-                    const event = new PopStateEvent('popstate', { state: null });
-                    window.dispatchEvent(event);
-                    
-                    // Ocultar el mensaje de carga después de un breve delay
-                    setTimeout(() => {
-                        const loadingDiv = document.getElementById('loading');
-                        if (loadingDiv) {
-                            loadingDiv.style.display = 'none';
-                        }
-                    }, 500);
-                } else {
-                    // Fallback: recarga tradicional para rutas no válidas
-                    window.location.replace(fullRedirectURL);
-                }
-            };
-
-            // Ejecutar redirección inmediatamente
-            redirectWithoutReload();
-        })();
+        // Redirección simple para Vercel SPA
+        window.location.replace('/');
     </script>
     <style>
         body {
