@@ -4,17 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --mode development",
-    "dev:network": "vite --mode network --host",
-    "build": "node build-production.js",
-    "build:vite": "node build-vite-api.js",
-    "build:standalone": "node build-standalone.js",
-    "build:npx": "npx vite build",
-    "build:direct": "node ./node_modules/vite/bin/vite.js build",
-    "preview": "vite preview",
-    "config:local": "node scripts/config-api.js local",
-    "config:network": "node scripts/config-api.js network",
-    "config:help": "node scripts/config-api.js"
+    "dev": "vite",
+    "dev:simple": "vite --config vite.config.simple.js",
+    "build": "vite build",
+    "build:simple": "vite build --config vite.config.simple.js",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@vitejs/plugin-react": "4.7.0",
