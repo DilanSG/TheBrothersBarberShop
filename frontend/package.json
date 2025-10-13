@@ -6,10 +6,9 @@
   "scripts": {
     "dev": "vite",
     "dev:simple": "vite --config vite.config.simple.js",
-    "build": "vite build",
+    "build": "npx vite build",
     "build:simple": "vite build --config vite.config.simple.js",
-    "preview": "vite preview",
-    "postinstall": "chmod +x node_modules/.bin/* || true"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@vitejs/plugin-react": "4.7.0",
