@@ -17,7 +17,7 @@
     "@vitejs/plugin-react": "4.3.4",
     "autoprefixer": "^10.4.15",
     "date-fns": "^3.6.0",
-    "esbuild": "0.25.10",
+    "esbuild": "0.25.11",
     "exceljs": "4.4.0",
     "lucide-react": "^0.542.0",
     "postcss": "^8.4.29",
