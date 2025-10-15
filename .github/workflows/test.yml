@@ -63,7 +63,7 @@ jobs:
 
       - name: 📈 Upload Coverage to Codecov
         if: matrix.node-version == '18.x'
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           files: ./backend/coverage/lcov.info
           flags: unit-tests

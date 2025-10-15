@@ -82,7 +82,7 @@ jobs:
         continue-on-error: true
 
       - name: 📈 Upload Coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           files: ./backend/coverage/lcov.info
           flags: backend
