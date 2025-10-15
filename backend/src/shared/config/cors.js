@@ -9,7 +9,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   
   // Producción - Vercel (sin slash final)
-  'https://the-bro-barbershop.vercel.app',
+  'https://the-bro-barbers.vercel.app',
   
   // GitHub Pages (backup)
   'https://dilansg.github.io',
