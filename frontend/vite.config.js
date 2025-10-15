@@ -20,7 +20,7 @@ export default defineConfig({
           react: ['react', 'react-dom'],
           router: ['react-router-dom'],
           ui: ['lucide-react', 'react-toastify'],
-          utils: ['date-fns', 'xlsx']
+          utils: ['date-fns', 'exceljs']
         },
         assetFileNames: (assetInfo) => {
           const info = assetInfo.name.split('.');
@@ -73,7 +73,8 @@ export default defineConfig({
       'lucide-react',
       'react-toastify',
       'react-calendar',
-      'react-day-picker'
+      'react-day-picker',
+      'exceljs'
     ]
   },
   
