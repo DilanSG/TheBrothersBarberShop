@@ -41,10 +41,39 @@
     {
       "source": "/api/(.*)",
       "destination": "https://thebrothersbarbershop.onrender.com/api/v1/$1"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/manifest.json",
+      "dest": "/manifest.json"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "/sw.js",
+      "dest": "/sw.js"
+    },
+    {
+      "src": "/offline.html",
+      "dest": "/offline.html"
+    },
+    {
+      "src": "/404.html",
+      "dest": "/404.html"
+    },
+    {
+      "src": "/images/(.*)",
+      "dest": "/images/$1"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ],
   "env": {

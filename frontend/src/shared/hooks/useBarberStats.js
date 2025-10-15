@@ -384,7 +384,18 @@ export const useBarberStats = () => {
         availableDatesService.getAllAvailableDates()
       ]);
 
-      const barbersData = barbersResponse.data || [];
+      // Validación defensiva: asegurar que barbersData sea un array
+      let barbersData = barbersResponse.data || [];
+      if (!Array.isArray(barbersData)) {
+        // Si data es un objeto con una propiedad que contiene el array (ej: { barbers: [...] })
+        barbersData = barbersData.barbers || barbersData.data || [];
+      }
+      // Si aún no es array, usar array vacío
+      if (!Array.isArray(barbersData)) {
+        debugLog('⚠️ barbersResponse.data NO es array:', barbersData);
+        barbersData = [];
+      }
+      
       const datesData = datesResponse; // El servicio devuelve directamente el array, no .data
       
       debugLog('📅 FECHAS RECIBIDAS:', { datesResponse, datesData: datesData?.length || 0 });
