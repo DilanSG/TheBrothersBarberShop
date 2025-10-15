@@ -1,26 +1,38 @@
 import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 import { logger, AppError } from '../barrel.js';
 
 /**
  * Servicio central de gestión de emails
- * Maneja configuración SMTP, templates y envío de notificaciones
+ * Soporta: SendGrid (recomendado para producción) y Nodemailer SMTP (dev/fallback)
  */
 class EmailService {
   constructor() {
     this.transporter = null;
     this.isConfigured = false;
-    this.initializeTransporter();
+    this.provider = null; // 'sendgrid' o 'smtp'
+    this.initializeProvider();
   }
 
   /**
-   * Inicializar configuración SMTP
+   * Inicializar proveedor de email (SendGrid o SMTP)
    */
-  initializeTransporter() {
+  initializeProvider() {
     try {
+      // Prioridad 1: SendGrid (recomendado para producción)
+      if (process.env.SENDGRID_API_KEY) {
+        sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+        this.provider = 'sendgrid';
+        this.isConfigured = true;
+        logger.info('✅ Servicio de email configurado con SendGrid');
+        return;
+      }
+
+      // Prioridad 2: SMTP tradicional (Gmail, Outlook, etc.)
       const emailConfig = {
         host: process.env.EMAIL_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.EMAIL_PORT) || 587,
-        secure: process.env.EMAIL_SECURE === 'true', // false para 587, true para 465
+        secure: process.env.EMAIL_SECURE === 'true',
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASSWORD
@@ -37,9 +49,10 @@ class EmailService {
       }
 
       this.transporter = nodemailer.createTransport(emailConfig);
+      this.provider = 'smtp';
       this.isConfigured = true;
       
-      logger.info('Servicio de email configurado correctamente');
+      logger.info('✅ Servicio de email configurado con SMTP');
     } catch (error) {
       logger.error('Error configurando servicio de email:', error);
       this.isConfigured = false;
@@ -55,25 +68,33 @@ class EmailService {
   }
 
   /**
-   * Verificar conexión SMTP
+   * Verificar conexión del proveedor de email
    */
   async verifyConnection() {
-    if (!this.transporter || !this.isConfigured) {
+    if (!this.isConfigured) {
       throw new AppError('Servicio de email no configurado', 500);
     }
 
     try {
-      await this.transporter.verify();
-      logger.info('Conexión SMTP verificada correctamente');
-      return true;
+      if (this.provider === 'sendgrid') {
+        // SendGrid no requiere verificación de conexión
+        logger.info('✅ SendGrid API Key configurada correctamente');
+        return true;
+      }
+
+      if (this.provider === 'smtp') {
+        await this.transporter.verify();
+        logger.info('✅ Conexión SMTP verificada correctamente');
+        return true;
+      }
     } catch (error) {
-      logger.error('Error verificando conexión SMTP:', error);
+      logger.error('Error verificando conexión:', error.message);
       throw new AppError('Error de conexión con servidor de email', 500);
     }
   }
 
   /**
-   * Función base para enviar emails
+   * Función base para enviar emails (soporta SendGrid y SMTP)
    */
   async sendEmail({ to, subject, html, text, attachments = [] }) {
     if (!this.isConfigured) {
@@ -82,31 +103,75 @@ class EmailService {
     }
 
     try {
-      const mailOptions = {
-        from: {
-          name: process.env.EMAIL_FROM_NAME || 'The Brothers Barber Shop',
-          address: process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER
-        },
-        to,
-        subject,
-        html,
-        text: text || this.htmlToText(html),
-        attachments
-      };
+      const fromEmail = process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER || 'thebrobarbers20@gmail.com';
+      const fromName = process.env.EMAIL_FROM_NAME || 'The Brothers Barber Shop';
 
-      const info = await this.transporter.sendMail(mailOptions);
-      
-      logger.info(`Email enviado exitosamente a ${to}`, {
-        messageId: info.messageId,
-        subject,
-        timestamp: new Date().toISOString()
-      });
+      // SendGrid API
+      if (this.provider === 'sendgrid') {
+        const msg = {
+          to,
+          from: {
+            email: fromEmail,
+            name: fromName
+          },
+          subject,
+          html,
+          text: text || this.htmlToText(html),
+        };
 
-      return { 
-        success: true, 
-        messageId: info.messageId,
-        message: 'Email enviado correctamente'
-      };
+        // SendGrid maneja attachments de forma diferente
+        if (attachments && attachments.length > 0) {
+          msg.attachments = attachments.map(att => ({
+            content: att.content,
+            filename: att.filename,
+            type: att.contentType || 'application/octet-stream',
+            disposition: 'attachment'
+          }));
+        }
+
+        const response = await sgMail.send(msg);
+        
+        logger.info(`✅ Email enviado via SendGrid a ${to}`, {
+          subject,
+          timestamp: new Date().toISOString()
+        });
+
+        return {
+          success: true,
+          messageId: response[0].headers['x-message-id'],
+          message: 'Email enviado correctamente'
+        };
+      }
+
+      // SMTP (Nodemailer)
+      if (this.provider === 'smtp') {
+        const mailOptions = {
+          from: {
+            name: fromName,
+            address: fromEmail
+          },
+          to,
+          subject,
+          html,
+          text: text || this.htmlToText(html),
+          attachments
+        };
+
+        const info = await this.transporter.sendMail(mailOptions);
+        
+        logger.info(`✅ Email enviado via SMTP a ${to}`, {
+          messageId: info.messageId,
+          subject,
+          timestamp: new Date().toISOString()
+        });
+
+        return {
+          success: true,
+          messageId: info.messageId,
+          message: 'Email enviado correctamente'
+        };
+      }
+
     } catch (error) {
       logger.error(`Error enviando email a ${to}:`, error);
       throw new AppError(`Error enviando email: ${error.message}`, 500);
