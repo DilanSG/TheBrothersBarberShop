@@ -44,12 +44,11 @@ try {
 // Inicializar Express
 const app = express();
 
-// 🐛 Inicializar Sentry (error tracking en Render)
-// TEMPORALMENTE DESHABILITADO - Debugging deployment issue
-// initSentry(app);
+// 🐛 Inicializar Sentry (error tracking en Render) - Configuración minimalista
+initSentry(app);
 
 // 🐛 Sentry request handler (DEBE ir antes de todas las rutas)
-// app.use(sentryRequestHandler());
+app.use(sentryRequestHandler());
 
 // Configuración de seguridad
 app.use(helmet({
@@ -149,8 +148,7 @@ app.get('/health', (req, res) => {
 app.use(notFound);
 
 // 🐛 Sentry error handler (DEBE ir DESPUÉS de rutas, ANTES de error handler)
-// TEMPORALMENTE DESHABILITADO - Debugging deployment issue
-// app.use(sentryErrorHandler());
+app.use(sentryErrorHandler());
 
 // Manejo de errores
 app.use(errorHandler);

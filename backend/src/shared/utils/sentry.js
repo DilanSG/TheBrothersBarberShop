@@ -33,23 +33,8 @@ export const initSentry = (app) => {
       dsn,
       environment,
       
-      // Integrations
-      integrations: [
-        // HTTP request tracking
-        new Sentry.Integrations.Http({ tracing: true }),
-        
-        // Express request handler
-        new Sentry.Integrations.Express({ app }),
-        
-        // Performance profiling (opcional) - Deshabilitado por incompatibilidad API v10.19.0
-        // new ProfilingIntegration(),
-      ],
-      
-      // Performance monitoring
-      tracesSampleRate: environment === 'production' ? 0.1 : 1.0, // 10% en prod, 100% en dev
-      
-      // Profiling (CPU, memoria)
-      profilesSampleRate: environment === 'production' ? 0.1 : 1.0,
+      // Performance monitoring (conservador)
+      tracesSampleRate: environment === 'production' ? 0.1 : 1.0,
       
       // Filtrar errores sensibles
       beforeSend(event, hint) {
