@@ -1,14 +1,14 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../shared/contexts/AuthContext';
-import { useNotification } from '../../shared/contexts/NotificationContext';
-import { PageContainer } from '../../shared/components/layout/PageContainer';
-import { api, barberService } from '../../shared/services/api';
-import GradientButton from '../../shared/components/ui/GradientButton';
-import GradientText from '../../shared/components/ui/GradientText';
-import UserAvatar from '../../shared/components/ui/UserAvatar';
-import EditServiceModal from '../../shared/components/modals/EditServiceModal';
-import DeleteServiceModal from '../../shared/components/modals/DeleteServiceModal';
-import logger from '../../shared/utils/logger';
+import { useAuth } from '@contexts/AuthContext';
+import { useNotification } from '@contexts/NotificationContext';
+import { PageContainer } from '@components/layout/PageContainer';
+import { api, barberService } from '@services/api';
+import GradientButton from '@components/ui/GradientButton';
+import GradientText from '@components/ui/GradientText';
+import UserAvatar from '@components/ui/UserAvatar';
+import EditServiceModal from '@components/modals/EditServiceModal';
+import DeleteServiceModal from '@components/modals/DeleteServiceModal';
+import logger from '@utils/logger';
 import { 
   Scissors, 
   Plus, 

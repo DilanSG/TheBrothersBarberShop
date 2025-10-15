@@ -5,8 +5,7 @@
  * Gestión integral de inventario con Repository Pattern
  */
 
-import { AppError } from '../../../shared/utils/errors.js';
-import { logger } from '../../../shared/utils/logger.js';
+import { AppError, logger } from '../../../barrel.js';
 import DIContainer from '../../../shared/container/index.js';
 
 class InventoryUseCases {
@@ -297,6 +296,67 @@ class InventoryUseCases {
   static async getLowStockItems() {
     const instance = InventoryUseCases.getInstance();
     return await instance.getLowStockItems();
+  }
+
+  // ========================================================================
+  // ADAPTADORES DE COMPATIBILIDAD PARA inventoryService.js (nombres legacy)
+  // ========================================================================
+
+  static async getAllItems(filters = {}) {
+    const { data } = await this.getInventory(filters);
+    return data; // Retornar solo el array sin paginación
+  }
+
+  static async getItemById(itemId) {
+    return await this.getInventoryItemById(itemId);
+  }
+
+  static async createItem(itemData) {
+    // inventoryService.js no pasa user, usar null como fallback
+    return await this.createInventoryItem(itemData, null);
+  }
+
+  static async updateItem(itemId, updateData) {
+    // inventoryService.js no pasa user, usar null como fallback
+    return await this.updateInventoryItem(itemId, updateData, null);
+  }
+
+  static async deleteItem(itemId) {
+    return await this.deleteInventoryItem(itemId, null);
+  }
+
+  static async adjustStock(itemId, quantity, type = 'add', reason, options = {}) {
+    // Convertir el parámetro 'type' al formato esperado
+    const finalQuantity = type === 'subtract' ? -Math.abs(quantity) : Math.abs(quantity);
+    return await this.updateStock(itemId, finalQuantity, null, reason);
+  }
+
+  static async getItemsByCategory(category) {
+    const { data } = await this.getInventory({ category });
+    return data;
+  }
+
+  static async getMovementHistory(itemId, startDate, endDate) {
+    return await this.getInventoryMovements(startDate, endDate);
+  }
+
+  static async getDailyReport(dateString) {
+    // Este método necesita implementación específica
+    logger.debug(`Generando reporte diario para: ${dateString}`);
+    try {
+      const stats = await this.getInventoryStats();
+      const lowStock = await this.getLowStockItems();
+      
+      return {
+        date: dateString,
+        stats,
+        lowStockItems: lowStock,
+        generatedAt: new Date()
+      };
+    } catch (error) {
+      logger.error('Error generando reporte diario:', error);
+      throw new AppError('Error al generar reporte diario', 500);
+    }
   }
 
   // ========================================================================

@@ -1,12 +1,12 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { api } from '../shared/services/api';
-import { useAuth } from '../shared/contexts/AuthContext';
-import { PageContainer } from '../shared/components/layout/PageContainer';
-import GradientText from '../shared/components/ui/GradientText';
+import { api } from '@services/api';
+import { useAuth } from '@contexts/AuthContext';
+import { PageContainer } from '@components/layout/PageContainer';
+import GradientText from '@components/ui/GradientText';
 import { Star, Clock, MapPin, Calendar, Users, Award, Scissors, User } from 'lucide-react';
 
-import logger from '../shared/utils/logger';
+import logger from '@utils/logger';
 // Componente de loading mejorado
 const LoadingSpinner = () => (
   <PageContainer>

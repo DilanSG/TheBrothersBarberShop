@@ -71,7 +71,7 @@ const socioSchema = new mongoose.Schema({
 });
 
 // Índices
-socioSchema.index({ email: 1 });
+// Nota: email y userId ya tienen unique: true, no necesitan índices adicionales
 socioSchema.index({ isFounder: 1 });
 socioSchema.index({ isActive: 1 });
 socioSchema.index({ createdAt: -1 });

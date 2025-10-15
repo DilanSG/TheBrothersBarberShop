@@ -17,22 +17,22 @@ import {
   Smartphone,
   RefreshCw
 } from 'lucide-react';
-import { useAuth } from '../../shared/contexts/AuthContext';
-import { useNotification } from '../../shared/contexts/NotificationContext';
-import { PageContainer } from '../../shared/components/layout/PageContainer';
-import GradientText from '../../shared/components/ui/GradientText';
-import RefundSaleModal from '../../shared/components/common/RefundSaleModal';
-import { inventoryService, salesService, serviceService, barberService } from '../../shared/services/api';
-import { useInventoryRefresh } from '../../shared/contexts/InventoryContext';
-import { usePaymentMethodsContext } from '../../shared/contexts/PaymentMethodsContext';
+import { useAuth } from '@contexts/AuthContext';
+import { useNotification } from '@contexts/NotificationContext';
+import { PageContainer } from '@components/layout/PageContainer';
+import GradientText from '@components/ui/GradientText';
+import RefundSaleModal from '@components/common/RefundSaleModal';
+import { inventoryService, salesService, serviceService, barberService } from '@services/api';
+import { useInventoryRefresh } from '@contexts/InventoryContext';
+import { usePaymentMethodsContext } from '@contexts/PaymentMethodsContext';
 import { 
   SALE_TYPES, 
   SALE_TYPE_LABELS,
   PAYMENT_METHODS,
   PAYMENT_METHOD_LABELS 
-} from '../../shared/constants/salesConstants';
+} from '@shared/constants/salesConstants';
 
-import logger from '../../shared/utils/logger';
+import logger from '@utils/logger';
 
 // Función para obtener colores por método de pago - Estilo AdminBarbers
 const getPaymentMethodColor = (methodId) => {

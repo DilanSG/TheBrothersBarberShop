@@ -1,9 +1,11 @@
 import { asyncHandler } from '../middleware/index.js';
-import { AppError } from '../../shared/utils/errors.js';
-import UserService from '../../core/application/usecases/userService.js';
-import BarberService from '../../core/application/usecases/barberService.js';
-import { Barber } from '../../core/domain/entities/index.js';
+import { AppError, Barber } from '../../barrel.js';
+import UserUseCases from '../../core/application/usecases/UserUseCases.js';
+import BarberUseCases from '../../core/application/usecases/BarberUseCases.js';
 import mongoose from 'mongoose';
+
+const barberService = BarberUseCases.getInstance();
+const userService = UserUseCases.getInstance();
 
 // @desc    Cambiar rol de usuario
 // @route   PUT /api/users/:id/role
@@ -19,7 +21,7 @@ export const changeUserRole = asyncHandler(async (req, res) => {
   session.startTransaction();
 
   try {
-    const updatedUser = await UserService.updateUser(
+    const updatedUser = await userService.updateUser(
       req.params.id,
       { role },
       true // adminAction
@@ -30,14 +32,14 @@ export const changeUserRole = asyncHandler(async (req, res) => {
       const existingBarber = await Barber.findOne({ user: updatedUser._id });
       
       if (!existingBarber) {
-        await UserService.createBarberProfile(updatedUser);
+        await userService.createBarberProfile(updatedUser);
       } else {
         // Reactivar perfil si existe pero está desactivado
         await Barber.findByIdAndUpdate(existingBarber._id, { isActive: true });
       }
     } else {
       // Si deja de ser barbero, desactivar el perfil
-      await UserService.deactivateBarberProfile(updatedUser._id);
+      await userService.deactivateBarberProfile(updatedUser._id);
     }
 
     await session.commitTransaction();
@@ -59,7 +61,7 @@ export const changeUserRole = asyncHandler(async (req, res) => {
 // @route   GET /api/users
 // @access  Private/Admin
 export const getUsers = asyncHandler(async (req, res) => {
-  const users = await UserService.getAllUsers();
+  const users = await userService.getAllUsers();
   
   res.json({
     success: true,
@@ -74,7 +76,7 @@ export const getUserById = asyncHandler(async (req, res) => {
   // Si no hay ID en params, usar el usuario autenticado
   const userId = req.params.id || req.user._id.toString();
   
-  const user = await UserService.getUserById(userId);
+  const user = await userService.getUserById(userId);
   
   // Verificar si el usuario solicita sus propios datos o es admin
   if (req.user.id !== userId && req.user.role !== 'admin') {
@@ -107,7 +109,7 @@ export const updateUser = asyncHandler(async (req, res) => {
     updateData.profilePicture = req.image.url;
   }
 
-  const updatedUser = await UserService.updateUser(
+  const updatedUser = await userService.updateUser(
     userId,
     updateData,
     isAdmin
@@ -134,7 +136,7 @@ export const deleteUser = asyncHandler(async (req, res) => {
     throw new AppError('No puedes eliminar tu propia cuenta', 403);
   }
 
-  const result = await UserService.deleteUser(req.params.id);
+  const result = await userService.deleteUser(req.params.id);
   
   res.json({
     success: true,
@@ -146,7 +148,7 @@ export const deleteUser = asyncHandler(async (req, res) => {
 // @route   GET /api/users/stats
 // @access  Private/Admin
 export const getUserStats = asyncHandler(async (req, res) => {
-  const stats = await UserService.getUserStats();
+  const stats = await userService.getUserStats();
   
   res.json({
     success: true,
@@ -161,7 +163,7 @@ export const updateUserPreferences = asyncHandler(async (req, res) => {
   const userId = req.user._id.toString();
   const { emailNotifications, marketingEmails } = req.body;
 
-  const updatedUser = await UserService.updateUser(userId, {
+  const updatedUser = await userService.updateUser(userId, {
     preferences: {
       emailNotifications,
       marketingEmails
@@ -182,7 +184,7 @@ export const changePassword = asyncHandler(async (req, res) => {
   const userId = req.user._id.toString();
   const { currentPassword, newPassword } = req.body;
 
-  const updatedUser = await UserService.changePassword(userId, currentPassword, newPassword);
+  const updatedUser = await userService.changePassword(userId, currentPassword, newPassword);
 
   res.json({
     success: true,
@@ -206,7 +208,7 @@ export const uploadProfilePicture = asyncHandler(async (req, res) => {
     throw new AppError('Error al procesar la imagen', 500);
   }
 
-  const updatedUser = await UserService.updateUser(userId, {
+  const updatedUser = await userService.updateUser(userId, {
     profilePicture: req.image.url
   });
 
@@ -224,7 +226,7 @@ export const uploadProfilePicture = asyncHandler(async (req, res) => {
 export const deleteProfilePicture = asyncHandler(async (req, res) => {
   const userId = req.user._id.toString();
 
-  const updatedUser = await UserService.updateUser(userId, {
+  const updatedUser = await userService.updateUser(userId, {
     profilePicture: ''
   });
 

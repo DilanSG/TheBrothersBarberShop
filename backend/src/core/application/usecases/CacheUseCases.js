@@ -1,5 +1,5 @@
 import NodeCache from 'node-cache';
-import { config } from '../../../shared/config/index.js';
+import config from '../../../shared/config/index.js';
 import { logger } from '../../../shared/utils/logger.js';
 
 class CacheUseCases {

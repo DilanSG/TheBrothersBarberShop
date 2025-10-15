@@ -1,7 +1,8 @@
-﻿import { asyncHandler } from '../middleware/index.js';
-import { AppError } from '../../shared/utils/errors.js';
-import BarberService from '../../core/application/usecases/barberService.js';
-import { User, Barber, Appointment } from '../../core/domain/entities/index.js';
+import { asyncHandler } from '../middleware/index.js';
+import { AppError, User, Barber, Appointment } from '../../barrel.js';
+import BarberUseCases from '../../core/application/usecases/BarberUseCases.js';
+
+const barberService = BarberUseCases.getInstance();
 
 export const editBarberProfile = asyncHandler(async (req, res) => {
   const updates = { ...req.body };
@@ -9,7 +10,7 @@ export const editBarberProfile = asyncHandler(async (req, res) => {
     updates.photo = req.image;
   }
 
-  const barber = await BarberService.updateBarberProfile(
+  const barber = await barberService.updateBarberProfile(
     req.params.id,
     req.user._id,
     req.user.role,
@@ -25,9 +26,9 @@ export const editBarberProfile = asyncHandler(async (req, res) => {
 
 // @desc    Obtener todos los barberos
 // @route   GET /api/barbers
-// @access  Público
+// @access  P�blico
 export const getBarbers = asyncHandler(async (req, res) => {
-  const barbers = await BarberService.getBarbers();
+  const barbers = await barberService.getBarbers();
   
   res.json({
     success: true,
@@ -39,7 +40,7 @@ export const getBarbers = asyncHandler(async (req, res) => {
 // @route   PUT /api/barbers/:id/remove
 // @access  Private/Admin
 export const removeBarber = asyncHandler(async (req, res) => {
-  const { barber, user } = await BarberService.removeBarber(req.params.id);
+  const { barber, user } = await barberService.removeBarber(req.params.id);
 
   res.status(200).json({
     success: true,
@@ -80,7 +81,7 @@ export const getBarberByUserId = asyncHandler(async (req, res) => {
       user: req.params.userId,
       specialty: 'Barbero General', // Valor por defecto
       experience: 0,
-      description: '', // Se puede actualizar después
+      description: '', // Se puede actualizar despu�s
       isActive: true,
       schedule: {
         monday: { start: '09:00', end: '17:00', available: true },
@@ -93,7 +94,7 @@ export const getBarberByUserId = asyncHandler(async (req, res) => {
       }
     });
 
-    // Poblamos los campos después de crear
+    // Poblamos los campos despu�s de crear
     barber = await Barber.findById(barber._id)
       .populate('user', 'name email phone photo role')
       .populate('services', 'name price duration');
@@ -106,7 +107,7 @@ export const getBarberByUserId = asyncHandler(async (req, res) => {
     return;
   }
 
-  // Si el barbero existe pero está inactivo, lo reactivamos
+  // Si el barbero existe pero est� inactivo, lo reactivamos
   if (!barber.isActive) {
     barber.isActive = true;
     await barber.save();
@@ -122,7 +123,7 @@ export const getBarberByUserId = asyncHandler(async (req, res) => {
 
 // @desc    Obtener un barbero por ID
 // @route   GET /api/barbers/:id
-// @access  Público
+// @access  P�blico
 export const getBarber = asyncHandler(async (req, res) => {
   // Debug: // Debug: console.log('Buscando barbero con ID:', req.params.id);
   
@@ -151,7 +152,7 @@ export const getBarber = asyncHandler(async (req, res) => {
 
 // @desc    Obtener disponibilidad de un barbero
 // @route   GET /api/barbers/:id/availability
-// @access  Público
+// @access  P�blico
 export const getBarberAvailability = asyncHandler(async (req, res) => {
   const { date } = req.query;
   const barberId = req.params.id;
@@ -162,7 +163,7 @@ export const getBarberAvailability = asyncHandler(async (req, res) => {
 
   const targetDate = new Date(date);
   if (isNaN(targetDate.getTime())) {
-    throw new AppError('Fecha inválida', 400);
+    throw new AppError('Fecha inv�lida', 400);
   }
 
   const barber = await Barber.findById(barberId);
@@ -355,7 +356,7 @@ export const deleteBarber = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Obtener estadísticas de un barbero
+// @desc    Obtener estad�sticas de un barbero
 // @route   GET /api/barbers/:id/stats
 // @access  Privado/Admin o el mismo barbero
 export const getBarberStats = asyncHandler(async (req, res) => {
@@ -367,7 +368,7 @@ export const getBarberStats = asyncHandler(async (req, res) => {
   }
 
   if (req.user.role !== 'admin' && barber.user.toString() !== req.user._id.toString()) {
-    throw new AppError('No tienes permisos para ver estas estadísticas', 403);
+    throw new AppError('No tienes permisos para ver estas estad�sticas', 403);
   }
 
   const today = new Date();
@@ -469,18 +470,17 @@ export const updateMainBarberStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { isMainBarber } = req.body;
 
-  console.log(`\n=== UPDATE MAIN BARBER STATUS ===`);
-  // Debug: console.log(`Barbero ID: ${id}`);
-  // Debug: console.log(`Nuevo estado isMainBarber: ${isMainBarber}`);
-  // Debug: console.log(`Tipo de dato: ${typeof isMainBarber}`);
+  logger.info('Actualizando estado de barbero principal', { 
+    barberId: id, 
+    isMainBarber, 
+    type: typeof isMainBarber 
+  });
 
   // Verificar que el barbero existe
   const barber = await Barber.findById(id).populate('user');
   if (!barber) {
     throw new AppError('Barbero no encontrado', 404);
   }
-
-  // Debug: console.log(`Estado actual del barbero: ${barber.isMainBarber}`);
 
   // Si se va a marcar como principal, verificar que no haya más de 3
   if (isMainBarber) {
@@ -502,11 +502,14 @@ export const updateMainBarberStatus = asyncHandler(async (req, res) => {
     const activeMainBarbers = currentMainBarbers.filter(barber => barber.user);
     const count = activeMainBarbers.length;
     
-    console.log(`✅ Barberos principales ACTIVOS (excluyendo actual): ${count}/3`);
-    console.log(`👥 Nombres: ${activeMainBarbers.map(b => b.user?.name).join(', ') || 'Ninguno'}`);
+    logger.info('Barberos principales activos verificados', { 
+      count, 
+      limit: 3, 
+      names: activeMainBarbers.map(b => b.user?.name).join(', ') || 'Ninguno' 
+    });
     
     if (count >= 3) {
-      console.log(`❌ ERROR: Límite de 3 barberos principales activos alcanzado`);
+      logger.warn('Límite de barberos principales alcanzado', { count, limit: 3 });
       throw new AppError('Solo puedes tener máximo 3 barberos principales', 400);
     }
   }
@@ -515,7 +518,10 @@ export const updateMainBarberStatus = asyncHandler(async (req, res) => {
   barber.isMainBarber = isMainBarber;
   await barber.save();
 
-  // Debug: console.log(`✅ Barbero actualizado. Nuevo estado: ${barber.isMainBarber}`);
+  logger.info('Estado de barbero principal actualizado', { 
+    barberId: barber._id, 
+    isMainBarber: barber.isMainBarber 
+  });
 
   // 🧹 LIMPIAR CACHÉ DE BARBEROS de forma específica y rápida
   try {
@@ -528,12 +534,11 @@ export const updateMainBarberStatus = asyncHandler(async (req, res) => {
     
     barberKeys.forEach(key => {
       memoryCache.del(key);
-      // Debug: console.log(`🧹 Cache key limpiada: ${key}`);
     });
     
-    console.log(`🧹 Caché de barberos limpiado: ${barberKeys.length} keys`);
+    logger.info('Caché de barberos limpiado', { keysCleared: barberKeys.length });
   } catch (error) {
-    console.log(`⚠️ Error limpiando caché: ${error.message}`);
+    logger.warn('Error limpiando caché de barberos', { error: error.message });
   }
 
   res.json({

@@ -5,16 +5,16 @@ import {
   TrendingUp, Scissors, Package, Download, X, CalendarDays, FileText,
   ShoppingCart, DollarSign, Clock, Eye, Filter, RefreshCw
 } from 'lucide-react';
-import { useAuth } from '../../shared/contexts/AuthContext';
-import { useNotification } from '../../shared/contexts/NotificationContext';
-import { PageContainer } from '../../shared/components/layout/PageContainer';
-import GradientText from '../../shared/components/ui/GradientText';
-import GradientButton from '../../shared/components/ui/GradientButton';
-import { useBarberStats } from '../../shared/hooks/useBarberStats';
-import { useBarberUI } from '../../shared/hooks/useBarberUI';
-import { useDetailedReports } from '../../shared/hooks/useDetailedReports';
-import CalendarModal from '../../shared/components/modals/CalendarModal';
-import logger from '../../shared/utils/logger';
+import { useAuth } from '@contexts/AuthContext';
+import { useNotification } from '@contexts/NotificationContext';
+import { PageContainer } from '@components/layout/PageContainer';
+import GradientText from '@components/ui/GradientText';
+import GradientButton from '@components/ui/GradientButton';
+import { useBarberStats } from '@hooks/useBarberStats';
+import { useBarberUI } from '@hooks/useBarberUI';
+import { useDetailedReports } from '@hooks/useDetailedReports';
+import CalendarModal from '@components/modals/CalendarModal';
+import logger from '@utils/logger';
 import { 
   DetailedSalesModal, 
   DetailedCutsModal, 

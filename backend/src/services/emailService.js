@@ -1,6 +1,5 @@
 import nodemailer from 'nodemailer';
-import { logger } from '../shared/utils/logger.js';
-import { AppError } from '../shared/utils/errors.js';
+import { logger, AppError } from '../barrel.js';
 
 /**
  * Servicio central de gestión de emails

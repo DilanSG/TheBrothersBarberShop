@@ -1,6 +1,5 @@
 import { User, Barber } from '../../domain/entities/index.js';
-import { AppError } from '../../../shared/utils/errors.js';
-import { logger } from '../../../shared/utils/logger.js';
+import { AppError, logger } from '../../../barrel.js';
 import DIContainer from '../../../shared/container/index.js';
 
 /**

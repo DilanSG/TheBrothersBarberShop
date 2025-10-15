@@ -4,10 +4,11 @@ import Barber from '../../domain/entities/Barber.js';
 import Service from '../../domain/entities/Service.js';
 import { AppError, logger } from '../../../barrel.js';
 // import ReportsCacheService from './reportsCacheService.js';
+import { logger } from '../../../shared/utils/logger.js';
 
 // const reportsCacheService = new ReportsCacheService();
 
-class AppointmentService {
+class AppointmentUseCases {
   static async getAvailableTimes(barberId, date) {
     const barber = await Barber.findById(barberId).populate('user');
     if (!barber) {
@@ -91,7 +92,7 @@ class AppointmentService {
 
   static async createAppointment(appointmentData) {
     try {
-      // console.log('📝 Datos recibidos para crear cita:', appointmentData);
+      // logger.info('📝 Datos recibidos para crear cita:', appointmentData);
       
       // Normalizar los nombres de los campos
       const barberId = appointmentData.barberId || appointmentData.barber;
@@ -106,13 +107,13 @@ class AppointmentService {
       }
 
       // Obtener el servicio para obtener la duración
-      // console.log('🔍 Buscando servicio...');
+      // logger.info('🔍 Buscando servicio...');
       const service = await Service.findById(serviceId);
       if (!service) {
         throw new AppError('Servicio no encontrado', 404);
       }
       
-      // console.log('✅ Servicio encontrado:', service.name, 'Duración:', service.duration);
+      // logger.info('✅ Servicio encontrado:', service.name, 'Duración:', service.duration);
 
       // Validar disponibilidad del barbero
       const isAvailable = await this.checkBarberAvailability(
@@ -126,7 +127,7 @@ class AppointmentService {
       }
 
       // Verificar que el servicio existe y pertenece al barbero
-      // console.log('🔍 Verificando que el barbero ofrece el servicio...');
+      // logger.info('🔍 Verificando que el barbero ofrece el servicio...');
       const barber = await Barber.findById(barberId)
         .populate('services');
       
@@ -142,7 +143,7 @@ class AppointmentService {
         throw new AppError('El barbero no ofrece este servicio', 400);
       }
 
-      // console.log('✅ Barbero ofrece el servicio');
+      // logger.info('✅ Barbero ofrece el servicio');
 
       // Preparar los datos para crear la cita
       const appointmentToCreate = {
@@ -156,7 +157,7 @@ class AppointmentService {
         notes: appointmentData.notes || ''
       };
 
-      // console.log('📝 Creando cita con datos:', appointmentToCreate);
+      // logger.info('📝 Creando cita con datos:', appointmentToCreate);
 
       // Crear la cita
       const appointment = await Appointment.create(appointmentToCreate);
@@ -357,40 +358,40 @@ class AppointmentService {
       // Refrescar los datos de la cita desde la base de datos
       const appointment = await this.getAppointmentById(id);
       
-      // console.log('🔍 Verificando permisos para aprobar cita:');
-      // console.log('  - ID de la cita:', id);
-      // console.log('  - Estado actual:', appointment.status);
-      // console.log('  - Usuario que intenta aprobar:', userId);
-      // console.log('  - Rol del usuario:', userRole);
-      // console.log('  - Barbero asignado a la cita:', appointment.barber.user?._id || appointment.barber.user);
+      // logger.info('🔍 Verificando permisos para aprobar cita:');
+      // logger.info('  - ID de la cita:', id);
+      // logger.info('  - Estado actual:', appointment.status);
+      // logger.info('  - Usuario que intenta aprobar:', userId);
+      // logger.info('  - Rol del usuario:', userRole);
+      // logger.info('  - Barbero asignado a la cita:', appointment.barber.user?._id || appointment.barber.user);
 
       // Solo el barbero asignado o un admin pueden aprobar citas
       const barberUserId = appointment.barber.user?._id || appointment.barber.user;
       if (userRole !== 'admin' && barberUserId.toString() !== userId.toString()) {
-        // console.log('❌ Permiso denegado - Usuario no es el barbero asignado');
+        // logger.info('❌ Permiso denegado - Usuario no es el barbero asignado');
         throw new AppError('No tienes permiso para aprobar esta cita', 403);
       }
 
       if (appointment.status !== 'pending') {
-        // console.log(`❌ Estado actual de la cita: "${appointment.status}", se requiere "pending"`);
+        // logger.info(`❌ Estado actual de la cita: "${appointment.status}", se requiere "pending"`);
         throw new AppError(`Solo se pueden aprobar citas pendientes. Estado actual: ${appointment.status}`, 400);
       }
 
       // Verificar si la cita ya fue procesada mediante una consulta directa
       const freshAppointment = await Appointment.findById(id);
       if (freshAppointment.status !== 'pending') {
-        // console.log(`❌ La cita ya fue procesada, estado actual: "${freshAppointment.status}"`);
+        // logger.info(`❌ La cita ya fue procesada, estado actual: "${freshAppointment.status}"`);
         throw new AppError(`Esta cita ya fue procesada. Estado actual: ${freshAppointment.status}`, 409);
       }
 
       appointment.status = 'confirmed';
       await appointment.save();
 
-      // console.log('✅ Cita aprobada exitosamente');
+      // logger.info('✅ Cita aprobada exitosamente');
       logger.info(`Cita ${id} aprobada/confirmada`);
       return appointment;
     } catch (error) {
-      console.error('❌ Error aprobando cita:', error);
+      logger.error('❌ Error aprobando cita:', error);
       logger.error(`Error aprobando cita ${id}:`, error);
       throw error;
     }
@@ -424,31 +425,31 @@ class AppointmentService {
   // Métodos auxiliares
   static async checkBarberAvailability(barberId, date, duration, excludeAppointmentId = null) {
     try {
-      // console.log('🔍 Verificando disponibilidad:', { barberId, date, duration });
+      // logger.info('🔍 Verificando disponibilidad:', { barberId, date, duration });
       
       const appointmentDate = new Date(date);
       const endTime = new Date(appointmentDate.getTime() + duration * 60000);
 
       // Verificar horario del barbero para ese día
-      // console.log('📋 Buscando barbero...');
+      // logger.info('📋 Buscando barbero...');
       const barber = await Barber.findById(barberId).populate('user');
       if (!barber) {
-        // console.log('❌ Barbero no encontrado');
+        // logger.info('❌ Barbero no encontrado');
         throw new AppError('Barbero no encontrado', 404);
       }
 
-      // console.log('✅ Barbero encontrado:', barber.user);
+      // logger.info('✅ Barbero encontrado:', barber.user);
 
       // Obtener el día de la semana en formato correcto
       const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
       const dayOfWeek = dayNames[appointmentDate.getDay()];
-      // console.log('📅 Día de la semana:', dayOfWeek);
+      // logger.info('📅 Día de la semana:', dayOfWeek);
       
       const schedule = barber.schedule?.[dayOfWeek];
-      // console.log('⏰ Horario del día:', schedule);
+      // logger.info('⏰ Horario del día:', schedule);
 
       if (!schedule || !schedule.available) {
-        // console.log('❌ Barbero no disponible este día');
+        // logger.info('❌ Barbero no disponible este día');
         return false;
       }
 
@@ -462,23 +463,23 @@ class AppointmentService {
       const scheduleEnd = new Date(appointmentDate);
       scheduleEnd.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
 
-      // console.log('🕐 Horario laboral:', { 
+      // logger.info('🕐 Horario laboral:', { 
       //   start: scheduleStart.toISOString(), 
       //   end: scheduleEnd.toISOString() 
       // });
-      // console.log('🕐 Cita solicitada:', { 
+      // logger.info('🕐 Cita solicitada:', { 
       //   start: appointmentDate.toISOString(), 
       //   end: endTime.toISOString() 
       // });
 
       // Verificar si la cita está dentro del horario del barbero
       if (appointmentDate < scheduleStart || endTime > scheduleEnd) {
-        // console.log('❌ Cita fuera del horario laboral');
+        // logger.info('❌ Cita fuera del horario laboral');
         return false;
       }
 
       // Buscar citas que se solapan con el horario solicitado
-      // console.log('🔍 Buscando citas existentes...');
+      // logger.info('🔍 Buscando citas existentes...');
       const startOfDay = new Date(appointmentDate);
       startOfDay.setHours(0, 0, 0, 0);
       
@@ -493,14 +494,14 @@ class AppointmentService {
         ...(excludeAppointmentId && { _id: { $ne: excludeAppointmentId } })
       });
 
-      // console.log(`📊 Encontradas ${existingAppointments.length} citas existentes`);
+      // logger.info(`📊 Encontradas ${existingAppointments.length} citas existentes`);
 
       // Verificar manualmente si hay conflictos
       for (const appointment of existingAppointments) {
         const existingStart = new Date(appointment.date);
         const existingEnd = new Date(existingStart.getTime() + appointment.duration * 60000);
 
-        // console.log('🔍 Verificando conflicto con cita:', {
+        // logger.info('🔍 Verificando conflicto con cita:', {
         //   existing: `${existingStart.toISOString()} - ${existingEnd.toISOString()}`,
         //   requested: `${appointmentDate.toISOString()} - ${endTime.toISOString()}`
         // });
@@ -511,15 +512,15 @@ class AppointmentService {
           (endTime > existingStart && endTime <= existingEnd) ||
           (appointmentDate <= existingStart && endTime >= existingEnd)
         ) {
-          // console.log('❌ Conflicto encontrado');
+          // logger.info('❌ Conflicto encontrado');
           return false; // Hay conflicto
         }
       }
 
-      // console.log('✅ No hay conflictos, horario disponible');
+      // logger.info('✅ No hay conflictos, horario disponible');
       return true; // No hay conflictos
     } catch (error) {
-      console.error('❌ Error verificando disponibilidad:', error);
+      logger.error('❌ Error verificando disponibilidad:', error);
       logger.error('Error verificando disponibilidad:', error);
       throw new AppError('Error al verificar disponibilidad', 500);
     }
@@ -566,7 +567,7 @@ class AppointmentService {
         date: { $lt: now }
       });
 
-      // console.log(`🧹 Encontradas ${expiredAppointments.length} citas pendientes expiradas`);
+      // logger.info(`🧹 Encontradas ${expiredAppointments.length} citas pendientes expiradas`);
 
       if (expiredAppointments.length > 0) {
         // Marcar como canceladas automáticamente
@@ -641,7 +642,7 @@ class AppointmentService {
         };
       }
 
-      // console.log(`📅 Filtros aplicados para citas del barbero ${barberId}:`, {
+      // logger.info(`📅 Filtros aplicados para citas del barbero ${barberId}:`, {
       //   matchConditions,
       //   dateFilter
       // });
@@ -677,14 +678,14 @@ class AppointmentService {
         result.revenue += stat.revenue;
       });
 
-      // console.log(`📅 Stats de citas para barbero ${barberId} con filtros:`, {
+      // logger.info(`📅 Stats de citas para barbero ${barberId} con filtros:`, {
       //   result,
       //   filteredBy: dateFilter
       // });
 
       return result;
     } catch (error) {
-      console.error('Error getting barber appointment stats:', error);
+      logger.error('Error getting barber appointment stats:', error);
       return {
         completed: 0,
         total: 0,
@@ -726,7 +727,7 @@ class AppointmentService {
 
       return appointments;
     } catch (error) {
-      console.error('Error getting daily appointment report:', error);
+      logger.error('Error getting daily appointment report:', error);
       return [];
     }
   }
@@ -760,7 +761,7 @@ class AppointmentService {
 
       return appointments.map(a => a._id);
     } catch (error) {
-      console.error('Error obteniendo fechas disponibles de citas:', error);
+      logger.error('Error obteniendo fechas disponibles de citas:', error);
       return [];
     }
   }
@@ -770,7 +771,7 @@ class AppointmentService {
    */
   static async getCompletedDetails(barberId, startDate, endDate) {
     try {
-      // console.log(`🔍 Obteniendo detalles de citas completadas - Barbero: ${barberId}, Desde: ${startDate || 'SIN LIMITE'}, Hasta: ${endDate || 'SIN LIMITE'}`);
+      // logger.info(`🔍 Obteniendo detalles de citas completadas - Barbero: ${barberId}, Desde: ${startDate || 'SIN LIMITE'}, Hasta: ${endDate || 'SIN LIMITE'}`);
       
       // Buscar barbero
       const barber = await Barber.findById(barberId).populate('user');
@@ -794,9 +795,9 @@ class AppointmentService {
         end.setHours(23, 59, 59, 999);
         
         dateQuery = { date: { $gte: start, $lte: end } };
-        // console.log(`📅 Rango de fechas procesado con zona horaria Colombia: ${start.toISOString()} - ${end.toISOString()}`);
+        // logger.info(`📅 Rango de fechas procesado con zona horaria Colombia: ${start.toISOString()} - ${end.toISOString()}`);
       } else {
-        // console.log(`📅 Sin filtro de fechas - obteniendo todos los registros`);
+        // logger.info(`📅 Sin filtro de fechas - obteniendo todos los registros`);
       }
 
       // Usar cache inteligente
@@ -806,7 +807,7 @@ class AppointmentService {
       //   start || new Date(0),
       //   end || new Date(),
       //   async () => {
-          // console.log(`📊 Generando detalles de citas completadas desde DB`);
+          // logger.info(`📊 Generando detalles de citas completadas desde DB`);
           
           const appointments = await Appointment.find({
             barber: barberId,
@@ -817,14 +818,14 @@ class AppointmentService {
           .populate('service', 'name price duration')
           .sort({ date: 1 });
 
-          // console.log(`🔍 Citas encontradas en DB: ${appointments.length} registros para barbero ${barberId}`);
+          // logger.info(`🔍 Citas encontradas en DB: ${appointments.length} registros para barbero ${barberId}`);
           
           // Debug: Verificar si hay citas con datos faltantes
           const appointmentsWithMissingData = appointments.filter(apt => !apt.user || !apt.service);
           if (appointmentsWithMissingData.length > 0) {
-            // console.log(`⚠️ CITAS CON DATOS FALTANTES: ${appointmentsWithMissingData.length}/${appointments.length}`);
+            // logger.info(`⚠️ CITAS CON DATOS FALTANTES: ${appointmentsWithMissingData.length}/${appointments.length}`);
             appointmentsWithMissingData.slice(0, 3).forEach((apt, index) => {
-              // console.log(`   Cita ${index + 1}: ID=${apt._id}, user=${!!apt.user}, service=${!!apt.service}, date=${apt.date}`);
+              // logger.info(`   Cita ${index + 1}: ID=${apt._id}, user=${!!apt.user}, service=${!!apt.service}, date=${apt.date}`);
             });
           }
 
@@ -876,13 +877,13 @@ class AppointmentService {
 
       const result = Object.values(appointmentsByDay).sort((a, b) => new Date(a.date) - new Date(b.date));
       
-      // console.log(`✅ Detalles de citas completadas generados: ${result.length} días con citas`);
+      // logger.info(`✅ Detalles de citas completadas generados: ${result.length} días con citas`);
       return result;
       //   }
       // );
 
     } catch (error) {
-      console.error('Error obteniendo detalles de citas completadas:', error);
+      logger.error('Error obteniendo detalles de citas completadas:', error);
       throw error;
     }
   }
@@ -892,18 +893,18 @@ class AppointmentService {
    */
   static async getCompletedAppointments() {
     try {
-      console.log('🔍 Buscando citas completadas con método de pago...');
+      logger.info('🔍 Buscando citas completadas con método de pago...');
       
       // Primero verificar cuántas citas completadas hay en total
       const totalCompleted = await Appointment.countDocuments({ status: 'completed' });
-      console.log(`📊 Total citas completadas: ${totalCompleted}`);
+      logger.info(`📊 Total citas completadas: ${totalCompleted}`);
       
       // Verificar cuántas tienen método de pago
       const withPayment = await Appointment.countDocuments({ 
         status: 'completed',
         paymentMethod: { $exists: true, $ne: null }
       });
-      console.log(`💳 Citas completadas con método de pago: ${withPayment}`);
+      logger.info(`💳 Citas completadas con método de pago: ${withPayment}`);
       
       const appointments = await Appointment.find({
         status: 'completed',
@@ -922,9 +923,9 @@ class AppointmentService {
       .sort({ date: -1 })
       .lean();
 
-      console.log(`✅ Citas completadas encontradas para el modal: ${appointments.length}`);
+      logger.info(`✅ Citas completadas encontradas para el modal: ${appointments.length}`);
       if (appointments.length > 0) {
-        console.log('📋 Primer ejemplo de cita:', {
+        logger.info('📋 Primer ejemplo de cita:', {
           id: appointments[0]._id,
           service: appointments[0].service?.name,
           user: appointments[0].user?.name,
@@ -936,10 +937,10 @@ class AppointmentService {
       
       return appointments;
     } catch (error) {
-      console.error('❌ Error obteniendo citas completadas:', error);
+      logger.error('❌ Error obteniendo citas completadas:', error);
       throw error;
     }
   }
 }
 
-export default AppointmentService;
+export default AppointmentUseCases;

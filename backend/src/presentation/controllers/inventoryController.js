@@ -1,11 +1,7 @@
-import InventoryService from '../../core/application/usecases/inventoryService.js';
-import InventoryLogService from '../../core/application/usecases/inventoryLogService.js';
-import InventoryLog from '../../core/domain/entities/InventoryLog.js';
-import Inventory from '../../core/domain/entities/Inventory.js';
-import Sale from '../../core/domain/entities/Sale.js';
+import InventoryUseCases from '../../core/application/usecases/InventoryUseCases.js';
+import InventoryLogService from '../../core/application/usecases/InventoryLogUseCases.js';
+import { InventoryLog, Inventory, Sale, AppError, logger } from '../../barrel.js';
 import { asyncHandler } from '../middleware/index.js';
-import { AppError } from '../../shared/utils/errors.js';
-import { logger } from '../../shared/utils/logger.js';
 
 // @desc    Obtener lista de items del inventario
 // @route   GET /api/inventory
@@ -15,7 +11,7 @@ export const getInventory = asyncHandler(async (req, res) => {
   if (req.query.category) filters.category = req.query.category;
   if (req.query.minStock) filters.stock = { $lte: parseInt(req.query.minStock) };
 
-  const items = await InventoryService.getAllItems(filters);
+  const items = await InventoryUseCases.getAllItems(filters);
   res.json({ 
     success: true, 
     count: items.length,
@@ -27,7 +23,7 @@ export const getInventory = asyncHandler(async (req, res) => {
 // @route   GET /api/inventory/:id
 // @access  Privado
 export const getInventoryItem = asyncHandler(async (req, res) => {
-  const item = await InventoryService.getItemById(req.params.id);
+  const item = await InventoryUseCases.getItemById(req.params.id);
   res.json({ success: true, data: item });
 });
 
@@ -35,7 +31,7 @@ export const getInventoryItem = asyncHandler(async (req, res) => {
 // @route   POST /api/inventory
 // @access  Privado/Admin
 export const createInventoryItem = asyncHandler(async (req, res) => {
-  const item = await InventoryService.createItem(req.body);
+  const item = await InventoryUseCases.createItem(req.body);
   
   // Registrar log de creación
   await InventoryLogService.createLog(
@@ -68,8 +64,8 @@ export const createInventoryItem = asyncHandler(async (req, res) => {
 // @access  Privado/Admin
 export const updateInventoryItem = asyncHandler(async (req, res) => {
   // Obtener estado anterior
-  const previousItem = await InventoryService.getItemById(req.params.id);
-  const item = await InventoryService.updateItem(req.params.id, req.body);
+  const previousItem = await InventoryUseCases.getItemById(req.params.id);
+  const item = await InventoryUseCases.updateItem(req.params.id, req.body);
   
   // Detectar cambios específicos
   const changes = [];
@@ -177,9 +173,9 @@ export const updateInventoryItem = asyncHandler(async (req, res) => {
 // @access  Privado/Admin
 export const deleteInventoryItem = asyncHandler(async (req, res) => {
   // Obtener el item antes de eliminarlo para el log
-  const item = await InventoryService.getItemById(req.params.id);
+  const item = await InventoryUseCases.getItemById(req.params.id);
   
-  const result = await InventoryService.deleteItem(req.params.id);
+  const result = await InventoryUseCases.deleteItem(req.params.id);
   
   // Registrar log de eliminación
   await InventoryLogService.createLog(
@@ -226,7 +222,7 @@ export const adjustStock = asyncHandler(async (req, res) => {
     options.paymentMethod = paymentMethod || 'cash';
   }
 
-  const item = await InventoryService.adjustStock(
+  const item = await InventoryUseCases.adjustStock(
     req.params.id,
     Number(quantity),
     type,
@@ -247,7 +243,7 @@ export const adjustStock = asyncHandler(async (req, res) => {
 // @route   GET /api/inventory/category/:category
 // @access  Privado
 export const getItemsByCategory = asyncHandler(async (req, res) => {
-  const items = await InventoryService.getItemsByCategory(req.params.category);
+  const items = await InventoryUseCases.getItemsByCategory(req.params.category);
   res.json({ 
     success: true, 
     count: items.length,
@@ -260,7 +256,7 @@ export const getItemsByCategory = asyncHandler(async (req, res) => {
 // @access  Privado
 export const getLowStockItems = asyncHandler(async (req, res) => {
   const threshold = req.query.threshold ? parseInt(req.query.threshold) : 5;
-  const items = await InventoryService.getLowStockItems(threshold);
+  const items = await InventoryUseCases.getLowStockItems(threshold);
   res.json({ 
     success: true, 
     count: items.length,
@@ -273,7 +269,7 @@ export const getLowStockItems = asyncHandler(async (req, res) => {
 // @access  Privado
 export const getMovementHistory = asyncHandler(async (req, res) => {
   const { startDate, endDate } = req.query;
-  const history = await InventoryService.getMovementHistory(
+  const history = await InventoryUseCases.getMovementHistory(
     req.params.id,
     startDate,
     endDate
@@ -288,7 +284,7 @@ export const getMovementHistory = asyncHandler(async (req, res) => {
 // @route   GET /api/inventory/stats
 // @access  Privado/Admin
 export const getInventoryStats = asyncHandler(async (req, res) => {
-  const stats = await InventoryService.getInventoryStats();
+  const stats = await InventoryUseCases.getInventoryStats();
   res.json({ 
     success: true, 
     data: stats 
@@ -337,7 +333,7 @@ export const getInventoryLogStats = asyncHandler(async (req, res) => {
 // @access  Privado/Admin
 export const getDailyInventoryReport = asyncHandler(async (req, res) => {
   const { date } = req.query;
-  const report = await InventoryService.getDailyReport(date);
+  const report = await InventoryUseCases.getDailyReport(date);
   
   res.json({
     success: true,

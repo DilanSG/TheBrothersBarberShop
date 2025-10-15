@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { useAuth } from '../shared/contexts/AuthContext';
-import {PageContainer} from '../shared/components/layout/PageContainer';
-import GradientText from '../shared/components/ui/GradientText';
+import { useAuth } from '@contexts/AuthContext';
+import {PageContainer} from '@components/layout/PageContainer';
+import GradientText from '@components/ui/GradientText';
 import { User, Shield, Scissors, Home } from 'lucide-react';
 
 /**

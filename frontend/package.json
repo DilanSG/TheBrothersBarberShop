@@ -5,16 +5,20 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:simple": "vite --config vite.config.simple.js",
     "build": "npm install vite@4.5.5 && npx vite build",
-    "build:simple": "vite build --config vite.config.simple.js",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "4.7.0",
+    "@sentry/node": "10.19.0",
+    "@sentry/profiling-node": "10.19.0",
+    "@sentry/react": "10.19.0",
+    "@vercel/analytics": "1.5.0",
+    "@vercel/speed-insights": "1.2.0",
+    "@vitejs/plugin-react": "4.3.4",
     "autoprefixer": "^10.4.15",
     "date-fns": "^3.6.0",
-    "esbuild": "^0.19.0",
+    "esbuild": "0.25.10",
+    "exceljs": "4.4.0",
     "lucide-react": "^0.542.0",
     "postcss": "^8.4.29",
     "react": "^18.2.0",
@@ -24,9 +28,6 @@
     "react-router-dom": "^6.15.0",
     "react-toastify": "^11.0.5",
     "tailwindcss": "^3.3.3",
-    "vite": "^4.5.5",
-    "xlsx": "^0.18.5"
-  },
-  "devDependencies": {
+    "vite": "5.4.20"
   }
 }

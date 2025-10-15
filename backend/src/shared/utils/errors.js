@@ -1,3 +1,5 @@
+import { logger } from './logger.js';
+
 export class AppError extends Error {
   constructor(message, statusCode, details = null) {
     super(message);
@@ -81,7 +83,7 @@ export const handleError = (err, res) => {
 
   // Log del error
   if (!isOperational) {
-    console.error('ERROR NO OPERACIONAL 💥:', err);
+    logger.error('ERROR NO OPERACIONAL 💥:', err);
   }
 
   res.status(statusCode).json(response);

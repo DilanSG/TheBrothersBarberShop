@@ -1,13 +1,13 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { useAuth } from '../shared/contexts/AuthContext';
-import { useSocioStatus } from '../shared/hooks/useSocioStatus';
-import GradientButton from '../shared/components/ui/GradientButton';
-import GradientText from '../shared/components/ui/GradientText';
-import { PageContainer } from '../shared/components/layout/PageContainer';
+import { useAuth } from '@contexts/AuthContext';
+import { useSocioStatus } from '@hooks/useSocioStatus';
+import GradientButton from '@components/ui/GradientButton';
+import GradientText from '@components/ui/GradientText';
+import { PageContainer } from '@components/layout/PageContainer';
 import { Link, useNavigate } from 'react-router-dom';
-import { api } from '../shared/services/api';
-import { LOGOS, DEFAULT_IMAGES } from '../shared/utils/assets';
-import logger from '../shared/utils/logger';
+import { api } from '@services/api';
+import { LOGOS, DEFAULT_IMAGES } from '@utils/assets';
+import logger from '@utils/logger';
 import { 
   Scissors, 
   Clock, 

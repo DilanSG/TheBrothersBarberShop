@@ -51,7 +51,15 @@ export default defineConfig({
     watch: {
       usePolling: false,
       interval: 100
-    }
+    },
+    // Proxy para desarrollo local si es necesario
+    proxy: process.env.NODE_ENV === 'development' ? {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false
+      }
+    } : undefined
   },
   
   // Configuración de dependencias optimizada para Vite 4.x

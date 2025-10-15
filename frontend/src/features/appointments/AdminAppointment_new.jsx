@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { PageContainer } from '../../shared/components/layout/PageContainer';
-import GradientText from '../../shared/components/ui/GradientText';
-import { api, appointmentService } from '../../shared/services/api';
-import { useNotification } from '../../shared/contexts/NotificationContext';
+import { PageContainer } from '@components/layout/PageContainer';
+import GradientText from '@components/ui/GradientText';
+import { api, appointmentService } from '@services/api';
+import { useNotification } from '@contexts/NotificationContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
@@ -28,7 +28,7 @@ import {
   Phone,
   DollarSign
 } from 'lucide-react';
-import GradientButton from '../../shared/components/ui/GradientButton';
+import GradientButton from '@components/ui/GradientButton';
 
 const AdminAppointment = () => {
   const [appointments, setAppointments] = useState([]);

@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../shared/contexts/AuthContext';
-import { useSocioStatus } from '../shared/hooks/useSocioStatus';
-import { useNotification } from '../shared/contexts/NotificationContext';
-import { api } from '../shared/services/api';
-import GradientButton from '../shared/components/ui/GradientButton';
-import {PageContainer} from '../shared/components/layout/PageContainer';
+import { useAuth } from '@contexts/AuthContext';
+import { useSocioStatus } from '@hooks/useSocioStatus';
+import { useNotification } from '@contexts/NotificationContext';
+import { api } from '@services/api';
+import GradientButton from '@components/ui/GradientButton';
+import {PageContainer} from '@components/layout/PageContainer';
 import { 
   User, 
   Mail, 

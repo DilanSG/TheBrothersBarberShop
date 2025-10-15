@@ -1,4 +1,4 @@
-import PaymentMethod from '../../core/domain/entities/PaymentMethod.js';
+import { PaymentMethod, AppError, logger } from '../../barrel.js';
 import { 
   GetPaymentMethods, 
   CreatePaymentMethod, 
@@ -8,8 +8,6 @@ import {
   NormalizeExistingPaymentMethods
 } from '../../core/application/usecases/paymentMethodUseCases.js';
 import { asyncHandler } from '../middleware/index.js';
-import { AppError } from '../../shared/utils/errors.js';
-import { logger } from '../../shared/utils/logger.js';
 
 /**
  * @desc    Obtener todos los métodos de pago activos

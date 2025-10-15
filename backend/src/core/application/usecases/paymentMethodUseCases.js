@@ -1,8 +1,4 @@
-import PaymentMethod from '../../../core/domain/entities/PaymentMethod.js';
-import Sale from '../../../core/domain/entities/Sale.js';
-import Expense from '../../../core/domain/entities/Expense.js';
-import Appointment from '../../../core/domain/entities/Appointment.js';
-import { AppError, CommonErrors, logger } from '../../../barrel.js';
+import { PaymentMethod, Sale, Expense, Appointment, AppError, CommonErrors, logger } from '../../../barrel.js';
 
 /**
  * Use case: Inicializar métodos de pago del sistema

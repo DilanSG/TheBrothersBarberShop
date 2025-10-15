@@ -1,6 +1,6 @@
 import { asyncHandler } from '../middleware/index.js';
 import InventorySnapshotService from '../../core/application/usecases/inventorySnapshotService.js';
-import { logger } from '../../shared/utils/logger.js';
+import { logger } from '../../barrel.js';
 
 export const createSnapshot = asyncHandler(async (req, res) => {
   logger.info('🎯 Solicitud para crear snapshot de inventario', { 

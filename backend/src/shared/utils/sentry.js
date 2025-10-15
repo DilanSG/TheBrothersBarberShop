@@ -1,0 +1,170 @@
+/**
+ * 🐛 Sentry Configuration (Backend - Render)
+ * Error tracking y performance monitoring para producción
+ * 
+ * IMPORTANTE: Configurar SENTRY_DSN_BACKEND en Render Dashboard
+ */
+
+import * as Sentry from "@sentry/node";
+import { ProfilingIntegration } from "@sentry/profiling-node";
+import { logger } from './logger.js';
+
+/**
+ * Inicializar Sentry para error tracking
+ * Solo se activa en producción si SENTRY_DSN_BACKEND está configurado
+ */
+export const initSentry = (app) => {
+  const dsn = process.env.SENTRY_DSN_BACKEND;
+  const environment = process.env.NODE_ENV || 'development';
+
+  // Solo inicializar en producción con DSN configurado
+  if (!dsn) {
+    if (environment === 'production') {
+      logger.warn('Sentry no configurado: SENTRY_DSN_BACKEND no definido');
+    } else {
+      logger.info('Sentry deshabilitado en desarrollo');
+    }
+    return;
+  }
+
+  try {
+    Sentry.init({
+      dsn,
+      environment,
+      
+      // Integrations
+      integrations: [
+        // HTTP request tracking
+        new Sentry.Integrations.Http({ tracing: true }),
+        
+        // Express request handler
+        new Sentry.Integrations.Express({ app }),
+        
+        // Performance profiling (opcional)
+        new ProfilingIntegration(),
+      ],
+      
+      // Performance monitoring
+      tracesSampleRate: environment === 'production' ? 0.1 : 1.0, // 10% en prod, 100% en dev
+      
+      // Profiling (CPU, memoria)
+      profilesSampleRate: environment === 'production' ? 0.1 : 1.0,
+      
+      // Filtrar errores sensibles
+      beforeSend(event, hint) {
+        // No enviar errores de validación (son esperados)
+        if (event.exception) {
+          const error = hint.originalException;
+          if (error?.name === 'ValidationError' || error?.statusCode === 400) {
+            return null;
+          }
+        }
+        
+        // Sanitizar datos sensibles
+        if (event.request) {
+          delete event.request.cookies;
+          if (event.request.headers) {
+            delete event.request.headers.authorization;
+            delete event.request.headers.cookie;
+          }
+        }
+        
+        return event;
+      },
+      
+      // Ignorar errores comunes no críticos
+      ignoreErrors: [
+        'ECONNREFUSED',
+        'ENOTFOUND',
+        'ETIMEDOUT',
+        'NetworkError',
+        'Non-Error promise rejection',
+      ],
+    });
+
+    logger.info(`Sentry inicializado en ambiente: ${environment}`);
+  } catch (error) {
+    logger.error('Error inicializando Sentry:', { error: error.message });
+  }
+};
+
+/**
+ * Middleware para capturar requests en Sentry
+ * Aplicar ANTES de las rutas
+ */
+export const sentryRequestHandler = () => {
+  const dsn = process.env.SENTRY_DSN_BACKEND;
+  if (!dsn) return (req, res, next) => next();
+  
+  return Sentry.Handlers.requestHandler();
+};
+
+/**
+ * Middleware para capturar errores en Sentry
+ * Aplicar DESPUÉS de las rutas, ANTES del error handler
+ */
+export const sentryErrorHandler = () => {
+  const dsn = process.env.SENTRY_DSN_BACKEND;
+  if (!dsn) return (req, res, next) => next();
+  
+  return Sentry.Handlers.errorHandler();
+};
+
+/**
+ * Capturar excepción manualmente
+ * @param {Error} error - Error a reportar
+ * @param {Object} context - Contexto adicional
+ */
+export const captureException = (error, context = {}) => {
+  const dsn = process.env.SENTRY_DSN_BACKEND;
+  if (!dsn) {
+    logger.error('Error capturado (Sentry deshabilitado):', { error: error.message, ...context });
+    return;
+  }
+  
+  Sentry.captureException(error, {
+    extra: context,
+  });
+};
+
+/**
+ * Capturar mensaje manual
+ * @param {string} message - Mensaje a reportar
+ * @param {string} level - Nivel (info, warning, error)
+ */
+export const captureMessage = (message, level = 'info') => {
+  const dsn = process.env.SENTRY_DSN_BACKEND;
+  if (!dsn) {
+    logger[level](`Mensaje capturado (Sentry deshabilitado): ${message}`);
+    return;
+  }
+  
+  Sentry.captureMessage(message, level);
+};
+
+/**
+ * Agregar contexto de usuario
+ * @param {Object} user - Usuario autenticado
+ */
+export const setUser = (user) => {
+  const dsn = process.env.SENTRY_DSN_BACKEND;
+  if (!dsn) return;
+  
+  Sentry.setUser({
+    id: user.id || user._id,
+    email: user.email,
+    role: user.role,
+  });
+};
+
+/**
+ * Limpiar contexto de usuario (logout)
+ */
+export const clearUser = () => {
+  const dsn = process.env.SENTRY_DSN_BACKEND;
+  if (!dsn) return;
+  
+  Sentry.setUser(null);
+};
+
+export default Sentry;

@@ -12,6 +12,7 @@ import {
   CALCULATION_CONSTANTS 
 } from './constants.js';
 import { validateRecurrenceConfig, validateAmount } from './validator.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Clase principal para cálculos de gastos recurrentes
@@ -98,7 +99,7 @@ export class RecurringExpenseCalculator {
         return amount / (config.interval * this.constants.DAYS_IN_YEAR);
 
       default:
-        console.warn(`Patrón de frecuencia no reconocido: ${config.pattern}`);
+        logger.warn(`Patrón de frecuencia no reconocido: ${config.pattern}`);
         return amount / this.constants.DAYS_IN_MONTH; // Fallback mensual
     }
   }
@@ -148,7 +149,7 @@ export class RecurringExpenseCalculator {
         return amount / (config.interval * this.constants.MONTHS_IN_YEAR);
 
       default:
-        console.warn(`Patrón de frecuencia no reconocido: ${config.pattern}`);
+        logger.warn(`Patrón de frecuencia no reconocido: ${config.pattern}`);
         return amount; // Fallback mensual
     }
   }

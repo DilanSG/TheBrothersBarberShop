@@ -1,13 +1,13 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageContainer } from '../../shared/components/layout/PageContainer';
-import { useAuth } from '../../shared/contexts/AuthContext';
-import { useSocioStatus } from '../../shared/hooks/useSocioStatus';
-import { api, barberService, serviceService } from '../../shared/services/api';
-import { useNotification } from '../../shared/contexts/NotificationContext';
-import GradientButton from '../../shared/components/ui/GradientButton';
-import GradientText from '../../shared/components/ui/GradientText';
-import logger from '../../shared/utils/logger';
+import { PageContainer } from '@components/layout/PageContainer';
+import { useAuth } from '@contexts/AuthContext';
+import { useSocioStatus } from '@hooks/useSocioStatus';
+import { api, barberService, serviceService } from '@services/api';
+import { useNotification } from '@contexts/NotificationContext';
+import GradientButton from '@components/ui/GradientButton';
+import GradientText from '@components/ui/GradientText';
+import logger from '@utils/logger';
 import { 
   User, 
   Camera, 

@@ -1,755 +1,1803 @@
-/**
- * SaleUseCases - Casos de uso para gesti√≥n de ventas
- * ‚úÖ MIGRACI√ìN COMPLETA A REPOSITORY PATTERN
- *
- * Gesti√≥n integral de ventas con Repository Pattern
- */
-
+import mongoose from 'mongoose';
+import Sale from '../../domain/entities/Sale.js';
+import Barber from '../../domain/entities/Barber.js';
+import Inventory from '../../domain/entities/Inventory.js';
+import Appointment from '../../domain/entities/Appointment.js';
+import InventoryLogService from './InventoryLogUseCases.js';
+import { reportsCacheService } from './reportsCacheService.js';
 import { AppError } from '../../../shared/utils/errors.js';
 import { logger } from '../../../shared/utils/logger.js';
-import DIContainer from '../../../shared/container/index.js';
-import Sale from '../../domain/entities/Sale.js';
-import Appointment from '../../domain/entities/Appointment.js';
+import { SALE_TYPES, getSaleTypeDisplayName } from '../../../shared/constants/salesConstants.js';
 
 class SaleUseCases {
-  constructor() {
-    // Obtener repositorios del contenedor DI
-    this.saleRepository = DIContainer.get('SaleRepository');
-    this.appointmentRepository = DIContainer.get('AppointmentRepository');
-    this.inventoryRepository = DIContainer.get('InventoryRepository');
-    this.barberRepository = DIContainer.get('BarberRepository');
-    logger.debug('SaleUseCases: Repositorios inyectados correctamente');
-  }
-
-  // M√©todo est√°tico para obtener instancia con DI
-  static getInstance() {
-    return new SaleUseCases();
-  }
-
   /**
-   * Obtener ventas con filtros (‚úÖ MIGRADO)
-   * @param {Object} filters - Filtros de b√∫squeda
-   * @param {Object} pagination - Paginaci√≥n
-   * @returns {Promise<Object>}
+   * Buscar barbero por ID de barbero o ID de usuario
    */
-  async getSales(filters = {}, pagination = {}) {
-    try {
-      const { page = 1, limit = 50 } = pagination;
-      
-      logger.debug('SaleUseCases: Obteniendo ventas con filtros:', filters);
-
-      // Construir query para repository
-      const query = this._buildSalesQuery(filters);
-
-      const result = await this.saleRepository.findAll({
-        filters: query,  // Changed from 'filter' to 'filters'
-        limit,
-        page,
-        sort: { createdAt: -1 }
-      });
-
-      // The repository returns { sales, total, page, ... }
-      if (result && result.sales) {
-        logger.debug(`SaleUseCases: Recuperadas ${result.sales.length} ventas`);
-        return {
-          data: result.sales,
-          total: result.total,
-          pagination: {
-            page: result.page,
-            totalPages: result.totalPages,
-            hasNextPage: result.hasNextPage,
-            hasPrevPage: result.hasPrevPage
-          }
-        };
-      } else {
-        logger.warn('SaleUseCases: Respuesta inesperada del repository:', result);
-        return {
-          data: result || [],
-          total: result?.length || 0,
-          pagination: { page, limit }
-        };
-      }
-    } catch (error) {
-      logger.error('SaleUseCases: Error al obtener ventas:', error);
-      throw new AppError('Error al obtener lista de ventas', 500);
+  static async findBarberByIdOrUserId(id) {
+    // Debug: console.log(`?? Buscando barbero con ID: ${id}`);
+    
+    // Primero intentar buscar por ID de barbero
+    let barber = await Barber.findById(id);
+    console.log(`?? B˙squeda por ID de barbero: ${barber ? 'ENCONTRADO' : 'NO ENCONTRADO'}`);
+    
+    // Si no se encuentra, buscar por user ID
+    if (!barber) {
+      console.log(`?? Buscando por user ID: ${id}`);
+      barber = await Barber.findOne({ user: id }).populate('user');
+      console.log(`?? B˙squeda por user ID: ${barber ? 'ENCONTRADO' : 'NO ENCONTRADO'}`);
     }
-  }
-
-  /**
-   * Obtener venta por ID (‚úÖ MIGRADO)
-   * @param {string} id - ID de la venta
-   * @returns {Promise<Object>}
-   */
-  async getSaleById(id) {
-    try {
-      logger.debug(`SaleUseCases: Buscando venta por ID: ${id}`);
-      
-      const sale = await this.saleRepository.findById(id);
-      if (!sale) {
-        throw new AppError('Venta no encontrada', 404);
-      }
-      
-      logger.debug(`SaleUseCases: Venta encontrada: ${sale._id}`);
-      return sale;
-    } catch (error) {
-      if (error instanceof AppError) throw error;
-      logger.error(`SaleUseCases: Error al obtener venta ${id}:`, error);
-      throw new AppError('Error al obtener venta', 500);
+    
+    if (!barber) {
+      // Debug: console.log(`? Barbero no encontrado con ID: ${id}`);
+      throw new AppError('Barbero no encontrado', 404);
     }
+    
+    console.log(`? Barbero encontrado:`, {
+      barberId: barber._id,
+      userId: barber.user?._id,
+      userName: barber.user?.name,
+      specialty: barber.specialty
+    });
+    
+    return barber;
   }
 
   /**
-   * Crear nueva venta (‚úÖ MIGRADO)
-   * @param {Object} saleData - Datos de la venta
-   * @param {Object} user - Usuario que crea la venta
-   * @returns {Promise<Object>}
+   * Crear una nueva venta (puede ser de m˙ltiples productos)
    */
-  async createSale(saleData, user) {
-    try {
-      logger.debug('SaleUseCases: Creando nueva venta');
-      
-      // Validar inventario si hay productos
-      if (saleData.products && saleData.products.length > 0) {
-        await this._validateInventoryForSale(saleData.products);
-      }
+  static async createSale(saleData) {
+    const { items, barberId, total, notes } = saleData;
 
-      // Agregar informaci√≥n del usuario
-      const enhancedData = {
-        ...saleData,
-        createdBy: user._id
-      };
-
-      const newSale = await this.saleRepository.create(enhancedData);
-      
-      // Actualizar inventario
-      if (saleData.products && saleData.products.length > 0) {
-        await this._updateInventoryAfterSale(saleData.products);
-      }
-      
-      logger.info(`SaleUseCases: Venta creada exitosamente: ${newSale._id}`);
-      return newSale;
-    } catch (error) {
-      if (error instanceof AppError) throw error;
-      logger.error('SaleUseCases: Error al crear venta:', error);
-      throw new AppError('Error al crear venta', 500);
-    }
-  }
-
-  /**
-   * Actualizar venta (‚úÖ MIGRADO)
-   * @param {string} id - ID de la venta
-   * @param {Object} updateData - Datos a actualizar
-   * @param {Object} user - Usuario que actualiza
-   * @returns {Promise<Object>}
-   */
-  async updateSale(id, updateData, user) {
-    try {
-      logger.debug(`SaleUseCases: Actualizando venta ${id}`);
-      
-      const updatedSale = await this.saleRepository.update(id, updateData);
-      
-      logger.info(`SaleUseCases: Venta actualizada exitosamente: ${id}`);
-      return updatedSale;
-    } catch (error) {
-      if (error instanceof AppError) throw error;
-      logger.error(`SaleUseCases: Error al actualizar venta ${id}:`, error);
-      throw new AppError('Error al actualizar venta', 500);
-    }
-  }
-
-  /**
-   * Eliminar venta (‚úÖ MIGRADO)
-   * @param {string} id - ID de la venta
-   * @param {Object} user - Usuario que elimina
-   * @returns {Promise<boolean>}
-   */
-  async deleteSale(id, user) {
-    try {
-      logger.debug(`SaleUseCases: Eliminando venta ${id}`);
-      
-      // Obtener venta antes de eliminar para restaurar inventario
-      const sale = await this.getSaleById(id);
-      
-      const result = await this.saleRepository.delete(id);
-      
-      // Restaurar inventario si ten√≠a productos
-      if (sale.products && sale.products.length > 0) {
-        await this._restoreInventoryAfterSaleDelete(sale.products);
-      }
-      
-      logger.info(`SaleUseCases: Venta eliminada exitosamente: ${id}`);
-      return result;
-    } catch (error) {
-      if (error instanceof AppError) throw error;
-      logger.error(`SaleUseCases: Error al eliminar venta ${id}:`, error);
-      throw new AppError('Error al eliminar venta', 500);
-    }
-  }
-
-  /**
-   * Validar inventario para venta (‚úÖ MIGRADO)
-   * @param {Array} products - Lista de productos a vender
-   * @returns {Promise<boolean>}
-   * @private
-   */
-  async _validateInventoryForSale(products) {
-    for (const product of products) {
-      const item = await this.inventoryRepository.findById(product.item);
-      if (!item) {
-        throw new AppError(`Producto no encontrado: ${product.item}`, 404);
-      }
-      
-      if (item.currentStock < product.quantity) {
-        throw new AppError(`Stock insuficiente para ${item.name}. Stock disponible: ${item.currentStock}`, 400);
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Actualizar inventario despu√©s de venta (‚úÖ MIGRADO)
-   * @param {Array} products - Lista de productos vendidos
-   * @returns {Promise<void>}
-   * @private
-   */
-  async _updateInventoryAfterSale(products) {
-    for (const product of products) {
-      const item = await this.inventoryRepository.findById(product.item);
-      if (item) {
-        await this.inventoryRepository.update(product.item, {
-          currentStock: item.currentStock - product.quantity
-        });
-      }
-    }
-  }
-
-  /**
-   * Restaurar inventario despu√©s de eliminar venta (‚úÖ MIGRADO)
-   * @param {Array} products - Lista de productos a restaurar
-   * @returns {Promise<void>}
-   * @private
-   */
-  async _restoreInventoryAfterSaleDelete(products) {
-    for (const product of products) {
-      const item = await this.inventoryRepository.findById(product.item);
-      if (item) {
-        await this.inventoryRepository.update(product.item, {
-          currentStock: item.currentStock + product.quantity
-        });
-      }
-    }
-  }
-
-  /**
-   * Construir query para filtros de ventas
-   * @param {Object} filters - Filtros
-   * @returns {Object} Query de MongoDB
-   * @private
-   */
-  _buildSalesQuery(filters) {
-    const query = {};
-
-    // Filtros b√°sicos permitidos
-    const allowedFilters = ['barber', 'customer', 'paymentMethod', 'type'];
-    allowedFilters.forEach(f => {
-      if (filters[f] !== undefined) query[f] = filters[f];
+    logger.info('?? Iniciando creaciÛn de venta', {
+      barberId,
+      hasItems: !!items,
+      itemsCount: items?.length || 0,
+      hasSingleProduct: !!saleData.productId,
+      total
     });
 
-    // Rango de fechas
-    if (filters.startDate || filters.endDate) {
-      query.createdAt = {};
-      if (filters.startDate) query.createdAt.$gte = new Date(filters.startDate + 'T00:00:00.000Z');
-      if (filters.endDate) query.createdAt.$lte = new Date(filters.endDate + 'T23:59:59.999Z');
-    }
+    // Verificar que el barbero existe (buscar por ID de barbero o usuario)
+    const barber = await SaleUseCases.findBarberByIdOrUserId(barberId);
 
-    return query;
-  }
-
-  // ========================================================================
-  // ADAPTADORES DE COMPATIBILIDAD PARA M√âTODOS EST√ÅTICOS
-  // ========================================================================
-
-  static async getSales(filters = {}, pagination = {}) {
-    const instance = SaleUseCases.getInstance();
-    return await instance.getSales(filters, pagination);
-  }
-
-  static async getSaleById(id) {
-    const instance = SaleUseCases.getInstance();
-    return await instance.getSaleById(id);
-  }
-
-  static async createSale(saleData, user) {
-    const instance = SaleUseCases.getInstance();
-    return await instance.createSale(saleData, user);
-  }
-
-  static async updateSale(id, updateData, user) {
-    const instance = SaleUseCases.getInstance();
-    return await instance.updateSale(id, updateData, user);
-  }
-
-  static async deleteSale(id, user) {
-    const instance = SaleUseCases.getInstance();
-    return await instance.deleteSale(id, user);
-  }
-
-  // ========================================================================
-  // M√âTODOS COMPLEJOS SIN MIGRAR (‚è≥)
-  // Mantenidos por complejidad de l√≥gica de negocio
-  // ========================================================================
-
-  /**
-   * Generar reporte de ventas por per√≠odo
-   * @param {Date} startDate - Fecha inicio
-   * @param {Date} endDate - Fecha fin
-   * @param {string} groupBy - Agrupaci√≥n (day, week, month)
-   * @returns {Promise<Object>}
-   */
-  static async getSalesReport(startDate, endDate, groupBy = 'day') {
-    logger.debug(`Generando reporte de ventas: ${startDate} - ${endDate}, agrupado por ${groupBy}`);
-    
-    try {
-      const matchQuery = {
-        createdAt: {
-          $gte: new Date(startDate),
-          $lte: new Date(endDate)
-        }
-      };
-
-      let groupExpression;
-      switch (groupBy) {
-        case 'day':
-          groupExpression = {
-            year: { $year: '$createdAt' },
-            month: { $month: '$createdAt' },
-            day: { $dayOfMonth: '$createdAt' }
-          };
-          break;
-        case 'week':
-          groupExpression = {
-            year: { $year: '$createdAt' },
-            week: { $week: '$createdAt' }
-          };
-          break;
-        case 'month':
-          groupExpression = {
-            year: { $year: '$createdAt' },
-            month: { $month: '$createdAt' }
-          };
-          break;
-        default:
-          groupExpression = null;
-      }
-
-      const pipeline = [
-        { $match: matchQuery },
-        {
-          $group: {
-            _id: groupExpression,
-            totalSales: { $sum: 1 },
-            totalAmount: { $sum: '$totalAmount' }, // ‚úÖ FIXED: Use totalAmount instead of total
-            avgAmount: { $avg: '$totalAmount' },   // ‚úÖ FIXED: Use totalAmount instead of total
-            dates: { $push: '$createdAt' }
-          }
-        },
-        { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1, '_id.week': 1 } }
-      ];
-
-      const reportData = await Sale.aggregate(pipeline);
+    // Si es un solo producto (compatibilidad hacia atr·s)
+    if (saleData.productId) {
+      const { productId, quantity } = saleData;
       
-      const summary = await Sale.aggregate([
-        { $match: matchQuery },
-        {
-          $group: {
-            _id: null,
-            totalSales: { $sum: 1 },
-            totalAmount: { $sum: '$totalAmount' }, // ‚úÖ FIXED: Use totalAmount instead of total
-            avgAmount: { $avg: '$totalAmount' }    // ‚úÖ FIXED: Use totalAmount instead of total
-          }
-        }
-      ]);
-
-      const result = {
-        period: { startDate, endDate },
-        groupBy,
-        data: reportData,
-        summary: summary[0] || { totalSales: 0, totalAmount: 0, avgAmount: 0 }
-      };
-
-      logger.debug('Reporte de ventas generado:', result.summary);
-      return result;
-    } catch (error) {
-      logger.error('Error generando reporte de ventas:', error);
-      throw new AppError('Error al generar reporte de ventas', 500);
-    }
-  }
-
-  /**
-   * Obtener ventas por barbero
-   * @param {string} barberId - ID del barbero
-   * @param {Object} filters - Filtros adicionales
-   * @returns {Promise<Array>}
-   */
-  static async getSalesByBarber(barberId, filters = {}) {
-    logger.debug(`Obteniendo ventas del barbero: ${barberId}`);
-    
-    try {
-      // Verificar que el barbero existe
-      const barber = await Barber.findById(barberId);
-      if (!barber) {
-        throw new AppError('Barbero no encontrado', 404);
+      const product = await Inventory.findById(productId);
+      if (!product) {
+        throw new AppError('Producto no encontrado', 404);
       }
 
-      const query = { barber: barberId };
+      const currentStock = product.currentStock || product.stock || 0;
+      if (quantity > currentStock) {
+        throw new AppError('Stock insuficiente para realizar la venta', 400);
+      }
+
+      // Validar mÈtodo de pago
+      const validPaymentMethods = ['efectivo', 'tarjeta', 'transferencia'];
+      if (saleData.paymentMethod && !validPaymentMethods.includes(saleData.paymentMethod)) {
+        throw new AppError(`MÈtodo de pago inv·lido: ${saleData.paymentMethod}. MÈtodos v·lidos: ${validPaymentMethods.join(', ')}`, 400);
+      }
+
+      // Validar campos requeridos
+      if (!quantity || quantity <= 0) {
+        logger.error('? ValidaciÛn fallida: cantidad inv·lida', { quantity, productId });
+        throw new AppError('La cantidad debe ser mayor a 0', 400);
+      }
       
-      // Aplicar filtros adicionales
-      if (filters.startDate || filters.endDate) {
-        query.createdAt = {};
-        if (filters.startDate) query.createdAt.$gte = new Date(filters.startDate);
-        if (filters.endDate) query.createdAt.$lte = new Date(filters.endDate);
+      if (!product.price || product.price <= 0) {
+        logger.error('? ValidaciÛn fallida: precio inv·lido', { price: product.price, productId, productName: product.name });
+        throw new AppError('El precio del producto debe ser mayor a 0', 400);
       }
 
-      const sales = await Sale.find(query)
-        .populate('customer', 'name email phone')
-        .populate('barber', 'name')
-        .populate('products.item', 'name price')
-        .populate('services.service', 'name price duration')
-        .sort({ createdAt: -1 });
-
-      logger.debug(`Encontradas ${sales.length} ventas para el barbero ${barberId}`);
-      return sales;
-    } catch (error) {
-      if (error instanceof AppError) throw error;
-      logger.error(`Error obteniendo ventas del barbero ${barberId}:`, error);
-      throw new AppError('Error al obtener ventas del barbero', 500);
-    }
-  }
-
-  /**
-   * Obtener estad√≠sticas de ventas
-   * @param {Object} filters - Filtros para las estad√≠sticas
-   * @returns {Promise<Object>}
-   */
-  static async getSalesStats(filters = {}) {
-    logger.debug('Obteniendo estad√≠sticas de ventas con filtros:', filters);
-    
-    try {
-      const matchQuery = {};
-      
-      // Aplicar filtros de fecha
-      if (filters.startDate || filters.endDate) {
-        matchQuery.createdAt = {};
-        if (filters.startDate) matchQuery.createdAt.$gte = new Date(filters.startDate);
-        if (filters.endDate) matchQuery.createdAt.$lte = new Date(filters.endDate);
-      }
-
-      const stats = await Sale.aggregate([
-        { $match: matchQuery },
-        {
-          $group: {
-            _id: null,
-            totalSales: { $sum: 1 },
-            totalAmount: { $sum: '$totalAmount' }, // ‚úÖ FIXED: Use totalAmount instead of total
-            avgAmount: { $avg: '$totalAmount' },   // ‚úÖ FIXED: Use totalAmount instead of total
-            maxAmount: { $max: '$totalAmount' },   // ‚úÖ FIXED: Use totalAmount instead of total
-            minAmount: { $min: '$totalAmount' }    // ‚úÖ FIXED: Use totalAmount instead of total
-          }
-        }
-      ]);
-
-      const result = stats[0] || {
-        totalSales: 0,
-        totalAmount: 0,
-        avgAmount: 0,
-        maxAmount: 0,
-        minAmount: 0
-      };
-
-      logger.debug('Estad√≠sticas de ventas calculadas:', result);
-      return result;
-    } catch (error) {
-      logger.error('Error obteniendo estad√≠sticas de ventas:', error);
-      throw new AppError('Error al obtener estad√≠sticas de ventas', 500);
-    }
-  }
-
-  /**
-   * Crear venta desde cita completada
-   * @param {string} appointmentId - ID de la cita
-   * @param {Object} saleData - Datos adicionales de venta
-   * @param {Object} user - Usuario que crea la venta
-   * @returns {Promise<Object>}
-   */
-  static async createSaleFromAppointment(appointmentId, saleData = {}, user) {
-    logger.debug(`Creando venta desde cita: ${appointmentId}`);
-    
-    try {
-      // Verificar que la cita existe y est√° completada
-      const appointment = await Appointment.findById(appointmentId)
-        .populate('user', 'name email phone')
-        .populate('barber', 'name')
-        .populate('services.service', 'name price duration');
-
-      if (!appointment) {
-        throw new AppError('Cita no encontrada', 404);
-      }
-
-      if (appointment.status !== 'completed') {
-        throw new AppError('Solo se pueden crear ventas de citas completadas', 400);
-      }
-
-      // Verificar si ya existe una venta para esta cita
-      const existingSale = await Sale.findOne({ appointment: appointmentId });
-      if (existingSale) {
-        throw new AppError('Ya existe una venta para esta cita', 400);
-      }
-
-      // Calcular total de servicios
-      const servicesTotal = appointment.services.reduce((sum, service) => {
-        return sum + (service.service.price || 0);
-      }, 0);
-
-      // Crear datos de la venta
-      const newSaleData = {
-        customer: appointment.user._id,
-        barber: appointment.barber._id,
-        appointment: appointmentId,
-        services: appointment.services.map(service => ({
-          service: service.service._id,
-          price: service.service.price,
-          quantity: 1
-        })),
-        products: saleData.products || [],
-        subtotal: servicesTotal + (saleData.productsTotal || 0),
-        tax: saleData.tax || 0,
-        discount: saleData.discount || 0,
-        total: servicesTotal + (saleData.productsTotal || 0) + (saleData.tax || 0) - (saleData.discount || 0),
-        paymentMethod: saleData.paymentMethod || appointment.paymentMethod,
-        createdBy: user._id,
-        ...saleData
-      };
-
-      const sale = new Sale(newSaleData);
-      await sale.save();
-
-      const populatedSale = await Sale.findById(sale._id)
-        .populate('customer', 'name email phone')
-        .populate('barber', 'name')
-        .populate('appointment')
-        .populate('services.service', 'name price duration')
-        .populate('products.item', 'name price');
-
-      logger.info(`Venta creada desde cita ${appointmentId}: ${sale._id}`);
-      return populatedSale;
-    } catch (error) {
-      if (error instanceof AppError) throw error;
-      logger.error(`Error creando venta desde cita ${appointmentId}:`, error);
-      throw new AppError('Error al crear venta desde cita', 500);
-    }
-  }
-  /**
-   * Obtener resumen financiero
-   * @param {string} startDate - Fecha inicio
-   * @param {string} endDate - Fecha fin
-   * @returns {Object} Resumen financiero
-   */
-  static async getFinancialSummary(startDate, endDate) {
-    try {
-      logger.debug('SaleUseCases: Obteniendo resumen financiero');
-
-      // Usar getSalesStats que ya existe
-      const salesStats = await this.getSalesStats({
-        startDate,
-        endDate
+      logger.info('? Validaciones pasadas para venta de producto ˙nico', {
+        productId,
+        productName: product.name,
+        quantity,
+        unitPrice: product.price,
+        totalAmount: quantity * product.price,
+        paymentMethod: saleData.paymentMethod || 'efectivo'
       });
 
-      // Obtener breakdown por m√©todos de pago desde Sales
-      const salesPaymentMethodsBreakdown = await Sale.aggregate([
+      const sale = new Sale({
+        productId,
+        productName: product.name,
+        quantity,
+        unitPrice: product.price,
+        totalAmount: quantity * product.price,
+        barberId: barber._id, // Usar el ID del barbero encontrado
+        barberName: barber.user?.name || barber.specialty || 'Barbero', // Mejor manejo del nombre
+        notes,
+        type: SALE_TYPES.PRODUCT,
+        // Campos obligatorios
+        status: 'completed',
+        saleDate: new Date(),
+        paymentMethod: saleData.paymentMethod || 'efectivo' // Default a efectivo si no se especifica
+      });
+
+      await sale.save();
+
+      logger.info('? Venta de producto ˙nico creada exitosamente', {
+        saleId: sale._id,
+        productId,
+        productName: product.name,
+        quantity,
+        totalAmount: sale.totalAmount,
+        barberId: barber._id,
+        barberName: barber.user?.name || barber.specialty,
+        paymentMethod: sale.paymentMethod
+      });
+
+      // Descontar del inventario con logging detallado
+      logger.info(`?? Actualizando inventario - Producto: ${productId}, Cantidad a descontar: ${quantity}`);
+      const productBefore = await Inventory.findById(productId);
+      console.log(`?? Stock antes: currentStock=${productBefore.currentStock}, stock=${productBefore.stock}`);
+      
+      const updateResult = await Inventory.findByIdAndUpdate(
+        productId,
         { 
-          $match: { 
-            createdAt: { 
-              $gte: new Date(startDate), 
-              $lte: new Date(endDate) 
-            } 
-          } 
+          $inc: { 
+            stock: -quantity, // Campo principal teÛrico
+            realStock: -quantity, // Campo real - DEBE ACTUALIZARSE TAMBI…N
+            sales: quantity   // SOLO registrar ventas
+          }
+        },
+        { new: true } // Devolver documento actualizado
+      );
+      
+      console.log(`?? Stock despuÈs: currentStock=${updateResult.currentStock}, stock=${updateResult.stock}, realStock=${updateResult.realStock}`);
+      console.log(`? Inventario actualizado para producto ${product.name}`);
+
+      // Actualizar estadÌsticas del barbero
+      await SaleUseCases.updateBarberStats(barberId, sale.totalAmount, SALE_TYPES.PRODUCT);
+
+      // Registrar log de venta en inventario (carrito completo)
+      try {
+        await InventoryLogService.createLog(
+          'sale',
+          null, // No es un producto especÌfico, es un carrito
+          'Venta de productos',
+          barber.user?._id || barber._id,
+          barber.user ? 'barber' : 'admin',
+          {
+            message: `Carrito vendido: 1 producto`,
+            totalAmount: sale.totalAmount,
+            productName: product.name,
+            quantity: quantity
+          }
+        );
+        console.log(`?? Log de carrito creado - Total: $${sale.totalAmount}`);
+      } catch (logError) {
+        console.error('Error al crear log de carrito:', logError);
+      }
+
+      return sale;
+    }
+
+    // Manejo de m˙ltiples productos
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      throw new AppError('Se requiere al menos un producto', 400);
+    }
+
+    const sales = [];
+    
+    for (const item of items) {
+      const { productId, quantity, price } = item;
+      
+      // Verificar que el producto existe
+      const product = await Inventory.findById(productId);
+      if (!product) {
+        throw new AppError(`Producto ${productId} no encontrado`, 404);
+      }
+
+      // Verificar stock disponible
+      const currentStock = product.currentStock || product.stock || 0;
+      if (quantity > currentStock) {
+        throw new AppError(`Stock insuficiente para ${product.name}`, 400);
+      }
+
+      // Validar campos requeridos
+      if (!quantity || quantity <= 0) {
+        throw new AppError('La cantidad debe ser mayor a 0', 400);
+      }
+      
+      const salePrice = price || product.price;
+      if (!salePrice || salePrice <= 0) {
+        throw new AppError('El precio del producto debe ser mayor a 0', 400);
+      }
+      
+      // Validar mÈtodo de pago
+      const validPaymentMethods = ['efectivo', 'tarjeta', 'transferencia'];
+      if (saleData.paymentMethod && !validPaymentMethods.includes(saleData.paymentMethod)) {
+        throw new AppError(`MÈtodo de pago inv·lido: ${saleData.paymentMethod}. MÈtodos v·lidos: ${validPaymentMethods.join(', ')}`, 400);
+      }
+
+      // Crear venta individual
+      const sale = new Sale({
+        productId,
+        productName: product.name,
+        quantity,
+        unitPrice: salePrice,
+        totalAmount: quantity * salePrice,
+        barberId: barber._id, // Usar el ID del barbero encontrado
+        barberName: barber.user?.name || barber.specialty || 'Barbero',
+        notes,
+        type: SALE_TYPES.PRODUCT,
+        // Campos obligatorios
+        status: 'completed',
+        saleDate: new Date(),
+        paymentMethod: saleData.paymentMethod || 'efectivo' // Default a efectivo si no se especifica
+      });
+
+      await sale.save();
+
+      // Descontar del inventario con logging detallado
+      console.log(`?? Actualizando inventario m˙ltiple - Producto: ${productId}, Cantidad: ${quantity}`);
+      const productBefore = await Inventory.findById(productId);
+      console.log(`?? Stock antes: ${product.name} currentStock=${productBefore.currentStock}, stock=${productBefore.stock}`);
+      
+      const updateResult = await Inventory.findByIdAndUpdate(
+        productId,
+        { 
+          $inc: { 
+            stock: -quantity, // Campo principal
+            sales: quantity   // SOLO registrar ventas
+          },
+          $set: {
+            currentStock: null // Remover campo obsoleto para evitar confusiÛn
+          }
+        },
+        { new: true } // Devolver documento actualizado
+      );
+      
+      console.log(`?? Stock despuÈs: ${product.name} currentStock=${updateResult.currentStock}, stock=${updateResult.stock}`);
+      console.log(`? Inventario actualizado para ${product.name}`);
+
+      sales.push(sale);
+    }
+
+    // Actualizar estadÌsticas del barbero
+    const totalAmount = sales.reduce((sum, sale) => sum + sale.totalAmount, 0);
+    await SaleUseCases.updateBarberStats(barberId, totalAmount, SALE_TYPES.PRODUCT);
+
+    // Registrar UN SOLO log de venta para todo el carrito
+    try {
+      const productNames = sales.map(sale => `${sale.productName} (${sale.quantity})`).join(', ');
+      const totalItems = sales.reduce((sum, sale) => sum + sale.quantity, 0);
+      
+      await InventoryLogService.createLog(
+        'sale',
+        null, // No es un producto especÌfico, es un carrito
+        'Carrito de productos',
+        barber.user?._id || barber._id,
+        barber.user ? 'barber' : 'admin',
+        {
+          message: `Carrito vendido: ${sales.length} productos diferentes`,
+          totalAmount: totalAmount,
+          products: productNames,
+          totalItems: totalItems
+        }
+      );
+      console.log(`?? Log de carrito m˙ltiple creado - ${sales.length} productos - Total: $${totalAmount}`);
+    } catch (logError) {
+      console.error('Error al crear log de carrito m˙ltiple:', logError);
+    }
+
+    return sales;
+  }
+
+  /**
+   * Crear una venta walk-in (servicio sin cita previa)
+   */
+  static async createWalkInSale(saleData) {
+    const { serviceId, serviceName, price, barberId, total, notes } = saleData;
+
+    logger.info('?? Iniciando creaciÛn de venta walk-in', {
+      serviceId,
+      serviceName,
+      price,
+      barberId,
+      total,
+      hasNotes: !!notes
+    });
+
+    // Verificar que el barbero existe (buscar por ID de barbero o usuario)
+    const barber = await SaleUseCases.findBarberByIdOrUserId(barberId);
+
+    // Validar campos requeridos
+    if (!price || price <= 0) {
+      throw new AppError('El precio del servicio debe ser mayor a 0', 400);
+    }
+    
+    const totalAmount = total || price;
+    if (totalAmount <= 0) {
+      throw new AppError('El monto total debe ser mayor a 0', 400);
+    }
+    
+    // Validar mÈtodo de pago
+    const validPaymentMethods = ['efectivo', 'tarjeta', 'transferencia'];
+    if (saleData.paymentMethod && !validPaymentMethods.includes(saleData.paymentMethod)) {
+      throw new AppError(`MÈtodo de pago inv·lido: ${saleData.paymentMethod}. MÈtodos v·lidos: ${validPaymentMethods.join(', ')}`, 400);
+    }
+
+    // Crear la venta walk-in
+    const sale = new Sale({
+      serviceId,
+      serviceName,
+      quantity: 1, // Los servicios siempre son cantidad 1
+      unitPrice: price,
+      totalAmount: totalAmount,
+      barberId: barber._id, // Usar el ID del barbero encontrado
+      barberName: barber.user?.name || barber.specialty || 'Barbero',
+      type: SALE_TYPES.WALKIN,
+      notes,
+      // Campos obligatorios
+      status: 'completed',
+      saleDate: new Date(),
+      paymentMethod: saleData.paymentMethod || 'efectivo' // Default a efectivo si no se especifica
+    });
+
+    await sale.save();
+
+    logger.info('? Venta walk-in creada exitosamente', {
+      saleId: sale._id,
+      serviceId,
+      serviceName,
+      price,
+      totalAmount: sale.totalAmount,
+      barberId: barber._id,
+      barberName: barber.user?.name || barber.specialty,
+      paymentMethod: sale.paymentMethod
+    });
+    
+    // Actualizar estadÌsticas del barbero
+    await SaleUseCases.updateBarberStats(barberId, sale.totalAmount, SALE_TYPES.WALKIN);
+    
+    return sale;
+  }
+
+  /**
+   * Actualizar estadÌsticas del barbero despuÈs de una venta
+   */
+  static async updateBarberStats(barberId, saleAmount, saleType = SALE_TYPES.PRODUCT) {
+    try {
+      console.log(`?? Actualizando stats - BarberId: ${barberId}, Amount: ${saleAmount}, Type: ${saleType}`);
+      
+      // Buscar el barbero primero para obtener el ID correcto
+      const barber = await SaleUseCases.findBarberByIdOrUserId(barberId);
+      
+      // Debug: console.log(`?? Barbero encontrado para stats: ${barber._id}`);
+      
+      // Obtener estadÌsticas actuales antes de la actualizaciÛn
+      const currentBarber = await Barber.findById(barber._id);
+      console.log(`?? Stats actuales - Sales: ${currentBarber.totalSales || 0}, Revenue: ${currentBarber.totalRevenue || 0}`);
+      
+      // Actualizar estadÌsticas usando el ID del barbero encontrado
+      const updateResult = await Barber.findByIdAndUpdate(
+        barber._id,
+        {
+          $inc: {
+            totalSales: 1,
+            totalRevenue: saleAmount
+          },
+          $set: {
+            lastSaleDate: new Date()
+          }
+        },
+        { new: true } // Devolver el documento actualizado
+      );
+      
+      console.log(`?? Stats despuÈs de actualizar - Sales: ${updateResult.totalSales}, Revenue: ${updateResult.totalRevenue}`);
+      // Debug: console.log(`? EstadÌsticas actualizadas exitosamente para barbero ${barber._id}: +$${saleAmount}`);
+      
+      return updateResult;
+    } catch (error) {
+      console.error('? Error actualizando estadÌsticas del barbero:', error);
+      console.error('? Stack:', error.stack);
+      // No lanzar error para no interrumpir la venta, pero log detallado
+      return null;
+    }
+  }
+
+  /**
+   * Obtener reporte por perÌodo (diario, semanal, mensual)
+   * Para reportes semanales y mensuales, la fecha seleccionada es el punto final
+   * y se calcula hacia atr·s desde esa fecha
+   */
+  static async getReportByPeriod(type, date) {
+    let startDate, endDate;
+    const selectedDate = new Date(date);
+
+    switch (type) {
+      case 'daily':
+        // Reporte diario: solo el dÌa seleccionado
+        startDate = new Date(selectedDate);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+        
+      case 'weekly':
+        // Reporte semanal: 7 dÌas hacia atr·s desde la fecha seleccionada (incluyendo el dÌa seleccionado)
+        endDate = new Date(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
+        startDate = new Date(selectedDate);
+        startDate.setDate(startDate.getDate() - 6); // 6 dÌas atr·s + dÌa actual = 7 dÌas
+        startDate.setHours(0, 0, 0, 0);
+        break;
+        
+      case 'monthly':
+        // Reporte mensual: 30 dÌas hacia atr·s desde la fecha seleccionada (incluyendo el dÌa seleccionado)
+        endDate = new Date(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
+        startDate = new Date(selectedDate);
+        startDate.setDate(startDate.getDate() - 29); // 29 dÌas atr·s + dÌa actual = 30 dÌas
+        startDate.setHours(0, 0, 0, 0);
+        break;
+        
+      default:
+        throw new AppError('Tipo de reporte no v·lido', 400);
+    }
+
+    // Agregar ventas de productos por barbero
+    const productSales = await Sale.aggregate([
+      {
+        $match: {
+          saleDate: { $gte: startDate, $lte: endDate },
+          status: 'completed'
+        }
+      },
+      {
+        $group: {
+          _id: '$barberId',
+          barberName: { $first: '$barberName' },
+          totalProducts: { $sum: '$quantity' },
+          totalRevenue: { $sum: '$totalAmount' },
+          sales: {
+            $push: {
+              productName: '$productName',
+              quantity: '$quantity',
+              unitPrice: '$unitPrice',
+              totalAmount: '$totalAmount',
+              customerName: '$customerName',
+              saleDate: '$saleDate'
+            }
+          }
+        }
+      },
+      {
+        $sort: { totalRevenue: -1 }
+      }
+    ]);
+
+    // Obtener citas (cortes) del perÌodo por barbero
+    const Appointment = (await import('../models/Appointment.js')).default;
+    const appointments = await Appointment.aggregate([
+      {
+        $match: {
+          date: { $gte: startDate, $lte: endDate },
+          status: 'completed'
+        }
+      },
+      {
+        $lookup: {
+          from: 'barbers',
+          localField: 'barberId',
+          foreignField: '_id',
+          as: 'barber'
+        }
+      },
+      {
+        $unwind: '$barber'
+      },
+      {
+        $lookup: {
+          from: 'services',
+          localField: 'serviceId',
+          foreignField: '_id',
+          as: 'service'
+        }
+      },
+      {
+        $unwind: '$service'
+      },
+      {
+        $group: {
+          _id: '$barberId',
+          barberName: { $first: '$barber.name' },
+          totalCuts: { $sum: 1 },
+          totalCutsRevenue: { $sum: '$service.price' },
+          cuts: {
+            $push: {
+              serviceName: '$service.name',
+              servicePrice: '$service.price',
+              customerName: '$customerName',
+              appointmentDate: '$date'
+            }
+          }
+        }
+      }
+    ]);
+
+    // Combinar datos de productos y cortes
+    const barberMap = new Map();
+
+    // Agregar ventas de productos
+    productSales.forEach(barber => {
+      barberMap.set(barber._id.toString(), {
+        barberId: barber._id,
+        barberName: barber.barberName,
+        productSales: barber.sales,
+        totalProducts: barber.totalProducts,
+        totalProductRevenue: barber.totalRevenue,
+        cuts: [],
+        totalCuts: 0,
+        totalCutsRevenue: 0
+      });
+    });
+
+    // Agregar datos de cortes
+    appointments.forEach(barber => {
+      const barberId = barber._id.toString();
+      if (barberMap.has(barberId)) {
+        const existing = barberMap.get(barberId);
+        existing.cuts = barber.cuts;
+        existing.totalCuts = barber.totalCuts;
+        existing.totalCutsRevenue = barber.totalCutsRevenue;
+      } else {
+        barberMap.set(barberId, {
+          barberId: barber._id,
+          barberName: barber.barberName,
+          productSales: [],
+          totalProducts: 0,
+          totalProductRevenue: 0,
+          cuts: barber.cuts,
+          totalCuts: barber.totalCuts,
+          totalCutsRevenue: barber.totalCutsRevenue
+        });
+      }
+    });
+
+    // Convertir a array y calcular totales
+    const report = Array.from(barberMap.values()).map(barber => ({
+      ...barber,
+      totalRevenue: barber.totalProductRevenue + barber.totalCutsRevenue,
+      totalServices: barber.totalProducts + barber.totalCuts
+    }));
+
+    // Ordenar por ingresos totales
+    report.sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+    return {
+      period: {
+        type,
+        startDate,
+        endDate,
+        label: this.getPeriodLabel(type, startDate, endDate)
+      },
+      data: report
+    };
+  }
+
+  /**
+   * Generar etiqueta del perÌodo
+   */
+  static getPeriodLabel(type, startDate, endDate) {
+    const options = { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      timeZone: 'America/Bogota'
+    };
+
+    switch (type) {
+      case 'daily':
+        return startDate.toLocaleDateString('es-CO', options);
+      case 'weekly':
+        return `Semana del ${startDate.toLocaleDateString('es-CO', options)} al ${endDate.toLocaleDateString('es-CO', options)}`;
+      case 'monthly':
+        return startDate.toLocaleDateString('es-CO', { 
+          year: 'numeric', 
+          month: 'long',
+          timeZone: 'America/Bogota'
+        });
+      default:
+        return 'PerÌodo';
+    }
+  }
+
+  /**
+   * Obtener reporte diario (mantener compatibilidad)
+   */
+  /**
+   * Obtener reporte diario especÌfico para frontend
+   */
+  static async getDailyReport(date) {
+    try {
+      // CORREGIDO: Manejar zona horaria correctamente 
+      const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
+      const startDate = new Date(dateStr + 'T00:00:00.000Z');
+      const endDate = new Date(dateStr + 'T23:59:59.999Z');
+
+      // Obtener ventas del dÌa
+      const sales = await Sale.find({
+        saleDate: { $gte: startDate, $lte: endDate },
+        status: 'completed'
+      }).populate('productId barberId');
+
+      // Formatear ventas para el frontend
+      const formattedSales = sales.map(sale => ({
+        _id: sale._id,
+        total: sale.totalAmount,
+        products: [{
+          product: { name: sale.productName },
+          quantity: sale.quantity
+        }],
+        barber: sale.barberId ? {
+          user: { name: sale.barberName }
+        } : null,
+        saleDate: sale.saleDate
+      }));
+
+      // Obtener citas del dÌa
+      const appointments = await Appointment.find({
+        date: { $gte: startDate, $lte: endDate },
+        status: 'completed'
+      }).populate({
+        path: 'user',
+        select: 'name'
+      }).populate({
+        path: 'barber',
+        populate: {
+          path: 'user',
+          select: 'name'
+        }
+      }).populate({
+        path: 'service',
+        select: 'name price'
+      });
+
+      console.log(`?? Encontradas ${appointments.length} citas completadas en la fecha ${selectedDate.toISOString()}`);
+
+      // Formatear citas para el frontend
+      const formattedAppointments = appointments.map(apt => {
+        console.log('?? Cita original:', {
+          _id: apt._id,
+          price: apt.price,
+          service: apt.service ? { name: apt.service.name, price: apt.service.price } : 'Sin servicio',
+          barber: apt.barber && apt.barber.user ? apt.barber.user.name : 'Sin barbero',
+          user: apt.user ? apt.user.name : 'Sin usuario'
+        });
+        
+        return {
+          _id: apt._id,
+          total: apt.price || 0,
+          service: { name: apt.service ? apt.service.name : 'Servicio' },
+          barber: { user: { name: apt.barber && apt.barber.user ? apt.barber.user.name : 'Barbero' } },
+          user: { name: apt.user ? apt.user.name : 'Cliente' },
+          date: apt.date
+        };
+      });
+
+      // Calcular totales
+      const productTotal = formattedSales.reduce((sum, sale) => sum + sale.total, 0);
+      const appointmentTotal = formattedAppointments.reduce((sum, apt) => sum + apt.total, 0);
+
+      return {
+        sales: formattedSales,
+        appointments: formattedAppointments,
+        walkIns: [], // Por ahora vacÌo
+        totals: {
+          productTotal,
+          appointmentTotal,
+          walkInTotal: 0,
+          grandTotal: productTotal + appointmentTotal
+        }
+      };
+    } catch (error) {
+      console.error('Error getting daily report:', error);
+      return {
+        sales: [],
+        appointments: [],
+        walkIns: [],
+        totals: {
+          productTotal: 0,
+          appointmentTotal: 0,
+          walkInTotal: 0,
+          grandTotal: 0
+        }
+      };
+    }
+  }
+
+  /**
+   * Obtener todas las ventas con filtros
+   */
+  static async getAllSales(filters = {}) {
+    const query = {
+      status: 'completed' // Solo ventas completadas, no reembolsadas
+    };
+    
+    if (filters.barberId) {
+      // Intentar resolver el barberId (podrÌa ser userId o barberId real)
+      try {
+        const resolvedBarber = await SaleUseCases.findBarberByIdOrUserId(filters.barberId);
+        if (resolvedBarber) {
+          query.barberId = resolvedBarber.barberId || resolvedBarber._id;
+          console.log(`?? Barbero resuelto - Input: ${filters.barberId}, Resolved: ${query.barberId}`);
+        } else {
+          query.barberId = filters.barberId; // Usar el ID original si no se pudo resolver
+        }
+      } catch (error) {
+        console.warn('?? Error resolviendo barberId, usando valor original:', error.message);
+        query.barberId = filters.barberId;
+      }
+    }
+    
+    if (filters.productId) {
+      query.productId = filters.productId;
+    }
+
+    if (filters.paymentMethod) {
+      // Buscar en paymentMethod directo o en array de paymentMethods
+      query.$or = [
+        { paymentMethod: { $regex: filters.paymentMethod, $options: 'i' } },
+        { 'paymentMethods.method': { $regex: filters.paymentMethod, $options: 'i' } }
+      ];
+    }
+    
+    if (filters.startDate && filters.endDate) {
+      // CORREGIDO: Usar formato UTC para evitar problemas de zona horaria
+      query.saleDate = {
+        $gte: new Date(filters.startDate + 'T00:00:00.000Z'),
+        $lte: new Date(filters.endDate + 'T23:59:59.999Z')
+      };
+    }
+
+    console.log('?? Consulta de ventas con filtros:', JSON.stringify(query, null, 2));
+
+    // Obtener ventas regulares
+    const sales = await Sale.find(query)
+      .populate('productId', 'name category')
+      .populate('barberId', 'name')
+      .sort({ saleDate: -1 });
+
+    console.log(`?? Ventas regulares encontradas: ${sales.length}`);
+    const completedSales = sales.filter(sale => sale.status === 'completed');
+    console.log(`? Ventas completed despuÈs del filtro: ${completedSales.length}`);
+    if (sales.length !== completedSales.length) {
+      console.log(`?? Se filtraron ${sales.length - completedSales.length} ventas no-completed`);
+    }
+
+    // Obtener citas completadas (tambiÈn son "ventas")
+    const appointmentQuery = {
+      status: 'completed',
+      paymentMethod: { $exists: true, $ne: null, $ne: '' }
+    };
+
+    // Aplicar filtros similares para citas
+    if (filters.barberId) {
+      // Usar el barberId ya resuelto de la query anterior
+      appointmentQuery.barber = query.barberId || filters.barberId;
+    }
+
+    if (filters.paymentMethod) {
+      appointmentQuery.paymentMethod = { $regex: filters.paymentMethod, $options: 'i' };
+    }
+
+    if (filters.startDate && filters.endDate) {
+      appointmentQuery.date = {
+        $gte: new Date(filters.startDate),
+        $lte: new Date(filters.endDate)
+      };
+    }
+
+    console.log('?? Consulta de citas completadas con filtros:', JSON.stringify(appointmentQuery, null, 2));
+
+    const appointments = await Appointment.find(appointmentQuery)
+      .populate('service', 'name')
+      .populate('barber', 'name')
+      .populate('user', 'name')
+      .sort({ date: -1 });
+
+    console.log(`?? Citas completadas encontradas: ${appointments.length}`);
+
+    // Formatear citas como ventas
+    const appointmentSales = appointments.map(apt => ({
+      _id: apt._id,
+      saleType: 'appointment',
+      serviceName: apt.service?.name || 'Servicio',
+      serviceId: apt.service?._id,
+      barberName: apt.barber?.name || 'Barbero',
+      barberId: apt.barber?._id,
+      customerName: apt.user?.name || 'Cliente',
+      totalAmount: apt.totalRevenue || apt.price || 0,
+      total: apt.totalRevenue || apt.price || 0,
+      amount: apt.totalRevenue || apt.price || 0,
+      paymentMethod: apt.paymentMethod,
+      saleDate: apt.date,
+      createdAt: apt.createdAt,
+      updatedAt: apt.updatedAt,
+      notes: apt.notes
+    }));
+
+    // Combinar ventas regulares y citas
+    const allSales = [
+      ...completedSales.map(sale => ({
+        ...sale.toObject(),
+        saleType: sale.productId ? SALE_TYPES.PRODUCT : 'service'
+      })),
+      ...appointmentSales
+    ];
+
+    // Ordenar por fecha
+    allSales.sort((a, b) => new Date(b.saleDate || b.createdAt) - new Date(a.saleDate || a.createdAt));
+
+    console.log(`?? Total de ventas (regulares + citas): ${allSales.length}`);
+    
+    return allSales;
+  }
+
+  /**
+   * Obtener venta por ID
+   */
+  static async getSaleById(id) {
+    const sale = await Sale.findById(id)
+      .populate('productId', 'name category')
+      .populate('barberId', 'name');
+    
+    if (!sale) {
+      throw new AppError('Venta no encontrada', 404);
+    }
+    
+    return sale;
+  }
+
+  /**
+   * Cancelar venta (cambiar estado)
+   */
+  static async cancelSale(id) {
+    const sale = await Sale.findById(id);
+    if (!sale) {
+      throw new AppError('Venta no encontrada', 404);
+    }
+
+    sale.status = 'cancelled';
+    await sale.save();
+    
+    return sale;
+  }
+
+  /**
+   * Obtener estadÌsticas de ventas por barbero
+   */
+  static async getBarberSalesStats(barberId, dateFilter = {}) {
+    try {
+      // Construir filtros de fecha
+      const matchConditions = {
+        barberId: new mongoose.Types.ObjectId(barberId),
+        status: 'completed'
+      };
+
+      // Aplicar filtros de fecha
+      if (dateFilter.date) {
+        // Filtro por fecha especÌfica - usar saleDate en lugar de createdAt
+        const targetDate = new Date(dateFilter.date + 'T00:00:00.000-05:00'); // Colombia UTC-5
+        const startOfDay = new Date(targetDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(targetDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        matchConditions.saleDate = {
+          $gte: startOfDay,
+          $lte: endOfDay
+        };
+      } else if (dateFilter.startDate && dateFilter.endDate) {
+        // Filtro por rango de fechas - usar saleDate en lugar de createdAt
+        const startDate = new Date(dateFilter.startDate + 'T00:00:00.000-05:00'); // Colombia UTC-5
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(dateFilter.endDate + 'T23:59:59.999-05:00'); // Colombia UTC-5
+        endDate.setHours(23, 59, 59, 999);
+        
+        matchConditions.saleDate = {
+          $gte: startDate,
+          $lte: endDate
+        };
+      }
+
+      console.log(`?? Filtros aplicados para barbero ${barberId}:`, {
+        matchConditions,
+        dateFilter
+      });
+
+      const stats = await Sale.aggregate([
+        {
+          $match: matchConditions
         },
         {
           $group: {
-            _id: '$paymentMethod',
+            _id: '$type', // Agrupar por tipo (product, walkIn)
             total: { $sum: '$totalAmount' },
-            count: { $sum: 1 }
+            count: { $sum: 1 }, // N˙mero de transacciones
+            totalQuantity: { $sum: '$quantity' }, // Suma de productos/items
+            averageSale: { $avg: '$totalAmount' }
           }
         }
       ]);
 
-      // Obtener breakdown por m√©todos de pago desde Appointments
-      const appointmentsPaymentMethodsBreakdown = await Appointment.aggregate([
-        { 
-          $match: { 
-            createdAt: { 
-              $gte: new Date(startDate), 
-              $lte: new Date(endDate) 
-            },
-            status: 'completed'
-          } 
-        },
-        {
-          $group: {
-            _id: '$paymentMethod',
-            total: { $sum: '$totalRevenue' },
-            count: { $sum: 1 }
-          }
-        }
-      ]);
+      // Inicializar respuesta con valores por defecto
+      const result = {
+        ventas: [], // Solo productos
+        cortes: [], // Solo walk-ins
+        total: 0,
+        count: 0,
+        totalQuantity: 0, // Nueva suma de quantities
+        averageSale: 0
+      };
 
-      // Obtener breakdown por tipo de venta (products vs services)
-      // Basado en datos reales: products tienen type="product", services tienen type="walkIn" Y serviceId
-      const salesTypeBreakdown = await Sale.aggregate([
-        { 
-          $match: { 
-            createdAt: { 
-              $gte: new Date(startDate), 
-              $lte: new Date(endDate) 
-            } 
-          } 
-        },
+      // Procesar resultados y separar por tipo
+      let totalGeneral = 0;
+      let countGeneral = 0;
+      let totalQuantityGeneral = 0; // Solo productos, NO cortes
+
+      stats.forEach(stat => {
+        totalGeneral += stat.total;
+        countGeneral += stat.count;
+
+        if (stat._id === SALE_TYPES.PRODUCT) {
+          // Ventas de productos
+          totalQuantityGeneral += stat.totalQuantity || 0; // Solo sumar productos
+          result.ventas = [{
+            total: stat.total,
+            count: stat.count,
+            totalQuantity: stat.totalQuantity,
+            average: stat.averageSale
+          }];
+        } else if (stat._id === SALE_TYPES.SERVICE) {
+          // Cortes walk-in - NO se suman a totalQuantityGeneral
+          result.cortes = [{
+            total: stat.total,
+            count: stat.count,
+            totalQuantity: stat.totalQuantity,
+            average: stat.averageSale
+          }];
+        }
+      });
+
+      // Totales generales
+      result.total = totalGeneral;
+      result.count = countGeneral;
+      result.totalQuantity = totalQuantityGeneral;
+      result.averageSale = countGeneral > 0 ? totalGeneral / countGeneral : 0;
+
+      console.log(`?? Stats separadas para barbero ${barberId} con filtros:`, {
+        productos: result.ventas,
+        walkIns: result.cortes,
+        total: result.total,
+        filteredBy: dateFilter
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Error getting barber sales stats:', error);
+      return {
+        ventas: [],
+        cortes: [],
+        total: 0,
+        count: 0,
+        averageSale: 0
+      };
+    }
+  }
+
+  /**
+   * Obtener reporte diario de ventas
+   */
+  /**
+   * Obtener fechas disponibles con ventas para un barbero o global
+   */
+  static async getAvailableDates(barberId = null) {
+    try {
+      const match = barberId
+        ? { barberId: new mongoose.Types.ObjectId(barberId), status: 'completed' }
+        : { status: 'completed' };
+      const sales = await Sale.aggregate([
+        { $match: match },
         {
           $group: {
             _id: {
-              $cond: [
-                { $eq: ['$type', 'product'] }, // Si type es "product", es producto
-                'product',
-                { $cond: [
-                  { $and: [
-                    { $eq: ['$type', 'walkIn'] },
-                    { $ne: ['$serviceId', null] },
-                    { $ne: ['$serviceId', ''] }
-                  ]}, // Si type es "walkIn" Y tiene serviceId, es servicio
-                  'service',
-                  'other' // Cualquier otra cosa
-                ]}
-              ]
-            },
-            total: { $sum: '$totalAmount' },
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: "$saleDate"
+              }
+            }
+          }
+        },
+        { $sort: { "_id": -1 } }
+      ]);
+
+      return sales.map(s => s._id);
+    } catch (error) {
+      console.error('Error obteniendo fechas disponibles de ventas:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Obtener reporte detallado de ventas agrupado por dÌa con detalle de productos
+   */
+  static async getDetailedSalesReport(barberId, startDate, endDate) {
+    try {
+      // Debug: console.log(`?? Obteniendo reporte detallado de ventas - Barbero: ${barberId}, Desde: ${startDate || 'SIN LIMITE'}, Hasta: ${endDate || 'SIN LIMITE'}`);
+      
+      const barber = await SaleUseCases.findBarberByIdOrUserId(barberId);
+      // Debug: console.log(`?? Barbero encontrado: ${barber?.user?.name || barber?.name}, ID: ${barber._id}`);
+      
+      let start, end;
+      let dateQuery = {};
+      
+      if (startDate && endDate) {
+        // CORREGIDO: Usar formato UTC para evitar problemas de zona horaria
+        start = new Date(startDate + 'T00:00:00.000Z');
+        end = new Date(endDate + 'T23:59:59.999Z');
+        
+        dateQuery = { saleDate: { $gte: start, $lte: end } };
+        console.log(`?? Rango de fechas procesado con UTC: ${start.toISOString()} - ${end.toISOString()}`);
+      } else {
+        console.log(`?? Sin filtro de fechas - obteniendo todos los registros`);
+      }
+
+      // Usar cache inteligente
+      return await reportsCacheService.withCache(
+        'detailed-sales',
+        barber._id.toString(),
+        start || new Date(0),
+        end || new Date(),
+        async () => {
+          console.log(`?? Generando reporte detallado de ventas desde DB`);
+          
+          const sales = await Sale.find({
+            barberId: barber._id,
+            ...dateQuery,
+            status: 'completed',
+            type: SALE_TYPES.PRODUCT // Solo productos, NO walk-ins
+          })
+          .populate('productId', 'name price')
+          .sort({ saleDate: 1 });
+          
+          // Debug: console.log(`?? Ventas encontradas en DB: ${sales.length} registros para barbero ${barber._id}`);
+          console.log(`?? Query utilizada: barberId=${barber._id}${dateQuery.saleDate ? `, saleDate entre ${start ? start.toISOString() : 'undefined'} y ${end ? end.toISOString() : 'undefined'}` : ', sin filtro de fecha'}, status=completed`);
+          if (sales.length > 0) {
+            console.log(`?? Primera venta: ${sales[0].saleDate}, Total: ${sales[0].totalAmount}`);
+            console.log(`?? ⁄ltima venta: ${sales[sales.length - 1].saleDate}, Total: ${sales[sales.length - 1].totalAmount}`);
+          } else {
+            // Verificar si hay ventas para este barbero sin filtro de fecha
+            const allSalesForBarber = await Sale.countDocuments({ barberId: barber._id });
+            console.log(`?? Total de ventas para este barbero (sin filtro de fecha): ${allSalesForBarber}`);
+            
+            // Verificar si hay ventas en general
+            const totalSales = await Sale.countDocuments();
+            console.log(`?? Total de ventas en la base de datos: ${totalSales}`);
+          }
+
+          // Agrupar por dÌa
+          const salesByDay = {};
+          sales.forEach(sale => {
+            const dayKey = sale.saleDate.toISOString().split('T')[0];
+            
+            if (!salesByDay[dayKey]) {
+              salesByDay[dayKey] = {
+                date: dayKey,
+                sales: [],
+                totalAmount: 0,
+                totalProducts: 0
+              };
+            }
+
+            // Crear el detalle de la venta individual (solo productos)
+            const saleDetail = {
+              _id: sale._id,
+              saleDate: sale.saleDate,
+              total: sale.totalAmount,
+              notes: sale.notes,
+              type: sale.type, // Siempre ser· SALE_TYPES.PRODUCT
+              quantity: sale.quantity,
+              unitPrice: sale.unitPrice,
+              customerName: sale.customerName,
+              paymentMethod: sale.paymentMethod
+            };
+
+            // Agregar informaciÛn del producto
+            if (sale.productId) {
+              saleDetail.product = {
+                _id: sale.productId._id,
+                name: sale.productId.name || sale.productName,
+                price: sale.productId.price || sale.unitPrice
+              };
+            }
+
+            salesByDay[dayKey].sales.push(saleDetail);
+            salesByDay[dayKey].totalAmount += sale.totalAmount;
+            salesByDay[dayKey].totalProducts += sale.quantity;
+          });
+
+          const result = Object.values(salesByDay).sort((a, b) => new Date(a.date) - new Date(b.date));
+          
+          console.log(`? Reporte detallado generado: ${result.length} dÌas con ventas`);
+          return result;
+        }
+      );
+
+    } catch (error) {
+      console.error('Error generando reporte detallado de ventas:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener detalles de cortes walk-in agrupados por dÌa
+   */
+  static async getWalkInDetails(barberId, startDate, endDate) {
+    try {
+      // Debug: console.log(`?? Obteniendo detalles de cortes walk-in - Barbero: ${barberId}, Desde: ${startDate || 'SIN LIMITE'}, Hasta: ${endDate || 'SIN LIMITE'}`);
+      
+      const barber = await SaleUseCases.findBarberByIdOrUserId(barberId);
+      
+      let start, end;
+      let dateQuery = {};
+      
+      if (startDate && endDate) {
+        // CORREGIDO: Usar formato UTC para evitar problemas de zona horaria
+        start = new Date(startDate + 'T00:00:00.000Z');
+        end = new Date(endDate + 'T23:59:59.999Z');
+        
+        dateQuery = { saleDate: { $gte: start, $lte: end } };
+      }
+
+      // Usar cache inteligente
+      return await reportsCacheService.withCache(
+        'walk-in-details',
+        barber._id.toString(),
+        start || new Date(0),
+        end || new Date(),
+        async () => {
+          console.log(`?? Generando detalles de walk-in desde DB`);
+          
+          // Buscar ventas walk-in (ventas sin items de productos, solo servicios)
+          const walkInSales = await Sale.find({
+            barberId: barber._id,
+            ...dateQuery,
+            status: 'completed',
+            type: SALE_TYPES.SERVICE
+          })
+          .populate('serviceId', 'name price duration')
+          .sort({ saleDate: 1 });
+
+          // Agrupar por dÌa
+          const walkInsByDay = {};
+          walkInSales.forEach(sale => {
+            const dayKey = sale.saleDate.toISOString().split('T')[0];
+            
+            if (!walkInsByDay[dayKey]) {
+              walkInsByDay[dayKey] = {
+                date: dayKey,
+                walkIns: [],
+                totalAmount: 0,
+                totalServices: 0
+              };
+            }
+
+            const walkInDetail = {
+              _id: sale._id,
+              saleDate: sale.saleDate,
+              total: sale.total,
+              notes: sale.notes,
+              services: sale.services ? sale.services.map(service => ({
+                service: {
+                  _id: service.service._id,
+                  name: service.service.name,
+                  price: service.service.price,
+                  duration: service.service.duration
+                },
+                price: service.price
+              })) : []
+            };
+
+            walkInsByDay[dayKey].walkIns.push(walkInDetail);
+            walkInsByDay[dayKey].totalAmount += sale.total;
+            walkInsByDay[dayKey].totalServices += sale.services ? sale.services.length : 0;
+          });
+
+          const result = Object.values(walkInsByDay).sort((a, b) => new Date(a.date) - new Date(b.date));
+          
+          console.log(`? Detalles de walk-in generados: ${result.length} dÌas con cortes`);
+          return result;
+        }
+      );
+
+    } catch (error) {
+      console.error('Error generando detalles de walk-in:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener reporte detallado de cortes (servicios walk-in) agrupado por dÌa
+   */
+  static async getDetailedCutsReport(barberId, startDate, endDate) {
+    try {
+      // Debug: console.log(`?? Obteniendo reporte detallado de cortes - Barbero: ${barberId}, Desde: ${startDate || 'SIN LIMITE'}, Hasta: ${endDate || 'SIN LIMITE'}`);
+      
+      const barber = await SaleUseCases.findBarberByIdOrUserId(barberId);
+      // Debug: console.log(`?? Barbero encontrado: ${barber?.user?.name || barber?.name}, ID: ${barber._id}`);
+      
+      let start, end;
+      let dateQuery = {};
+      
+      if (startDate && endDate) {
+        // CORREGIDO: Usar formato UTC para evitar problemas de zona horaria
+        start = new Date(startDate + 'T00:00:00.000Z');
+        end = new Date(endDate + 'T23:59:59.999Z');
+        dateQuery = { saleDate: { $gte: start, $lte: end } };
+        console.log(`?? Rango de fechas procesado: ${start.toISOString()} - ${end.toISOString()}`);
+      } else {
+        console.log(`?? Sin filtro de fechas - obteniendo todos los registros`);
+      }
+
+      // Usar cache inteligente
+      return await reportsCacheService.withCache(
+        'detailed-cuts',
+        barber._id.toString(),
+        start || new Date(0),
+        end || new Date(),
+        async () => {
+          console.log(`?? Generando reporte detallado de cortes desde DB`);
+          
+          const cuts = await Sale.find({
+            barberId: barber._id,
+            ...dateQuery,
+            status: 'completed',
+            type: SALE_TYPES.SERVICE
+          })
+          .populate('serviceId', 'name price duration')
+          .sort({ saleDate: 1 });
+          
+          // Debug: console.log(`?? Cortes encontrados en DB: ${cuts.length} registros para barbero ${barber._id}`);
+          console.log(`?? Query utilizada: barberId=${barber._id}${dateQuery.saleDate ? `, saleDate entre ${start ? start.toISOString() : 'undefined'} y ${end ? end.toISOString() : 'undefined'}` : ', sin filtro de fecha'}, status=completed, type=walkIn`);
+          if (cuts.length > 0) {
+            console.log(`?? Primer corte: ${cuts[0].saleDate}, Total: ${cuts[0].totalAmount}`);
+            console.log(`?? ⁄ltimo corte: ${cuts[cuts.length - 1].saleDate}, Total: ${cuts[cuts.length - 1].totalAmount}`);
+          } else {
+            // Verificar si hay cortes para este barbero sin filtro de fecha
+            const allCutsForBarber = await Sale.countDocuments({ barberId: barber._id, type: SALE_TYPES.SERVICE });
+            console.log(`?? Total de cortes para este barbero (sin filtro de fecha): ${allCutsForBarber}`);
+            
+            // Verificar si hay cortes en general
+            const totalCuts = await Sale.countDocuments({ type: SALE_TYPES.SERVICE });
+            console.log(`?? Total de cortes en la base de datos: ${totalCuts}`);
+          }
+
+          // Agrupar por dÌa
+          const cutsByDay = {};
+          cuts.forEach(cut => {
+            const dayKey = cut.saleDate.toISOString().split('T')[0];
+            
+            if (!cutsByDay[dayKey]) {
+              cutsByDay[dayKey] = {
+                date: dayKey,
+                cuts: [],
+                totalAmount: 0,
+                totalCuts: 0
+              };
+            }
+
+            // Crear el detalle del corte individual
+            const cutDetail = {
+              _id: cut._id,
+              saleDate: cut.saleDate,
+              total: cut.totalAmount,
+              notes: cut.notes,
+              customerName: cut.customerName,
+              paymentMethod: cut.paymentMethod,
+              quantity: cut.quantity,
+              unitPrice: cut.unitPrice
+            };
+
+            // Agregar informaciÛn del servicio
+            if (cut.serviceId) {
+              cutDetail.service = {
+                _id: cut.serviceId._id,
+                name: cut.serviceId.name || cut.serviceName,
+                price: cut.serviceId.price || cut.unitPrice,
+                duration: cut.serviceId.duration
+              };
+            }
+
+            cutsByDay[dayKey].cuts.push(cutDetail);
+            cutsByDay[dayKey].totalAmount += cut.totalAmount;
+            cutsByDay[dayKey].totalCuts += cut.quantity;
+          });
+
+          const result = Object.values(cutsByDay).sort((a, b) => new Date(a.date) - new Date(b.date));
+          
+          console.log(`? Reporte detallado de cortes generado: ${result.length} dÌas con cortes`);
+          return result;
+        }
+      );
+
+    } catch (error) {
+      console.error('Error generando reporte detallado de cortes:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener resumen financiero completo para reportes
+   */
+  static async getFinancialSummary(startDate, endDate) {
+    try {
+      console.log(`?? Generando resumen financiero: ${startDate} - ${endDate}`);
+
+      const start = new Date(startDate + 'T00:00:00.000Z');
+      const end = new Date(endDate + 'T23:59:59.999Z');
+
+      // AgregaciÛn principal para obtener todos los datos basada en el modelo real
+      const summary = await Sale.aggregate([
+        {
+          $match: {
+            saleDate: { $gte: start, $lte: end }, // ? CORREGIDO: Usar saleDate en lugar de createdAt
+            status: 'completed'
+          }
+        },
+        {
+          $facet: {
+            // Resumen general
+            general: [
+              {
+                $group: {
+                  _id: null,
+                  totalRevenue: { $sum: '$totalAmount' },
+                  totalSales: { $sum: 1 },
+                  totalItems: { $sum: '$quantity' }
+                }
+              }
+            ],
+            
+            // Breakdown por servicios y productos
+            itemsBreakdown: [
+              {
+                $group: {
+                  _id: {
+                    type: '$type',
+                    itemId: {
+                      $cond: [
+                        { $eq: ['$type', SALE_TYPES.SERVICE] },
+                        '$serviceId',
+                        '$productId'
+                      ]
+                    },
+                    name: {
+                      $cond: [
+                        { $eq: ['$type', SALE_TYPES.SERVICE] },
+                        '$serviceName',
+                        '$productName'
+                      ]
+                    }
+                  },
+                  totalRevenue: { $sum: '$totalAmount' },
+                  totalQuantity: { $sum: '$quantity' },
+                  count: { $sum: 1 }
+                }
+              }
+            ],
+
+            // Breakdown por mÈtodos de pago
+            paymentMethods: [
+              {
+                $group: {
+                  _id: '$paymentMethod',
+                  totalAmount: { $sum: '$totalAmount' },
+                  count: { $sum: 1 }
+                }
+              }
+            ],
+
+            // Datos diarios
+            dailyData: [
+              {
+                $group: {
+                  _id: {
+                    $dateToString: {
+                      format: '%Y-%m-%d',
+                      date: '$saleDate', // ? CORREGIDO: Usar saleDate para datos diarios
+                      timezone: 'America/Bogota'
+                    }
+                  },
+                  totalRevenue: { $sum: '$totalAmount' },
+                  totalSales: { $sum: 1 }
+                }
+              },
+              { $sort: { _id: 1 } }
+            ]
+          }
+        }
+      ]);
+
+      const result = summary[0];
+
+      // Procesar resultados
+      const generalSummary = result.general[0] || {
+        totalRevenue: 0,
+        totalSales: 0,
+        totalItems: 0
+      };
+
+      // Separar servicios y productos
+      const serviceBreakdown = result.itemsBreakdown
+        .filter(item => item._id.type === SALE_TYPES.SERVICE)
+        .map(item => ({
+          serviceId: item._id.itemId,
+          serviceName: item._id.name || 'Servicio sin nombre',
+          totalRevenue: item.totalRevenue,
+          totalQuantity: item.totalQuantity,
+          count: item.count
+        }));
+
+      const productBreakdown = result.itemsBreakdown
+        .filter(item => item._id.type === SALE_TYPES.PRODUCT)
+        .map(item => ({
+          productId: item._id.itemId,
+          productName: item._id.name || 'Producto sin nombre',
+          totalRevenue: item.totalRevenue,
+          totalQuantity: item.totalQuantity,
+          count: item.count
+        }));
+
+      // Procesar mÈtodos de pago de ventas
+      const paymentMethodBreakdown = result.paymentMethods.reduce((acc, pm) => {
+        acc[pm._id || 'unknown'] = pm.totalAmount;
+        return acc;
+      }, {});
+
+      // ? Agregar mÈtodos de pago de citas completadas
+      const appointmentPaymentMethods = await Appointment.aggregate([
+        {
+          $match: {
+            date: { $gte: start, $lte: end },
+            status: 'completed',
+            paymentMethod: { $exists: true, $ne: null, $ne: '' }
+          }
+        },
+        {
+          $group: {
+            _id: '$paymentMethod',
+            totalAmount: { $sum: '$price' },
             count: { $sum: 1 }
           }
         }
       ]);
 
-      // Obtener informaci√≥n de citas completadas
-      const appointmentsStats = await Appointment.aggregate([
-        { 
-          $match: { 
-            createdAt: { 
-              $gte: new Date(startDate), 
-              $lte: new Date(endDate) 
-            },
+      // ? Combinar mÈtodos de pago de ventas y citas
+      appointmentPaymentMethods.forEach(apm => {
+        const method = apm._id;
+        if (paymentMethodBreakdown[method]) {
+          paymentMethodBreakdown[method] += apm.totalAmount;
+        } else {
+          paymentMethodBreakdown[method] = apm.totalAmount;
+        }
+      });
+
+      // Debug: Ver mÈtodos de pago procesados
+      console.log('?? Payment methods breakdown from backend:', paymentMethodBreakdown);
+
+      // Datos diarios formateados
+      const dailyData = result.dailyData.map(day => ({
+        date: day._id,
+        totalRevenue: day.totalRevenue,
+        totalSales: day.totalSales
+      }));
+
+      // Calcular totales por tipo
+      const serviceRevenue = serviceBreakdown.reduce((sum, s) => sum + s.totalRevenue, 0);
+      const productRevenue = productBreakdown.reduce((sum, p) => sum + p.totalRevenue, 0);
+      const totalServices = serviceBreakdown.reduce((sum, s) => sum + s.totalQuantity, 0);
+      const totalProducts = productBreakdown.reduce((sum, p) => sum + p.totalQuantity, 0);
+      // ? Calcular n˙mero de transacciones (no cantidades)
+      const totalProductSales = productBreakdown.reduce((sum, p) => sum + p.count, 0);
+      const totalServiceSales = serviceBreakdown.reduce((sum, s) => sum + s.count, 0);
+
+      // Obtener total de citas del perÌodo y calcular revenue
+      const appointmentStats = await Appointment.aggregate([
+        {
+          $match: {
+            date: { $gte: start, $lte: end },
             status: 'completed'
-          } 
+          }
         },
         {
           $group: {
             _id: null,
             totalAppointments: { $sum: 1 },
-            totalRevenue: { $sum: '$totalRevenue' }
+            appointmentRevenue: { $sum: '$price' }
           }
         }
       ]);
 
-      const appointmentData = appointmentsStats[0] || { totalAppointments: 0, totalRevenue: 0 };
+      const totalAppointments = appointmentStats[0]?.totalAppointments || 0;
+      const appointmentRevenue = appointmentStats[0]?.appointmentRevenue || 0;
 
-      // Convertir arrays a objetos y combinar m√©todos de pago
-      const paymentMethods = {};
-      
-      // Agregar m√©todos de pago de Sales
-      salesPaymentMethodsBreakdown.forEach(item => {
-        paymentMethods[item._id] = (paymentMethods[item._id] || 0) + item.total;
-      });
-      
-      // Agregar m√©todos de pago de Appointments
-      appointmentsPaymentMethodsBreakdown.forEach(item => {
-        paymentMethods[item._id] = (paymentMethods[item._id] || 0) + item.total;
-      });
-
-      const salesByType = {};
-      salesTypeBreakdown.forEach(item => {
-        salesByType[item._id] = {
-          total: item.total,
-          count: item.count
-        };
-      });
-
-      // Obtener fechas disponibles para el filtro "general"
-      const salesDates = await Sale.aggregate([
+      // ? Calcular costos directos reales (gastos de categorÌa 'supplies')
+      const suppliesCostsResult = await mongoose.connection.db.collection('expenses').aggregate([
         {
-          $group: {
-            _id: null,
-            dates: { $addToSet: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } } }
+          $match: {
+            date: { $gte: start, $lte: end },
+            category: 'supplies' // Insumos/materiales
           }
-        }
-      ]);
-
-      const appointmentDates = await Appointment.aggregate([
-        {
-          $match: { status: 'completed' }
         },
         {
           $group: {
             _id: null,
-            dates: { $addToSet: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } } }
+            suppliesCosts: { $sum: '$amount' }
           }
         }
-      ]);
+      ]).toArray();
 
-      // Combinar y ordenar fechas √∫nicas
-      const allDates = [
-        ...(salesDates[0]?.dates || []),
-        ...(appointmentDates[0]?.dates || [])
-      ];
-      const uniqueDates = [...new Set(allDates)].sort();
+      const suppliesCosts = suppliesCostsResult[0]?.suppliesCosts || 0;
 
-      // Formatear como resumen financiero
-      const productRevenue = salesByType.product?.total || 0;
-      const serviceRevenue = salesByType.service?.total || 0;
-      const appointmentRevenue = appointmentData.totalRevenue || 0;
-      
-      // ‚úÖ FIXED: Calcular el revenue total real sumando todas las fuentes
-      const realTotalRevenue = productRevenue + serviceRevenue + appointmentRevenue;
-      
+      // Obtener la fecha m·s antigua de los datos
+      const oldestDataDate = dailyData.length > 0 ? dailyData[0].date : null;
+
       const financialSummary = {
-        totalRevenue: realTotalRevenue, // ‚úÖ FIXED: Revenue real = productos + servicios + citas
-        totalSales: salesStats.totalSales || 0,
-        averageTicket: realTotalRevenue > 0 ? (realTotalRevenue / ((salesStats.totalSales || 0) + (appointmentData.totalAppointments || 0))) : 0,
-        period: {
-          startDate,
-          endDate
+        summary: {
+          totalRevenue: generalSummary.totalRevenue + appointmentRevenue, // ? Incluir revenue de citas
+          totalServices: totalServiceSales, // ? CORREGIDO: N˙mero de ventas walk-in
+          totalProducts: totalProductSales, // ? CORREGIDO: N˙mero de ventas de productos
+          totalServiceQuantity: totalServices, // ? Cantidad total de servicios
+          totalProductQuantity: totalProducts, // ? Cantidad total de productos
+          totalAppointments,
+          appointmentRevenue, // ? Nuevo campo para revenue de citas
+          suppliesCosts, // ? NUEVO: Costos directos reales de insumos
+          paymentMethods: paymentMethodBreakdown,
+          // ? Agregar ingresos por tipo para el frontend
+          serviceRevenue: serviceRevenue,
+          productRevenue: productRevenue,
+          oldestDataDate: oldestDataDate // ? A—ADIDO PARA EL FRONTEND
         },
-        stats: salesStats,
-        // ‚úÖ NEW: Add payment methods breakdown
-        paymentMethods,
-        // ‚úÖ NEW: Add sales by type breakdown
-        salesByType,
-        // ‚úÖ NEW: Add specific counts for dashboard
-        productSales: salesByType.product?.count || 0,
-        serviceSales: salesByType.service?.count || 0,
-        productRevenue,
-        serviceRevenue,
-        // ‚úÖ NEW: Add appointments data
-        completedAppointments: appointmentData.totalAppointments,
-        appointmentRevenue,
-        // ‚úÖ NEW: Add available dates for "general" filter
-        availableDates: uniqueDates
+        serviceBreakdown,
+        productBreakdown,
+        paymentMethodBreakdown: result.paymentMethods,
+        dailyData,
+        daysWithData: dailyData.length // ? A—ADIDO PARA EL FRONTEND
       };
 
-      logger.debug(`SaleUseCases: Resumen financiero generado - Revenue: ${financialSummary.totalRevenue}, availableDates: ${uniqueDates.length} fechas`);
+      console.log(`? Resumen financiero generado:`, {
+        totalRevenue: financialSummary.summary.totalRevenue,
+        totalServices: totalServiceSales, // ? CORREGIDO: Mostrar n˙mero de ventas
+        totalProducts: totalProductSales, // ? CORREGIDO: Mostrar n˙mero de ventas
+        serviceRevenue: serviceRevenue,
+        productRevenue: productRevenue,
+        daysWithData: dailyData.length,
+        oldestDataDate: oldestDataDate, // ? Log para verificar
+        paymentMethods: paymentMethodBreakdown
+      });
+
       return financialSummary;
 
     } catch (error) {
-      logger.error('Error obteniendo resumen financiero:', error);
-      throw new AppError('Error al obtener el resumen financiero', 500);
+      console.error('Error generando resumen financiero:', error);
+      throw error;
     }
+  }
+
+  /**
+   * Crear venta desde carrito con mÈtodos de pago m˙ltiples
+   */
+  static async createCartSale(cartData) {
+    const { cart, barberId, notes } = cartData;
+    
+    logger.info('?? Iniciando creaciÛn de venta desde carrito', {
+      cartLength: cart?.length || 0,
+      barberId,
+      notes: notes ? 'SÌ' : 'No'
+    });
+
+    // Verificar que el barbero existe
+    const barber = await SaleUseCases.findBarberByIdOrUserId(barberId);
+
+    // Validar que hay items en el carrito
+    if (!cart || !Array.isArray(cart) || cart.length === 0) {
+      logger.error('? Carrito vacÌo o inv·lido', { cart });
+      throw new AppError('El carrito no puede estar vacÌo', 400);
+    }
+
+    // Procesar cada item del carrito
+    const saleItems = [];
+    let totalAmount = 0;
+
+    for (const cartItem of cart) {
+      const { 
+        id, 
+        type, 
+        name, 
+        price, 
+        quantity, 
+        paymentMethod = 'efectivo',
+        serviceId 
+      } = cartItem;
+
+      let saleItem;
+
+      if (type === SALE_TYPES.PRODUCT) {
+        // Validar producto y stock
+        const product = await Inventory.findById(id);
+        if (!product) {
+          logger.error('? Producto no encontrado en carrito', { productId: id, productName: name });
+          throw new AppError(`Producto ${name} no encontrado`, 404);
+        }
+
+        const currentStock = product.stock || 0;
+        if (quantity > currentStock) {
+          logger.error('? Stock insuficiente en carrito', {
+            productId: id,
+            productName: product.name,
+            requiredQuantity: quantity,
+            availableStock: currentStock
+          });
+          throw new AppError(`Stock insuficiente para ${product.name}. Disponible: ${currentStock}`, 400);
+        }
+
+        // Crear item de venta para producto
+        saleItem = {
+          productId: id,
+          productName: name,
+          type: SALE_TYPES.PRODUCT,
+          quantity,
+          unitPrice: price,
+          totalAmount: quantity * price,
+          paymentMethod
+        };
+
+        // Actualizar inventario
+        await Inventory.findByIdAndUpdate(
+          id,
+          { 
+            $inc: { 
+              stock: -quantity,
+              sales: quantity
+            }
+          }
+        );
+
+        logger.info(`?? Stock actualizado para producto`, {
+          productId: id,
+          productName: name,
+          quantityDeducted: quantity,
+          paymentMethod
+        });
+
+      } else if (type === SALE_TYPES.SERVICE) {
+        // Crear item de venta para servicio walk-in
+        saleItem = {
+          serviceId: serviceId,
+          serviceName: name,
+          type: SALE_TYPES.SERVICE,
+          quantity: 1,
+          unitPrice: price,
+          totalAmount: price,
+          paymentMethod
+        };
+      } else {
+        throw new AppError(`Tipo de item no v·lido: ${type}`, 400);
+      }
+
+      saleItems.push(saleItem);
+      totalAmount += saleItem.totalAmount;
+    }
+
+    // Crear ventas individuales para cada item del carrito
+    const createdSales = [];
+    
+    for (const saleItem of saleItems) {
+      // Validar campos requeridos
+      if (!saleItem.quantity || saleItem.quantity <= 0) {
+        throw new AppError('La cantidad debe ser mayor a 0', 400);
+      }
+      
+      if (!saleItem.unitPrice || saleItem.unitPrice <= 0) {
+        throw new AppError('El precio unitario debe ser mayor a 0', 400);
+      }
+      
+      if (!saleItem.totalAmount || saleItem.totalAmount <= 0) {
+        throw new AppError('El monto total debe ser mayor a 0', 400);
+      }
+      
+      // Validar mÈtodo de pago
+      const validPaymentMethods = ['efectivo', 'tarjeta', 'transferencia'];
+      if (!validPaymentMethods.includes(saleItem.paymentMethod)) {
+        throw new AppError(`MÈtodo de pago inv·lido: ${saleItem.paymentMethod}. MÈtodos v·lidos: ${validPaymentMethods.join(', ')}`, 400);
+      }
+
+      const sale = new Sale({
+        // Campos del saleItem
+        productId: saleItem.productId,
+        productName: saleItem.productName,
+        serviceId: saleItem.serviceId,
+        serviceName: saleItem.serviceName,
+        type: saleItem.type,
+        quantity: saleItem.quantity,
+        unitPrice: saleItem.unitPrice,
+        totalAmount: saleItem.totalAmount,
+        paymentMethod: saleItem.paymentMethod,
+        // Campos comunes
+        barberId: barber._id,
+        barberName: barber.user?.name || barber.specialty || 'Barbero',
+        notes: `${notes} - Item del carrito`,
+        // Campos obligatorios
+        status: 'completed',
+        saleDate: new Date()
+      });
+
+      await sale.save();
+      createdSales.push(sale);
+    }
+
+    const finalTotalAmount = createdSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
+
+    // Actualizar estadÌsticas del barbero
+    await SaleUseCases.updateBarberStats(barberId, finalTotalAmount, 'mixed');
+
+    // Registrar log de venta
+    try {
+      const productNames = saleItems
+        .filter(item => item.type === SALE_TYPES.PRODUCT)
+        .map(item => item.productName);
+      const serviceNames = saleItems
+        .filter(item => item.type === SALE_TYPES.SERVICE)
+        .map(item => item.serviceName);
+
+      await InventoryLogService.createLog(
+        'sale',
+        null,
+        'Venta desde carrito con mÈtodos de pago m˙ltiples',
+        barber.user?._id || barber._id,
+        barber.user ? 'barber' : 'admin',
+        {
+          message: `Carrito vendido: ${saleItems.length} items`,
+          totalAmount: finalTotalAmount,
+          products: productNames,
+          services: serviceNames,
+          salesCount: createdSales.length
+        }
+      );
+      logger.info(`?? Log de carrito creado exitosamente`, {
+        totalAmount: finalTotalAmount,
+        barberId: barber._id,
+        barberName: barber.user?.name || barber.specialty
+      });
+    } catch (logError) {
+      logger.error('? Error al crear log de carrito', {
+        error: logError.message,
+        totalAmount: finalTotalAmount,
+        barberId: barber._id
+      });
+    }
+
+    logger.info('? Venta desde carrito creada exitosamente', {
+      salesCreated: createdSales.length,
+      totalAmount: finalTotalAmount,
+      itemsCount: saleItems.length,
+      salesIds: createdSales.map(s => s._id)
+    });
+
+    return {
+      success: true,
+      sales: createdSales,
+      totalAmount: finalTotalAmount,
+      itemsCount: saleItems.length,
+      message: `Carrito procesado exitosamente: ${createdSales.length} ventas creadas`
+    };
   }
 }
 
 export default SaleUseCases;
+

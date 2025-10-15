@@ -5,15 +5,15 @@ import {
   Palette, Sparkles, User, Package2, Scissors, Home, Eye, EyeOff,
   Users, Star, X
 } from 'lucide-react';
-import { useAuth } from '../shared/contexts/AuthContext';
-import { api } from '../shared/services/api';
-import { PageContainer } from '../shared/components/layout/PageContainer';
-import GradientButton from '../shared/components/ui/GradientButton';
-import GradientText from '../shared/components/ui/GradientText';
-import UserAvatar from '../shared/components/ui/UserAvatar';
-import { useNavigationCache } from '../shared/hooks/useNavigationCache';
+import { useAuth } from '@contexts/AuthContext';
+import { api } from '@services/api';
+import { PageContainer } from '@components/layout/PageContainer';
+import GradientButton from '@components/ui/GradientButton';
+import GradientText from '@components/ui/GradientText';
+import UserAvatar from '@components/ui/UserAvatar';
+import { useNavigationCache } from '@hooks/useNavigationCache';
 
-import logger from '../shared/utils/logger';
+import logger from '@utils/logger';
 function ServicesPage() {
   const { user } = useAuth();
   const [services, setServices] = useState([]);

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { config } from '../../../shared/config/index.js';
+import { logger } from '../../../shared/utils/logger.js';
+import config from '../../../shared/config/index.js';
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -146,7 +147,10 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
     const isMatch = await bcrypt.compare(candidatePassword, this.password);
     return isMatch;
   } catch (error) {
-    console.error('Error comparing passwords:', error);
+    logger.error('Error comparing passwords', { 
+      error: error.message,
+      userId: this._id
+    });
     throw new Error('Error al comparar contraseñas');
   }
 };

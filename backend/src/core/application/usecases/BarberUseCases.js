@@ -5,8 +5,7 @@
  * Gestión integral de barberos con Repository Pattern
  */
 
-import { AppError } from '../../../shared/utils/errors.js';
-import { logger } from '../../../shared/utils/logger.js';
+import { AppError, logger } from '../../../barrel.js';
 import DIContainer from '../../../shared/container/index.js';
 
 class BarberUseCases {

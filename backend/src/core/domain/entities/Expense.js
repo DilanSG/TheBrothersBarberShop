@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { logger } from '../../../shared/utils/logger.js';
 const { Schema, ObjectId } = mongoose;
 
 /**
@@ -458,7 +459,7 @@ expenseSchema.statics.getExpenseSummary = async function(startDate, endDate, fil
  * Se mantiene por compatibilidad con el código existente
  */
 expenseSchema.statics.processRecurringExpenses = async function() {
-  console.warn('⚠️ Método deprecated: Usar ExpenseService.processScheduledExpenses() en su lugar');
+  logger.warn('Método deprecated: Usar ExpenseService.processScheduledExpenses() en su lugar');
   
   const today = new Date();
   const recurringExpenses = await this.find({
@@ -559,7 +560,7 @@ expenseSchema.statics.processRecurringExpenses = async function() {
  * Esta función será eliminada en futuras versiones.
  */
 function calculateNextDate(lastDate, config) {
-  console.warn('⚠️ Función calculateNextDate deprecated. Usar RecurrenceCalculator en su lugar.');
+  logger.warn('Función calculateNextDate deprecated. Usar RecurrenceCalculator en su lugar.');
   
   const today = new Date();
   const startDate = new Date(lastDate);
@@ -729,7 +730,9 @@ expenseSchema.methods.getNextExecutionDate = async function() {
       const calculator = new RecurrenceCalculator();
       return calculator.getNextOccurrenceDate(this);
     } catch (error) {
-      console.error('Error calculando próxima fecha con nuevo formato:', error);
+      logger.error('Error calculando próxima fecha con formato recurring-template', { 
+        error: error.message 
+      });
       return null;
     }
   }

@@ -1,5 +1,5 @@
 import morgan from 'morgan';
-import { config } from '../../shared/config/index.js';
+import config from '../../shared/config/index.js';
 import { logger } from '../../shared/utils/logger.js';
 
 // Token personalizado para el ID de usuario

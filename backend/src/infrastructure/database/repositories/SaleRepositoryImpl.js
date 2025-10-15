@@ -4,9 +4,7 @@
  */
 
 import ISaleRepository from '../../../core/domain/repositories/ISaleRepository.js';
-import Sale from '../../../core/domain/entities/Sale.js';
-import { logger } from '../../../shared/utils/logger.js';
-import { AppError } from '../../../shared/utils/errors.js';
+import { Sale, logger, AppError } from '../../../barrel.js';
 
 class SaleRepositoryImpl extends ISaleRepository {
   /**

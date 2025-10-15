@@ -1,12 +1,12 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../shared/contexts/AuthContext';
+import { useAuth } from '@contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { api } from '../../shared/services/api';
+import { api } from '@services/api';
 import { User, Star, Calendar, Scissors } from 'lucide-react';
-import {PageContainer} from '../../shared/components/layout/PageContainer';
-import GradientText from '../../shared/components/ui/GradientText';
+import {PageContainer} from '@components/layout/PageContainer';
+import GradientText from '@components/ui/GradientText';
 
-import logger from '../../shared/utils/logger';
+import logger from '@utils/logger';
 // Componente de Card de Barbero para usuarios
 const BarberCardForUsers = ({ barber, userRole }) => {
   const handleImageError = (e) => {

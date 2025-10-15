@@ -1,5 +1,5 @@
-import cacheService from '../../core/application/usecases/cacheService.js';
-import { logger } from '../../shared/utils/logger.js';
+import cacheService from '../../core/application/usecases/CacheUseCases.js';
+import { logger } from '../../barrel.js';
 
 /**
  * Genera una key de caché basada en la request

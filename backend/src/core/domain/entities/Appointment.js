@@ -4,8 +4,8 @@ const appointmentSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'El usuario de la cita es requerido'],
-    index: true
+    required: [true, 'El usuario de la cita es requerido']
+    // Nota: No necesita index: true porque ya existe índice compuesto { user: 1, date: 1 }
   },
   barber: {
     type: mongoose.Schema.Types.ObjectId,

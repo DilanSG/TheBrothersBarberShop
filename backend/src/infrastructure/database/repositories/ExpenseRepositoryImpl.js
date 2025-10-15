@@ -4,9 +4,7 @@
  */
 
 import IExpenseRepository from '../../../core/domain/repositories/IExpenseRepository.js';
-import Expense from '../../../core/domain/entities/Expense.js';
-import { logger } from '../../../shared/utils/logger.js';
-import { AppError } from '../../../shared/utils/errors.js';
+import { Expense, logger, AppError } from '../../../barrel.js';
 
 class ExpenseRepositoryImpl extends IExpenseRepository {
   /**

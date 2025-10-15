@@ -1,14 +1,12 @@
 import { asyncHandler } from "../middleware/index.js";
-import AuthService from "../../core/application/usecases/authService.js";
-import { logger } from "../../shared/utils/logger.js";
-import { AppError } from "../../shared/utils/errors.js";
-import { User } from "../../core/domain/entities/index.js";
+import AuthUseCases from "../../core/application/usecases/AuthUseCases.js";
+import { logger, AppError, User } from "../../barrel.js";
 
 // @desc    Registrar un nuevo usuario
 // @route   POST /api/auth/register
 // @access  Público
 export const register = asyncHandler(async (req, res) => {
-  const { token, user } = await AuthService.register(req.body);
+  const { token, user } = await AuthUseCases.register(req.body);
 
   logger.info(`Usuario registrado exitosamente: ${user.email}`);
   
@@ -34,7 +32,7 @@ export const login = asyncHandler(async (req, res) => {
     });
   }
 
-  const { token, user } = await AuthService.login(email, password);
+  const { token, user } = await AuthUseCases.login(email, password);
 
   res.json({
     success: true,
@@ -51,7 +49,7 @@ export const changePassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
   const userId = req.user._id;
 
-  const result = await AuthService.changePassword(userId, oldPassword, newPassword);
+  const result = await AuthUseCases.changePassword(userId, oldPassword, newPassword);
 
   res.json({
     success: true,
@@ -72,7 +70,7 @@ export const requestPasswordReset = asyncHandler(async (req, res) => {
     });
   }
 
-  const result = await AuthService.resetPassword(email);
+  const result = await AuthUseCases.resetPassword(email);
 
   res.json({
     success: true,
@@ -89,7 +87,7 @@ export const validateToken = asyncHandler(async (req, res) => {
   
   res.json({
     success: true,
-    user: AuthService.sanitizeUser(user)
+    user: AuthUseCases.sanitizeUser(user)
   });
 });
 

@@ -1,6 +1,6 @@
 ﻿import React from 'react';
-import logger from '../../shared/utils/logger';
-import useBodyScrollLock from '../../shared/hooks/useBodyScrollLock';
+import logger from '@utils/logger';
+import useBodyScrollLock from '@hooks/useBodyScrollLock';
 import {
   ShoppingCart, Package, Calendar, AlertTriangle, X,
   Scissors, Clock, User, FileText
@@ -8,7 +8,7 @@ import {
 import { 
   SALE_TYPES, 
   SALE_TYPE_LABELS 
-} from '../../shared/constants/salesConstants';
+} from '@shared/constants/salesConstants';
 
 /**
  * Modal para detalles de ventas con información detallada por producto y día

@@ -16,7 +16,9 @@
   "setup:prod": "node scripts/setup-env.js production",
   "setup:network": "node scripts/setup-env.js network",
   "fix:frontend": "node scripts/fix-frontend.js",
-  "diagnose": "node scripts/diagnose.js"
+  "diagnose": "node scripts/diagnose.js",
+  "validate:ci": "node scripts/validate-ci.js",
+  "pre-push": "node scripts/validate-ci.js"
   },
   "keywords": [
     "barberia",

@@ -1,9 +1,9 @@
 import React from 'react';
-import { useAuth } from '../shared/contexts/AuthContext';
-import { useSocioStatus } from '../shared/hooks/useSocioStatus';
+import { useAuth } from '@contexts/AuthContext';
+import { useSocioStatus } from '@hooks/useSocioStatus';
 import { Link } from 'react-router-dom';
-import {PageContainer} from '../shared/components/layout/PageContainer';
-import GradientButton from '../shared/components/ui/GradientButton';
+import {PageContainer} from '@components/layout/PageContainer';
+import GradientButton from '@components/ui/GradientButton';
 import { User, Mail, Phone, Calendar, Edit3, Crown } from 'lucide-react';
 
 function Profile() {

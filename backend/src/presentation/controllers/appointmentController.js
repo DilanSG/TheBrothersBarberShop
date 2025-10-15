@@ -1,10 +1,10 @@
 import { asyncHandler } from '../middleware/index.js';
-import AppointmentService from '../../core/application/usecases/appointmentService.js';
-import BarberService from '../../core/application/usecases/barberService.js';
-import { Appointment, Barber, User } from '../../core/domain/entities/index.js';
-import { AppError } from '../../shared/utils/errors.js';
-import { logger } from '../../shared/utils/logger.js';
+import AppointmentUseCases from '../../core/application/usecases/appointmentService.js';
+import BarberUseCases from '../../core/application/usecases/BarberUseCases.js';
+import { Appointment, Barber, User, AppError, logger } from '../../barrel.js';
 import emailService from '../../services/emailService.js';
+
+const barberService = BarberUseCases.getInstance();
 
 // @desc    Obtener horarios disponibles para un barbero en una fecha específica
 // @route   POST /api/appointments/available-times
@@ -12,7 +12,7 @@ import emailService from '../../services/emailService.js';
 export const getAvailableTimes = asyncHandler(async (req, res) => {
   const { barberId, date } = req.body;
   
-  const availableTimes = await AppointmentService.getAvailableTimes(barberId, date);
+  const availableTimes = await AppointmentUseCases.getAvailableTimes(barberId, date);
 
   res.status(200).json({
     success: true,
@@ -29,7 +29,7 @@ export const createAppointment = asyncHandler(async (req, res) => {
     user: req.user._id // Asignar el usuario actual
   };
 
-  const appointment = await AppointmentService.createAppointment(appointmentData);
+  const appointment = await AppointmentUseCases.createAppointment(appointmentData);
 
   // 📧 ENVIAR NOTIFICACIONES POR EMAIL
   try {
@@ -110,7 +110,7 @@ export const getAppointments = asyncHandler(async (req, res) => {
     }
   }
 
-  const appointments = await AppointmentService.getAppointments(filters);
+  const appointments = await AppointmentUseCases.getAppointments(filters);
 
   res.json({
     success: true,
@@ -127,7 +127,7 @@ export const getBarberAppointments = asyncHandler(async (req, res) => {
   
   // Ejecutar limpieza automática de citas expiradas antes de mostrar la lista
   try {
-    await AppointmentService.cleanupExpiredPendingAppointments();
+    await AppointmentUseCases.cleanupExpiredPendingAppointments();
   } catch (error) {
     logger.warn('Error en limpieza automática de citas expiradas:', error);
     // No fallar si la limpieza falla, solo continuar
@@ -148,7 +148,7 @@ export const getBarberAppointments = asyncHandler(async (req, res) => {
     filters.date = new Date(req.query.date);
   }
 
-  const appointments = await AppointmentService.getAppointments(filters);
+  const appointments = await AppointmentUseCases.getAppointments(filters);
 
   res.json({
     success: true,
@@ -161,7 +161,7 @@ export const getBarberAppointments = asyncHandler(async (req, res) => {
 // @route   GET /api/appointments/:id
 // @access  Private
 export const getAppointment = asyncHandler(async (req, res) => {
-  const appointment = await AppointmentService.getAppointmentById(req.params.id);
+  const appointment = await AppointmentUseCases.getAppointmentById(req.params.id);
 
   if (!appointment) {
     throw new AppError('Cita no encontrada', 404);
@@ -173,7 +173,7 @@ export const getAppointment = asyncHandler(async (req, res) => {
   }
 
   if (req.user.role === 'barber') {
-    const barber = await BarberService.getBarberByUserId(req.user._id);
+    const barber = await barberService.getBarberByUserId(req.user._id);
     const appointmentBarberId = appointment.barber._id || appointment.barber;
     if (!barber || appointmentBarberId.toString() !== barber._id.toString()) {
       throw new AppError('No tienes permiso para ver esta cita', 403);
@@ -194,7 +194,7 @@ export const updateAppointment = asyncHandler(async (req, res) => {
   const updateData = req.body;
 
   // Validar permisos
-  const appointment = await AppointmentService.getAppointmentById(id);
+  const appointment = await AppointmentUseCases.getAppointmentById(id);
   if (!appointment) {
     throw new AppError('Cita no encontrada', 404);
   }
@@ -204,7 +204,7 @@ export const updateAppointment = asyncHandler(async (req, res) => {
     throw new AppError('No tienes permiso para actualizar esta cita', 403);
   }
 
-  const updatedAppointment = await AppointmentService.updateAppointment(id, updateData);
+  const updatedAppointment = await AppointmentUseCases.updateAppointment(id, updateData);
 
   res.json({
     success: true,
@@ -219,7 +219,7 @@ export const cancelAppointment = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { reason } = req.body;
 
-  const appointment = await AppointmentService.getAppointmentById(id);
+  const appointment = await AppointmentUseCases.getAppointmentById(id);
   if (!appointment) {
     throw new AppError('Cita no encontrada', 404);
   }
@@ -267,7 +267,7 @@ export const cancelAppointment = asyncHandler(async (req, res) => {
     }
   }
   
-  const cancelledAppointment = await AppointmentService.cancelAppointment(id, reason, req.user);
+  const cancelledAppointment = await AppointmentUseCases.cancelAppointment(id, reason, req.user);
 
   // 📧 ENVIAR NOTIFICACIÓN DE CANCELACIÓN
   try {
@@ -301,14 +301,14 @@ export const completeAppointment = asyncHandler(async (req, res) => {
     throw new AppError('El método de pago es requerido para completar la cita', 400);
   }
   
-  const appointment = await AppointmentService.getAppointmentById(id);
+  const appointment = await AppointmentUseCases.getAppointmentById(id);
 
   if (!appointment) {
     throw new AppError('Cita no encontrada', 404);
   }
 
   // Solo el barbero asignado puede marcar como completada
-  const barber = await BarberService.getBarberByUserId(req.user._id);
+  const barber = await barberService.getBarberByUserId(req.user._id);
   
   // Obtener el ID del barbero de la cita (puede estar poblado o no)
   const appointmentBarberId = appointment.barber._id || appointment.barber;
@@ -340,7 +340,7 @@ export const completeAppointment = asyncHandler(async (req, res) => {
   
   logger.info('✅ Permisos verificados correctamente para completar cita');
 
-  const completedAppointment = await AppointmentService.completeAppointment(id, req.user._id, req.user.role, paymentMethod);
+  const completedAppointment = await AppointmentUseCases.completeAppointment(id, req.user._id, req.user.role, paymentMethod);
 
   res.json({
     success: true,
@@ -355,7 +355,7 @@ export const completeAppointment = asyncHandler(async (req, res) => {
 export const approveAppointment = asyncHandler(async (req, res) => {
   const { id } = req.params;
   
-  const approvedAppointment = await AppointmentService.approveAppointment(
+  const approvedAppointment = await AppointmentUseCases.approveAppointment(
     id, 
     req.user._id, 
     req.user.role
@@ -373,21 +373,21 @@ export const approveAppointment = asyncHandler(async (req, res) => {
 // @access  Private (Solo barberos)
 export const markNoShow = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const appointment = await AppointmentService.getAppointmentById(id);
+  const appointment = await AppointmentUseCases.getAppointmentById(id);
 
   if (!appointment) {
     throw new AppError('Cita no encontrada', 404);
   }
 
   // Solo el barbero asignado puede marcar no show
-  const barber = await BarberService.getBarberByUserId(req.user._id);
+  const barber = await barberService.getBarberByUserId(req.user._id);
   const appointmentBarberId = appointment.barber._id || appointment.barber;
   
   if (!barber || appointmentBarberId.toString() !== barber._id.toString()) {
     throw new AppError('Solo el barbero asignado puede marcar no show', 403);
   }
 
-  const noShowAppointment = await AppointmentService.markNoShow(id);
+  const noShowAppointment = await AppointmentUseCases.markNoShow(id);
 
   res.json({
     success: true,
@@ -404,7 +404,7 @@ export const getAppointmentStats = asyncHandler(async (req, res) => {
 
   // Si es barbero, solo ver sus estadísticas
   if (req.user.role === 'barber') {
-    const barber = await BarberService.getBarberByUserId(req.user._id);
+    const barber = await barberService.getBarberByUserId(req.user._id);
     if (!barber) {
       throw new AppError('Barbero no encontrado', 404);
     }
@@ -419,7 +419,7 @@ export const getAppointmentStats = asyncHandler(async (req, res) => {
     filters.endDate = req.query.endDate; // Pasar como string para que el service maneje la zona horaria
   }
 
-  const stats = await AppointmentService.getStats(filters);
+  const stats = await AppointmentUseCases.getStats(filters);
 
   res.json({
     success: true,
@@ -492,7 +492,7 @@ export const getBarberAvailability = asyncHandler(async (req, res) => {
   }
 
   // Usar el servicio corregido que maneja zona horaria
-  const availableTimes = await AppointmentService.getAvailableTimes(barberId, date);
+  const availableTimes = await AppointmentUseCases.getAvailableTimes(barberId, date);
 
   res.status(200).json({
     success: true,
@@ -566,7 +566,7 @@ export const getCancellationReason = asyncHandler(async (req, res) => {
 // @route   POST /api/appointments/cleanup-expired
 // @access  Private/Admin
 export const cleanupExpiredAppointments = asyncHandler(async (req, res) => {
-  const result = await AppointmentService.cleanupExpiredPendingAppointments();
+  const result = await AppointmentUseCases.cleanupExpiredPendingAppointments();
 
   res.json({
     success: true,
@@ -582,7 +582,7 @@ export const getBarberAppointmentStats = asyncHandler(async (req, res) => {
   const { barberId } = req.params;
   const { date, startDate, endDate } = req.query;
   
-  const stats = await AppointmentService.getBarberAppointmentStats(barberId, {
+  const stats = await AppointmentUseCases.getBarberAppointmentStats(barberId, {
     date,
     startDate,
     endDate
@@ -599,7 +599,7 @@ export const getBarberAppointmentStats = asyncHandler(async (req, res) => {
 // @access  Privado/Admin
 export const getDailyAppointmentReport = asyncHandler(async (req, res) => {
   const { date } = req.query;
-  const report = await AppointmentService.getDailyReport(date);
+  const report = await AppointmentUseCases.getDailyReport(date);
   
   res.json({
     success: true,
@@ -613,7 +613,7 @@ export const getDailyAppointmentReport = asyncHandler(async (req, res) => {
 export const getAvailableDates = asyncHandler(async (req, res) => {
   const { barberId } = req.params;
   
-  const dates = await AppointmentService.getAvailableDates(barberId);
+  const dates = await AppointmentUseCases.getAvailableDates(barberId);
   
   res.status(200).json({
     success: true,
@@ -632,7 +632,7 @@ export const getCompletedDetails = asyncHandler(async (req, res) => {
     throw new AppError('barberId es requerido', 400);
   }
 
-  const completedDetails = await AppointmentService.getCompletedDetails(barberId, startDate, endDate);
+  const completedDetails = await AppointmentUseCases.getCompletedDetails(barberId, startDate, endDate);
   
   res.status(200).json({
     success: true,
@@ -645,7 +645,7 @@ export const getCompletedDetails = asyncHandler(async (req, res) => {
 // @route   GET /api/v1/appointments/completed
 // @access  Privado/Admin
 export const getCompletedAppointments = asyncHandler(async (req, res) => {
-  const completedAppointments = await AppointmentService.getCompletedAppointments();
+  const completedAppointments = await AppointmentUseCases.getCompletedAppointments();
   
   res.status(200).json({
     success: true,

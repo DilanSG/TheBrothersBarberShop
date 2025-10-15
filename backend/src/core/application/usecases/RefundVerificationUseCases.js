@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { logger } from '../../../shared/utils/logger.js';
+import { logger } from '../../../barrel.js';
 
 /**
  * Casos de uso para generar y validar códigos de verificación para reembolsos

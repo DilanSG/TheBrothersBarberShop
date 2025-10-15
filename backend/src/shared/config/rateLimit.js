@@ -48,7 +48,7 @@ export const createLimiter = rateLimit({
   message: 'Límite de creación alcanzado, intenta nuevamente en una hora',
 });
 
-// Store para rate limiting (puede ser Redis en producción)
+// Store para rate limiting en memoria
 export const createMemoryStore = () => {
   return new rateLimit.MemoryStore();
 };

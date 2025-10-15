@@ -1,4 +1,5 @@
 ﻿import cors from 'cors';
+import { logger } from '../utils/logger.js';
 
 // Lista de dominios permitidos
 const allowedOrigins = [
@@ -21,7 +22,7 @@ const allowedOrigins = [
 const isValidLocalIP = (origin) => {
   if (!origin) return false;
   
-  console.log('🔍 Verificando IP local:', origin);
+  logger.debug('🔍 Verificando IP local:', origin);
   
   // Patrón más simple y robusto para IPs locales con puertos 5173/5174
   const patterns = [
@@ -32,7 +33,7 @@ const isValidLocalIP = (origin) => {
   ];
   
   const isValid = patterns.some(pattern => pattern.test(origin));
-  console.log(`🎯 IP ${origin} es válida:`, isValid);
+  logger.debug(`🎯 IP ${origin} es válida:`, isValid);
   
   return isValid;
 };
@@ -40,32 +41,32 @@ const isValidLocalIP = (origin) => {
 // Configuración de CORS
 export const corsOptions = {
   origin: function (origin, callback) {
-    console.log('🌐 CORS: Verificando origen:', origin);
+    logger.debug('🌐 CORS: Verificando origen:', origin);
     
     // Permitir requests sin origin (como mobile apps, postman o desarrollo local)
     if (!origin) {
-      console.log('✅ CORS: Permitiendo request sin origin');
+      logger.debug('✅ CORS: Permitiendo request sin origin');
       callback(null, true);
       return;
     }
     
     // Verificar orígenes explícitamente permitidos
     if (allowedOrigins.includes(origin)) {
-      console.log('✅ CORS: Origen en lista permitida:', origin);
+      logger.debug('✅ CORS: Origen en lista permitida:', origin);
       callback(null, true);
       return;
     }
     
     // Verificar IPs locales dinámicamente
     if (isValidLocalIP(origin)) {
-      console.log('✅ CORS: Permitiendo acceso desde IP local válida:', origin);
+      logger.debug('✅ CORS: Permitiendo acceso desde IP local válida:', origin);
       callback(null, true);
       return;
     }
     
     // Debug para orígenes rechazados
-    console.log('❌ CORS: Origen no permitido:', origin);
-    console.log('📝 CORS: Orígenes permitidos:', allowedOrigins);
+    logger.warn('❌ CORS: Origen no permitido:', origin);
+    logger.debug('📝 CORS: Orígenes permitidos:', allowedOrigins);
     callback(new Error('No permitido por CORS'));
   },
   credentials: true, // Permitir cookies y autenticación

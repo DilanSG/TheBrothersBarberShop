@@ -1,16 +1,16 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PageContainer } from '../../shared/components/layout/PageContainer';
-import { useAuth } from '../../shared/contexts/AuthContext';
-import { api, appointmentService, serviceService, barberService } from '../../shared/services/api';
-import { useNotification } from '../../shared/contexts/NotificationContext';
+import { PageContainer } from '@components/layout/PageContainer';
+import { useAuth } from '@contexts/AuthContext';
+import { api, appointmentService, serviceService, barberService } from '@services/api';
+import { useNotification } from '@contexts/NotificationContext';
 import { format, parse, isAfter, isBefore, startOfDay, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import GradientButton from '../../shared/components/ui/GradientButton';
-import GradientText from '../../shared/components/ui/GradientText';
+import GradientButton from '@components/ui/GradientButton';
+import GradientText from '@components/ui/GradientText';
 import { Calendar, Clock, User, Scissors, CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
 
-import logger from '../../shared/utils/logger';
+import logger from '@utils/logger';
 const UserAppointment = () => {
   const [searchParams] = useSearchParams();
   const [appointments, setAppointments] = useState([]);

@@ -34,13 +34,18 @@ class MonitoringUseCases {
       }
     };
 
-    // Iniciar monitoreo de recursos
-    this.startResourceMonitoring();
+    // NO iniciar monitoreo automáticamente en el constructor
+    // Se debe llamar explícitamente después de que el servidor esté listo
+    this.monitoringInterval = null;
   }
 
   // Monitoreo de recursos del sistema
-  async startResourceMonitoring() {
-    setInterval(async () => {
+  startResourceMonitoring() {
+    if (this.monitoringInterval) {
+      return; // Ya está iniciado
+    }
+    
+    this.monitoringInterval = setInterval(async () => {
       const memoryUsage = process.memoryUsage();
       const cpuUsage = await this.getCPUUsage();
 
@@ -219,6 +224,15 @@ class MonitoringUseCases {
       },
       cache: this.metrics.cache
     };
+  }
+
+  // Detener monitoreo de recursos
+  stopResourceMonitoring() {
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = null;
+      logger.info('Monitoreo de recursos detenido');
+    }
   }
 }
 

@@ -1,9 +1,9 @@
 ﻿import React from 'react';
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useAuth } from '../../shared/contexts/AuthContext';
-import { api } from '../../shared/services/api';
-import {PageContainer} from '../../shared/components/layout/PageContainer';
+import { useAuth } from '@contexts/AuthContext';
+import { api } from '@services/api';
+import {PageContainer} from '@components/layout/PageContainer';
 import { 
   User, 
   Clock, 
@@ -18,10 +18,10 @@ import {
   BarChart3,
   DollarSign
 } from 'lucide-react';
-import GradientText from '../../shared/components/ui/GradientText';
-import GradientButton from '../../shared/components/ui/GradientButton';
+import GradientText from '@components/ui/GradientText';
+import GradientButton from '@components/ui/GradientButton';
 
-import logger from '../../shared/utils/logger';
+import logger from '@utils/logger';
 export default function BarberProfile() {
   const { id } = useParams();
   const [barber, setBarber] = useState(null);

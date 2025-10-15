@@ -1,6 +1,6 @@
-import { reportsCacheService } from '../services/reportsCacheService.js';
+import { reportsCacheService } from '../../core/application/usecases/reportsCacheService.js';
 import { promisify } from 'util';
-import { logger } from '../../shared/utils/logger.js';
+import { logger } from '../../barrel.js';
 
 /**
  * Middleware para invalidación automática de cache de reportes

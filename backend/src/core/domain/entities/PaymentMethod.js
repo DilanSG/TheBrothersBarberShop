@@ -85,7 +85,7 @@ const paymentMethodSchema = new mongoose.Schema({
 });
 
 // Índices para optimización
-paymentMethodSchema.index({ backendId: 1 });
+// Nota: backendId ya tiene unique: true, no necesita índice adicional
 paymentMethodSchema.index({ isActive: 1 });
 paymentMethodSchema.index({ displayOrder: 1 });
 paymentMethodSchema.index({ aliases: 1 });

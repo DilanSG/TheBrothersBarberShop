@@ -2,6 +2,7 @@ import multer from 'multer';
 import path from 'path';
 import { cloudinary } from '../../shared/config/cloudinary.js';
 import { AppError } from '../../shared/utils/errors.js';
+import { logger } from '../../shared/utils/logger.js';
 import fs from 'fs';
 
 // Asegurar que el directorio temp existe
@@ -85,7 +86,7 @@ export const deleteFromCloudinary = async (publicId) => {
     const result = await cloudinary.uploader.destroy(publicId);
     return result;
   } catch (error) {
-    console.error('Error eliminando imagen de Cloudinary:', error);
+    logger.error('Error eliminando imagen de Cloudinary:', error);
     throw error;
   }
 };

@@ -4,7 +4,28 @@
  * The Brothers Barber Shop - Development Server Launcher (Simplified & Modern)
  */
 
-const { execa } = require('execa');
+// Importar execa de manera robusta
+let execa;
+try {
+  const execaModule = require('execa');
+  
+  // Verificar diferentes formas de exportación
+  if (typeof execaModule === 'function') {
+    execa = execaModule;
+  } else if (execaModule.default && typeof execaModule.default === 'function') {
+    execa = execaModule.default;
+  } else if (execaModule.execa && typeof execaModule.execa === 'function') {
+    execa = execaModule.execa;
+  } else {
+    throw new Error('No se pudo encontrar la función execa en el módulo');
+  }
+  
+  console.log('✅ Execa cargado correctamente:', typeof execa);
+} catch (error) {
+  console.error('❌ ERROR cargando execa:', error.message);
+  console.error('🔧 Verifica que execa esté instalado: npm install execa@5.1.1');
+  process.exit(1);
+}
 const fs = require('fs');
 const readline = require('readline');
 
@@ -100,10 +121,14 @@ async function main() {
     
     colorLog('Iniciando servidores...', 'cyan');
     
+    // Variables de estado de los procesos
+    let frontendReady = false;
+    
     // ===== FRONTEND PRIMERO =====
     colorLog('Iniciando Frontend...', 'blue');
     
-    frontendProcess = execa('npm', ['run', 'dev'], { 
+    try {
+      frontendProcess = execa('npm', ['run', 'dev'], { 
       cwd: 'frontend',
       shell: true,
       env: { 
@@ -116,8 +141,6 @@ async function main() {
       },
       reject: false
     });
-    
-    let frontendReady = false;
     
     frontendProcess.stdout.on('data', (data) => {
       const output = filterNpmWarnings(data.toString().trim());
@@ -133,6 +156,7 @@ async function main() {
                 trimmed.includes('Local:') || 
                 (trimmed.includes('VITE') && trimmed.includes('ready'))) && !frontendReady) {
               frontendReady = true;
+              colorLog('✅ Frontend detectado como listo, iniciando Backend...', 'green');
               setTimeout(() => {
                 startBackend();
               }, 1000);
@@ -158,15 +182,20 @@ async function main() {
       }
     }, 15000);
 
+    } catch (error) {
+      console.error('❌ ERROR: execa is not a function');
+      console.error('TypeError: execa is not a function');
+      console.error('Detalles del error:', error.message);
+      console.error('Tipo de execa:', typeof execa);
+      process.exit(1);
+    }
     
     // ===== FUNCIÓN PARA INICIAR BACKEND =====
     function startBackend() {
-      if (frontendReady) {        
-      }
-      
       colorLog('Iniciando Backend...', 'magenta');
       
-      backendProcess = execa('npm', ['run', 'dev'], { 
+      try {
+        backendProcess = execa('npm', ['run', 'dev'], { 
         cwd: 'backend',
         shell: true,
         env: { 
@@ -197,6 +226,11 @@ async function main() {
           colorLog(`[${timestamp}] [Backend] ${output}`, 'red');
         }
       });     
+      
+      } catch (error) {
+        console.error('❌ ERROR iniciando backend con execa:', error.message);
+        process.exit(1);
+      }
     }
     
     // Abrir navegador

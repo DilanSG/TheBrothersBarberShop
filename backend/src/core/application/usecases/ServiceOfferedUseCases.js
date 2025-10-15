@@ -1,6 +1,4 @@
-import { Service, Barber } from '../../domain/entities/index.js';
-import { AppError } from '../../../barrel.js';
-import { logger } from '../../../shared/utils/logger.js';
+import { Service, Barber, AppError, logger } from '../../../barrel.js';
 
 class ServiceOfferedUseCases {
   static async getAllServices(filters = {}) {

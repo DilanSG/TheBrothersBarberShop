@@ -11,10 +11,10 @@ import {
   Database,
   Zap
 } from 'lucide-react';
-import { usePaymentMethodsNew } from '../shared/contexts/PaymentMethodsNewContext';
-import { useAuth } from '../shared/contexts/AuthContext';
-import GradientText from '../shared/components/ui/GradientText';
-import GradientButton from '../shared/components/ui/GradientButton';
+import { usePaymentMethodsNew } from '@contexts/PaymentMethodsNewContext';
+import { useAuth } from '@contexts/AuthContext';
+import GradientText from '@components/ui/GradientText';
+import GradientButton from '@components/ui/GradientButton';
 import { toast } from 'react-toastify';
 
 const PaymentMethodsAdmin = () => {

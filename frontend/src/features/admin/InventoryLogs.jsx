@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../shared/contexts/AuthContext';
-import { useNotification } from '../../shared/contexts/NotificationContext';
-import { inventoryService } from '../../shared/services/api';
-import { PageContainer } from '../../shared/components/layout/PageContainer';
+import { useAuth } from '@contexts/AuthContext';
+import { useNotification } from '@contexts/NotificationContext';
+import { inventoryService } from '@services/api';
+import { PageContainer } from '@components/layout/PageContainer';
 
 const InventoryLogs = () => {
   const { user } = useAuth();

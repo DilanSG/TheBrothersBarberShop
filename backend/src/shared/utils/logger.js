@@ -1,6 +1,23 @@
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
-import { config } from '../config/index.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Obtener __dirname en ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Configuración de logging (no depende de config para evitar dependencia circular)
+const loggingConfig = {
+  level: process.env.LOG_LEVEL || 'info',
+  dirname: process.env.LOG_DIR || path.join(__dirname, '../../../logs'),
+  maxFiles: process.env.LOG_MAX_FILES || '30d',
+  maxSize: process.env.LOG_MAX_SIZE || '20m',
+};
+
+const appConfig = {
+  nodeEnv: process.env.NODE_ENV || 'development'
+};
 
 // Niveles de log personalizados
 const levels = {
@@ -80,10 +97,10 @@ const createTransports = () => {
   // Transport para todos los logs
   transports.push(
     new DailyRotateFile({
-      filename: `${config.logging.dirname}/%DATE%-combined.log`,
+      filename: `${loggingConfig.dirname}/%DATE%-combined.log`,
       datePattern: 'YYYY-MM-DD',
-      maxFiles: config.logging.maxFiles,
-      maxSize: config.logging.maxSize,
+      maxFiles: loggingConfig.maxFiles,
+      maxSize: loggingConfig.maxSize,
       format: formats.file
     })
   );
@@ -91,11 +108,11 @@ const createTransports = () => {
   // Transport específico para errores
   transports.push(
     new DailyRotateFile({
-      filename: `${config.logging.dirname}/%DATE%-error.log`,
+      filename: `${loggingConfig.dirname}/%DATE%-error.log`,
       datePattern: 'YYYY-MM-DD',
       level: 'error',
-      maxFiles: config.logging.maxFiles,
-      maxSize: config.logging.maxSize,
+      maxFiles: loggingConfig.maxFiles,
+      maxSize: loggingConfig.maxSize,
       format: formats.file
     })
   );
@@ -103,17 +120,17 @@ const createTransports = () => {
   // Transport específico para logs HTTP
   transports.push(
     new DailyRotateFile({
-      filename: `${config.logging.dirname}/%DATE%-http.log`,
+      filename: `${loggingConfig.dirname}/%DATE%-http.log`,
       datePattern: 'YYYY-MM-DD',
       level: 'http',
-      maxFiles: config.logging.maxFiles,
-      maxSize: config.logging.maxSize,
+      maxFiles: loggingConfig.maxFiles,
+      maxSize: loggingConfig.maxSize,
       format: formats.http
     })
   );
 
   // En desarrollo, añadir transport de consola
-  if (config.app.nodeEnv === 'development') {
+  if (appConfig.nodeEnv === 'development') {
     transports.push(
       new winston.transports.Console({
         level: 'debug',
@@ -135,27 +152,27 @@ const createTransports = () => {
 
 // Crear el logger
 const logger = winston.createLogger({
-  level: config.logging.level,
+  level: loggingConfig.level,
   levels,
   defaultMeta: { 
     service: 'the-brothers-barbershop-api',
-    environment: config.app.nodeEnv
+    environment: appConfig.nodeEnv
   },
   transports: createTransports(),
   // Manejo de excepciones y rechazos no capturados
   exceptionHandlers: [
     new DailyRotateFile({
-      filename: `${config.logging.dirname}/%DATE%-exceptions.log`,
+      filename: `${loggingConfig.dirname}/%DATE%-exceptions.log`,
       datePattern: 'YYYY-MM-DD',
-      maxFiles: config.logging.maxFiles,
+      maxFiles: loggingConfig.maxFiles,
       format: formats.file
     })
   ],
   rejectionHandlers: [
     new DailyRotateFile({
-      filename: `${config.logging.dirname}/%DATE%-rejections.log`,
+      filename: `${loggingConfig.dirname}/%DATE%-rejections.log`,
       datePattern: 'YYYY-MM-DD',
-      maxFiles: config.logging.maxFiles,
+      maxFiles: loggingConfig.maxFiles,
       format: formats.file
     })
   ],

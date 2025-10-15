@@ -1,6 +1,7 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import multer from 'multer';
+import { logger } from '../utils/logger.js';
 
 // Configurar Cloudinary
 export { cloudinary };
@@ -45,7 +46,7 @@ export const deleteImage = async (publicId) => {
     const result = await cloudinary.uploader.destroy(publicId);
     return result;
   } catch (error) {
-    console.error('Error eliminando imagen de Cloudinary:', error);
+    logger.error('Error eliminando imagen de Cloudinary:', error);
     throw error;
   }
 };
@@ -58,7 +59,7 @@ export const uploadImageToCloudinary = async (filePath, folder = 'the_brothers_b
     });
     return result;
   } catch (error) {
-    console.error('Error subiendo imagen a Cloudinary:', error);
+    logger.error('Error subiendo imagen a Cloudinary:', error);
     throw error;
   }
 };

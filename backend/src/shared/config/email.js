@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { logger } from '../utils/logger.js';
 
 // Crear transporter para enviar emails
 const createTransporter = () => {
@@ -94,10 +95,10 @@ export const sendEmail = async (to, templateName, templateData) => {
     };
 
     const result = await transporter.sendMail(mailOptions);
-    // console.log(`✅ Email enviado a: ${to}`);
+    logger.info(`✅ Email enviado a: ${to}`);
     return result;
   } catch (error) {
-    console.error('❌ Error enviando email:', error);
+    logger.error('❌ Error enviando email:', error);
     throw error;
   }
 };

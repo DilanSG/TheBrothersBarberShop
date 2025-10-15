@@ -4,9 +4,7 @@
  */
 
 import IAppointmentRepository from '../../../core/domain/repositories/IAppointmentRepository.js';
-import Appointment from '../../../core/domain/entities/Appointment.js';
-import { logger } from '../../../shared/utils/logger.js';
-import { AppError } from '../../../shared/utils/errors.js';
+import { Appointment, logger, AppError } from '../../../barrel.js';
 
 class AppointmentRepositoryImpl extends IAppointmentRepository {
   /**

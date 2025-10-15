@@ -1,9 +1,7 @@
 ﻿
 import { body, param, query, validationResult } from 'express-validator';
 import mongoose from 'mongoose';
-import { AppError } from '../../shared/utils/errors.js';
-import Barber from '../../core/domain/entities/Barber.js';
-import Service from '../../core/domain/entities/Service.js';
+import { AppError, Barber, Service } from '../../barrel.js';
 import { SALE_TYPES, getValidSaleTypes, VALIDATION_MESSAGES } from '../../shared/constants/salesConstants.js';
 
 /**
@@ -649,8 +647,13 @@ export const validateSale = [
   body('type')
     .notEmpty()
     .withMessage('El tipo de venta es requerido')
-    .isIn(getValidSaleTypes())
-    .withMessage(VALIDATION_MESSAGES.SALE_TYPE_INVALID),
+    .custom((value) => {
+      const validTypes = getValidSaleTypes();
+      if (!validTypes.includes(value)) {
+        throw new Error(VALIDATION_MESSAGES.SALE_TYPE_INVALID);
+      }
+      return true;
+    }),
   body('quantity')
     .isInt({ min: 1 })
     .withMessage('La cantidad debe ser un número entero mayor a 0'),

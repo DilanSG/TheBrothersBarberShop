@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '../shared/contexts/AuthContext';
+import { useAuth } from '@contexts/AuthContext';
 import BarberProfileEdit from '../features/barbers/BarberProfileEdit';
 import UserProfileEdit from './UserProfileEdit';
 

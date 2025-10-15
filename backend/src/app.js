@@ -20,9 +20,11 @@ import { setupSwagger } from './shared/config/swagger.js';
 
 // Utilidades y middleware
 import { logger } from './shared/utils/logger.js';
+import { initSentry, sentryRequestHandler, sentryErrorHandler } from './shared/utils/sentry.js';
 import { morganMiddleware } from './presentation/middleware/morgan.js';
 import { errorHandler } from './presentation/middleware/errorHandler.js';
 import { notFound } from './presentation/middleware/notFound.js';
+import { globalLimiter } from './presentation/middleware/rateLimiting.js';
 
 // Rutas
 import routes from './presentation/routes/index.js';
@@ -32,10 +34,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Validar variables de entorno
-validateEnv();
+try {
+  validateEnv();
+} catch (error) {
+  logger.error('❌ ERROR AL VALIDAR VARIABLES DE ENTORNO:', { error: error.message });
+  process.exit(1);
+}
 
 // Inicializar Express
 const app = express();
+
+// 🐛 Inicializar Sentry (error tracking en Render)
+initSentry(app);
+
+// 🐛 Sentry request handler (DEBE ir antes de todas las rutas)
+app.use(sentryRequestHandler());
 
 // Configuración de seguridad
 app.use(helmet({
@@ -48,7 +61,18 @@ app.use(helmet({
     }
   },
   crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  // 🔒 HSTS - Forzar HTTPS en producción (1 año)
+  strictTransportSecurity: {
+    maxAge: 31536000, // 1 año en segundos
+    includeSubDomains: true,
+    preload: true
+  },
+  // Headers adicionales de seguridad
+  referrerPolicy: { policy: 'no-referrer' },
+  xssFilter: true,
+  noSniff: true,
+  frameguard: { action: 'deny' }
 }));
 
 // Configuración de CORS
@@ -57,15 +81,8 @@ app.use(cors(corsOptions));
 // Compresión de respuestas
 app.use(compression());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: config.rateLimit.windowMs,
-  max: config.rateLimit.max,
-  message: config.rateLimit.message,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use('/api', limiter);
+// Rate limiting global (safety net)
+app.use(globalLimiter);
 
 // Logging
 app.use(morganMiddleware);
@@ -130,21 +147,26 @@ app.get('/health', (req, res) => {
 // Manejo de rutas no encontradas
 app.use(notFound);
 
+// 🐛 Sentry error handler (DEBE ir DESPUÉS de rutas, ANTES de error handler)
+app.use(sentryErrorHandler());
+
 // Manejo de errores
 app.use(errorHandler);
 
 // Manejo de errores no capturados
 process.on('unhandledRejection', (err) => {
-  console.error('UNHANDLED REJECTION! ');
-  console.error('Error:', err);
-  console.error('Stack:', err.stack);
+  logger.error('UNHANDLED REJECTION!', { 
+    error: err.message, 
+    stack: err.stack 
+  });
   process.exit(1);
 });
 
 process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT EXCEPTION! ');
-  console.error('Error:', err);
-  console.error('Stack:', err.stack);
+  logger.error('UNCAUGHT EXCEPTION!', { 
+    error: err.message, 
+    stack: err.stack 
+  });
   process.exit(1);
 });
 

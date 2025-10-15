@@ -1,7 +1,7 @@
 import ExpenseService from '../../core/application/services/ExpenseService.js';
 import { validationResult } from 'express-validator';
 import { asyncHandler } from '../middleware/index.js';
-import { AppError } from '../../shared/utils/errors.js';
+import { AppError } from '../../barrel.js';
 
 /**
  * Controlador para manejo de gastos, delegando la lógica a ExpenseService.

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageContainer } from '../shared/components/layout/PageContainer';
-import { useAuth } from '../shared/contexts/AuthContext';
+import { PageContainer } from '@components/layout/PageContainer';
+import { useAuth } from '@contexts/AuthContext';
 import { appointmentService } from '../services/api';
 import { toast } from 'react-toastify';
 

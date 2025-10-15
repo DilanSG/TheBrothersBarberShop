@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../../core/domain/entities/User.js';
+import { logger } from '../../shared/utils/logger.js';
 
 // Middleware principal de autenticación
 export const protect = async (req, res, next) => {
@@ -35,7 +36,7 @@ export const protect = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    console.error('Error en autenticación:', error.message);
+    logger.error('Error en autenticación:', error.message);
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({
         success: false,
@@ -109,7 +110,7 @@ export const sameUserOrAdmin = async (req, res, next) => {
       message: 'Acceso denegado. Solo puedes acceder a tu propia información.'
     });
   } catch (error) {
-    console.error('Error en middleware sameUserOrAdmin:', error);
+    logger.error('Error en middleware sameUserOrAdmin:', error);
     return res.status(500).json({
       success: false,
       message: 'Error al verificar permisos'

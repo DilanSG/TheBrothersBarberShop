@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { authService } from '../../shared/services/authService';
-import { useNotification } from '../../shared/contexts/NotificationContext';
-import { PageContainer } from '../../shared/components/layout/PageContainer';
-import GradientButton from '../../shared/components/ui/GradientButton';
-import GradientText from '../../shared/components/ui/GradientText';
+import { authService } from '@services/authService';
+import { useNotification } from '@contexts/NotificationContext';
+import { PageContainer } from '@components/layout/PageContainer';
+import GradientButton from '@components/ui/GradientButton';
+import GradientText from '@components/ui/GradientText';
 import { User, Mail, Lock, AlertTriangle, UserPlus } from 'lucide-react';
-import { LOGOS } from '../../shared/utils/assets';
+import { LOGOS } from '@utils/assets';
 
 function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '' });

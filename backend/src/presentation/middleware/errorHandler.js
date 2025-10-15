@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
-import { AppError, CommonErrors } from '../../shared/utils/errors.js';
-import { logger } from '../../shared/utils/logger.js';
+import { AppError, CommonErrors, logger } from '../../barrel.js';
 
 const handleCastErrorDB = err => {
   const message = `Valor inválido ${err.value} para el campo ${err.path}`;

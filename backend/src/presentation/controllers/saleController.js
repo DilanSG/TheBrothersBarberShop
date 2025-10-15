@@ -1,16 +1,19 @@
-import SaleService from '../../core/application/usecases/saleService.js';
+import SaleUseCases from '../../core/application/usecases/SaleUseCases.js';
 import { asyncHandler } from '../middleware/index.js';
-import { AppError } from '../../shared/utils/errors.js';
+import { AppError, logger } from '../../barrel.js';
 import DataNormalizationService from '../../shared/utils/dataNormalization.js';
 
 // @desc    Crear nueva venta
 // @route   POST /api/v1/sales
 // @access  Privado/Barbero+
 export const createSale = asyncHandler(async (req, res) => {
-  console.log('🛒 Datos recibidos para venta:', req.body);
-  console.log('👤 Usuario autenticado:', req.user);
+  logger.info('Creando nueva venta', { 
+    userId: req.user.id, 
+    role: req.user.role,
+    hasItems: !!req.body.items
+  });
   
-  const sale = await SaleService.createSale(req.body);
+  const sale = await SaleUseCases.createSale(req.body);
   
   // Normalizar datos de respuesta
   const normalizedSale = await DataNormalizationService.normalizeSaleData(sale);
@@ -26,7 +29,7 @@ export const createSale = asyncHandler(async (req, res) => {
 // @route   POST /api/v1/sales/walk-in
 // @access  Privado/Barbero+
 export const createWalkInSale = asyncHandler(async (req, res) => {
-  const sale = await SaleService.createWalkInSale(req.body);
+  const sale = await SaleUseCases.createWalkInSale(req.body);
   
   // Normalizar datos de respuesta
   const normalizedSale = await DataNormalizationService.normalizeSaleData(sale);
@@ -42,10 +45,13 @@ export const createWalkInSale = asyncHandler(async (req, res) => {
 // @route   POST /api/v1/sales/cart
 // @access  Privado/Barbero+
 export const createCartSale = asyncHandler(async (req, res) => {
-  console.log('🛒 Datos recibidos para venta desde carrito:', req.body);
-  console.log('👤 Usuario autenticado:', req.user);
+  logger.info('Creando venta desde carrito', { 
+    userId: req.user.id, 
+    role: req.user.role,
+    itemsCount: req.body.items?.length || 0
+  });
   
-  const result = await SaleService.createCartSale(req.body);
+  const result = await SaleUseCases.createCartSale(req.body);
   
   // Extraer las ventas del resultado
   const sales = result.sales;
@@ -78,7 +84,7 @@ export const getReports = asyncHandler(async (req, res) => {
     throw new AppError('Tipo de reporte no válido. Use: daily, weekly, monthly', 400);
   }
 
-  const report = await SaleService.getReportByPeriod(type, new Date(date));
+  const report = await SaleUseCases.getReportByPeriod(type, new Date(date));
 
   // Si se pasa barberId, filtrar solo ese barbero
   if (barberId) {
@@ -108,7 +114,7 @@ export const getDailyReport = asyncHandler(async (req, res) => {
     throw new AppError('La fecha es requerida', 400);
   }
   
-  const report = await SaleService.getDailyReport(new Date(date));
+  const report = await SaleUseCases.getDailyReport(new Date(date));
   
   res.json({
     success: true,
@@ -121,7 +127,7 @@ export const getDailyReport = asyncHandler(async (req, res) => {
 // @route   GET /api/v1/sales
 // @access  Privado/Admin
 export const getAllSales = asyncHandler(async (req, res) => {
-  const sales = await SaleService.getAllSales(req.query);
+  const sales = await SaleUseCases.getAllSales(req.query);
   
   res.json({
     success: true,
@@ -134,7 +140,7 @@ export const getAllSales = asyncHandler(async (req, res) => {
 // @route   GET /api/v1/sales/:id
 // @access  Privado/Admin
 export const getSale = asyncHandler(async (req, res) => {
-  const sale = await SaleService.getSaleById(req.params.id);
+  const sale = await SaleUseCases.getSaleById(req.params.id);
   
   res.json({
     success: true,
@@ -146,7 +152,7 @@ export const getSale = asyncHandler(async (req, res) => {
 // @route   PUT /api/v1/sales/:id/cancel
 // @access  Privado/Admin
 export const cancelSale = asyncHandler(async (req, res) => {
-  const sale = await SaleService.cancelSale(req.params.id);
+  const sale = await SaleUseCases.cancelSale(req.params.id);
   
   res.json({
     success: true,
@@ -162,7 +168,7 @@ export const getBarberSalesStats = asyncHandler(async (req, res) => {
   const { barberId } = req.params;
   const { date, startDate, endDate } = req.query;
   
-  const stats = await SaleService.getBarberSalesStats(barberId, {
+  const stats = await SaleUseCases.getBarberSalesStats(barberId, {
     date,
     startDate,
     endDate
@@ -179,7 +185,7 @@ export const getBarberSalesStats = asyncHandler(async (req, res) => {
 // @access  Privado/Admin
 export const getDailySalesReport = asyncHandler(async (req, res) => {
   const { date } = req.query;
-  const report = await SaleService.getDailyReport(date);
+  const report = await SaleUseCases.getDailyReport(date);
   
   res.json({
     success: true,
@@ -195,9 +201,9 @@ export const getAvailableDates = asyncHandler(async (req, res) => {
   
   let dates = [];
   if (barberId) {
-    dates = await SaleService.getAvailableDates(barberId);
+    dates = await SaleUseCases.getAvailableDates(barberId);
   } else {
-    dates = await SaleService.getAvailableDates();
+    dates = await SaleUseCases.getAvailableDates();
   }
   
   res.status(200).json({
@@ -217,7 +223,7 @@ export const getDetailedSalesReport = asyncHandler(async (req, res) => {
     throw new AppError('barberId es requerido', 400);
   }
 
-  const detailedReport = await SaleService.getDetailedSalesReport(barberId, startDate, endDate);
+  const detailedReport = await SaleUseCases.getDetailedSalesReport(barberId, startDate, endDate);
   
   res.status(200).json({
     success: true,
@@ -236,7 +242,7 @@ export const getWalkInDetails = asyncHandler(async (req, res) => {
     throw new AppError('barberId es requerido', 400);
   }
 
-  const walkInDetails = await SaleService.getWalkInDetails(barberId, startDate, endDate);
+  const walkInDetails = await SaleUseCases.getWalkInDetails(barberId, startDate, endDate);
   
   res.status(200).json({
     success: true,
@@ -255,7 +261,7 @@ export const getDetailedCutsReport = asyncHandler(async (req, res) => {
     throw new AppError('barberId es requerido', 400);
   }
 
-  const detailedReport = await SaleService.getDetailedCutsReport(barberId, startDate, endDate);
+  const detailedReport = await SaleUseCases.getDetailedCutsReport(barberId, startDate, endDate);
   
   res.status(200).json({
     success: true,
@@ -274,7 +280,7 @@ export const getFinancialSummary = asyncHandler(async (req, res) => {
     throw new AppError('startDate y endDate son requeridos', 400);
   }
 
-  const financialSummary = await SaleService.getFinancialSummary(startDate, endDate);
+  const financialSummary = await SaleUseCases.getFinancialSummary(startDate, endDate);
   
   res.status(200).json({
     success: true,

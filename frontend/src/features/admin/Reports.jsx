@@ -13,30 +13,30 @@ import {
   Repeat,
   X
 } from 'lucide-react';
-import { PageContainer } from '../../shared/components/layout/PageContainer';
-import GradientText from '../../shared/components/ui/GradientText';
-import GradientButton from '../../shared/components/ui/GradientButton';
-import { FinancialDashboard } from '../../shared/components/financial/FinancialDashboard';
-import CashBreakdownModal from '../../shared/components/modals/CashBreakdownModal';
-import DigitalPaymentsBreakdownModal from '../../shared/components/modals/DigitalPaymentsBreakdownModal';
-import ServicesBreakdownModal from '../../shared/components/modals/ServicesBreakdownModal';
-import { SimpleDateFilter } from '../../shared/components/common/SimpleDateFilter';
-import { ExpenseModal } from '../../shared/components/financial/ExpenseManagement';
-import ExpenseTypeSelector from '../../shared/components/financial/ExpenseTypeSelector';
-import OneTimeExpenseModal from '../../shared/components/financial/OneTimeExpenseModal';
-import RecurringExpenseModal from '../../shared/components/financial/RecurringExpenseModal';
-import OneTimeExpensesListModal from '../../shared/components/modals/OneTimeExpensesListModal';
-import RecurringExpensesListModal from '../../shared/components/modals/RecurringExpensesListModal';
-import DeleteExpenseModal from '../../shared/components/modals/DeleteExpenseModal';
-import { PaymentMethodsModal } from '../../shared/components/modals/PaymentMethodsModal';
-import { ExpensesBreakdownModal } from '../../shared/components/modals/ExpensesBreakdownModal';
-import RevenueBreakdownModal from '../../shared/components/modals/RevenueBreakdownModal';
-import RevenueTypesModal from '../../shared/components/modals/RevenueTypesModal';
-import ProductsSoldModal from '../../shared/components/modals/ProductsSoldModal';
-import AppointmentsBreakdownModal from '../../shared/components/modals/AppointmentsBreakdownModal';
-import useFinancialReports from '../../shared/hooks/useFinancialReports';
+import { PageContainer } from '@components/layout/PageContainer';
+import GradientText from '@components/ui/GradientText';
+import GradientButton from '@components/ui/GradientButton';
+import { FinancialDashboard } from '@components/financial/FinancialDashboard';
+import CashBreakdownModal from '@components/modals/CashBreakdownModal';
+import DigitalPaymentsBreakdownModal from '@components/modals/DigitalPaymentsBreakdownModal';
+import ServicesBreakdownModal from '@components/modals/ServicesBreakdownModal';
+import { SimpleDateFilter } from '@components/common/SimpleDateFilter';
+import { ExpenseModal } from '@components/financial/ExpenseManagement';
+import ExpenseTypeSelector from '@components/financial/ExpenseTypeSelector';
+import OneTimeExpenseModal from '@components/financial/OneTimeExpenseModal';
+import RecurringExpenseModal from '@components/financial/RecurringExpenseModal';
+import OneTimeExpensesListModal from '@components/modals/OneTimeExpensesListModal';
+import RecurringExpensesListModal from '@components/modals/RecurringExpensesListModal';
+import DeleteExpenseModal from '@components/modals/DeleteExpenseModal';
+import { PaymentMethodsModal } from '@components/modals/PaymentMethodsModal';
+import { ExpensesBreakdownModal } from '@components/modals/ExpensesBreakdownModal';
+import RevenueBreakdownModal from '@components/modals/RevenueBreakdownModal';
+import RevenueTypesModal from '@components/modals/RevenueTypesModal';
+import ProductsSoldModal from '@components/modals/ProductsSoldModal';
+import AppointmentsBreakdownModal from '@components/modals/AppointmentsBreakdownModal';
+import useFinancialReports from '@hooks/useFinancialReports';
 import { useRecurringExpenses } from '../../features/expenses/hooks/useRecurringExpenses';
-import { calculator as RecurringExpenseCalculator } from '../../shared/recurring-expenses';
+import { calculator as RecurringExpenseCalculator } from '@shared/recurring-expenses';
 import { format, differenceInCalendarMonths } from 'date-fns'
 
 const frequencies = [

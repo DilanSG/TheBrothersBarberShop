@@ -5,19 +5,19 @@ import {
   ShoppingCart, Minus, ChevronDown, ChevronUp, User, Users, 
   DollarSign, Activity, Eye, Calendar, Clock, Download, Camera, FileText, XCircle
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
-import { inventoryService } from '../../shared/services/api';
-import { useInventoryRefresh } from '../../shared/contexts/InventoryContext';
-import { useAuth } from '../../shared/contexts/AuthContext';
-import { usePaymentMethods } from '../../shared/config/paymentMethods';
-import { PageContainer } from '../../shared/components/layout/PageContainer';
-import GradientButton from '../../shared/components/ui/GradientButton';
-import GradientText from '../../shared/components/ui/GradientText';
-import InventorySnapshot from '../../shared/components/inventory/InventorySnapshot';
-import SavedInventoriesModal from '../../shared/components/modals/SavedInventoriesModal';
-import InventoryLogsModal from '../../shared/components/modals/InventoryLogsModal';
+import ExcelJS from 'exceljs';
+import { inventoryService } from '@services/api';
+import { useInventoryRefresh } from '@contexts/InventoryContext';
+import { useAuth } from '@contexts/AuthContext';
+import { usePaymentMethods } from '@shared/config/paymentMethods';
+import { PageContainer } from '@components/layout/PageContainer';
+import GradientButton from '@components/ui/GradientButton';
+import GradientText from '@components/ui/GradientText';
+import InventorySnapshot from '@components/inventory/InventorySnapshot';
+import SavedInventoriesModal from '@components/modals/SavedInventoriesModal';
+import InventoryLogsModal from '@components/modals/InventoryLogsModal';
 
-import logger from '../../shared/utils/logger';
+import logger from '@utils/logger';
 /**
  * Componente moderno de gestión de inventario para The Brothers Barber Shop
  * Diseño moderno con fondo de puntos, gradient text y diseño tipo lista lateral
@@ -435,18 +435,18 @@ const Inventory = () => {
   };
 
   // Función para exportar inventario a Excel
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     try {
-      // Preparar datos para Excel con la misma estructura del modal InventorySnapshot
+      // Preparar datos para Excel
       const excelData = filteredInventory.map(item => {
         const initialStock = item.initialStock || 0;
         const entries = item.entries || 0;
         const exits = item.exits || 0;
         const sales = item.sales || 0;
         const currentStock = item.stock || item.currentStock || item.quantity || 0;
-        const realStock = item.realStock || currentStock;
-        const expectedStock = initialStock + entries - exits - sales; // Stock esperado según sistema
-        const difference = realStock - expectedStock; // Diferencia entre real y esperado
+        const realStock = item.realStock !== undefined ? item.realStock : currentStock;
+        const expectedStock = initialStock + entries - exits - sales;
+        const difference = realStock - expectedStock;
 
         return {
           'Producto': item.name || '',
@@ -458,7 +458,7 @@ const Inventory = () => {
           'Ventas': sales,
           'Stock Sistema': expectedStock,
           'Stock Real': realStock,
-          'Diferencia': difference > 0 ? `+${difference}` : difference.toString(),
+          'Diferencia': difference,
           'Stock Mínimo': item.minStock || 0,
           'Estado': realStock <= 0 ? 'Sin Stock' : realStock <= (item.minStock || 0) ? 'Stock Bajo' : 'Normal',
           'Precio': item.price ? `$${item.price.toLocaleString('es-CO')}` : '$0',
@@ -466,27 +466,72 @@ const Inventory = () => {
         };
       });
 
-      // Crear hoja de trabajo
-      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      // Crear workbook
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Inventario');
+
+      // Definir columnas con anchos calculados
+      const headers = Object.keys(excelData[0] || {});
+      worksheet.columns = headers.map(header => {
+        const maxWidth = Math.max(
+          header.length,
+          ...excelData.map(row => (row[header] || '').toString().length)
+        );
+        return {
+          header: header,
+          key: header,
+          width: Math.min(Math.max(maxWidth + 2, 10), 50)
+        };
+      });
+
+      // Agregar datos
+      excelData.forEach(row => {
+        const addedRow = worksheet.addRow(row);
+        
+        // Colorear diferencias negativas en rojo
+        const diffCell = addedRow.getCell('Diferencia');
+        if (row['Diferencia'] < 0) {
+          diffCell.font = { color: { argb: 'FFFF0000' }, bold: true };
+        } else if (row['Diferencia'] > 0) {
+          diffCell.font = { color: { argb: 'FF008000' } };
+        }
+
+        // Colorear estado
+        const statusCell = addedRow.getCell('Estado');
+        if (row['Estado'] === 'Sin Stock') {
+          statusCell.font = { color: { argb: 'FFFF0000' }, bold: true };
+        } else if (row['Estado'] === 'Stock Bajo') {
+          statusCell.font = { color: { argb: 'FFFF8800' } };
+        }
+      });
+
+      // Estilo para header
+      worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4472C4' }
+      };
+      worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+      // Generar y descargar
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
       
-      // Ajustar ancho de columnas
-      const maxWidth = (arr) => Math.max(...arr.map(str => (str || '').toString().length));
-      const colWidths = Object.keys(excelData[0] || {}).map(key => ({
-        wch: Math.min(Math.max(maxWidth(excelData.map(row => row[key])), key.length), 50)
-      }));
-      worksheet['!cols'] = colWidths;
-
-      // Crear libro de trabajo
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Inventario');
-
-      // Generar nombre de archivo con fecha
       const now = new Date();
       const fileName = `inventario_${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}.xlsx`;
-
-      // Descargar archivo
-      XLSX.writeFile(workbook, fileName);
       
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
       setSuccess(`Inventario exportado exitosamente: ${fileName}`);
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {

@@ -1,10 +1,6 @@
-import Sale from '../core/domain/entities/Sale.js';
-import Inventory from '../core/domain/entities/Inventory.js';
-import InventoryLogService from '../core/application/usecases/inventoryLogService.js';
-import { AppError } from '../shared/utils/errors.js';
-import { logger } from '../shared/utils/logger.js';
-import { refundVerificationService } from './refundVerificationService.js';
-import { SALE_TYPES } from '../shared/constants/salesConstants.js';
+import { Sale, Inventory, AppError, logger, SALE_TYPES } from '../barrel.js';
+import InventoryLogService from '../core/application/usecases/InventoryLogUseCases.js';
+import { refundVerificationService } from '../core/application/usecases/RefundVerificationUseCases.js';
 
 /**
  * Servicio para manejar reembolsos de ventas

@@ -1,5 +1,4 @@
-import InventoryLog from '../../domain/entities/InventoryLog.js';
-import { logger } from '../../../shared/utils/logger.js';
+import { InventoryLog, logger } from '../../../barrel.js';
 
 class InventoryLogUseCases {
   // Crear un log de acción en inventario

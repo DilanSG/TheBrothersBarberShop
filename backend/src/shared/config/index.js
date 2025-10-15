@@ -1,33 +1,35 @@
 // Archivo principal de configuración que exporta todas las configuraciones
-import dotenv from 'dotenv';
+// NOTA: dotenv se carga en index.js ANTES de importar cualquier módulo
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Cargar variables de entorno
+// Obtener __dirname en ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, '../../.env') });
+
+// Importar logger
+import { logger } from '../utils/logger.js';
 
 // Validar variables de entorno requeridas
 export const validateEnv = () => {
-  console.log('=== DEBUGGING VARIABLES DE ENTORNO ===');
-  console.log('NODE_ENV:', process.env.NODE_ENV);
-  console.log('PORT:', process.env.PORT);
-  console.log('JWT_SECRET presente:', !!process.env.JWT_SECRET);
-  console.log('MONGODB_URI presente:', !!process.env.MONGODB_URI);
-  console.log('EMAIL_USER presente:', !!process.env.EMAIL_USER);
-  console.log('EMAIL_PASSWORD presente:', !!process.env.EMAIL_PASSWORD);
-  console.log('EMAIL_SERVICE presente:', !!process.env.EMAIL_SERVICE);
-  console.log('EMAIL_HOST presente:', !!process.env.EMAIL_HOST);
-  console.log('EMAIL_PORT presente:', !!process.env.EMAIL_PORT);
-  console.log('EMAIL_FROM_NAME presente:', !!process.env.EMAIL_FROM_NAME);
-  console.log('EMAIL_FROM_ADDRESS presente:', !!process.env.EMAIL_FROM_ADDRESS);
-  console.log('CLOUDINARY_CLOUD_NAME presente:', !!process.env.CLOUDINARY_CLOUD_NAME);
-  console.log('CLOUDINARY_API_KEY presente:', !!process.env.CLOUDINARY_API_KEY);
-  console.log('CLOUDINARY_API_SECRET presente:', !!process.env.CLOUDINARY_API_SECRET);
-  console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
-  console.log('ALLOWED_ORIGINS:', process.env.ALLOWED_ORIGINS);
-  console.log('=== FIN DEBUGGING VARIABLES ===');
+  logger.debug('=== DEBUGGING VARIABLES DE ENTORNO ===');
+  logger.debug('NODE_ENV:', process.env.NODE_ENV);
+  logger.debug('PORT:', process.env.PORT);
+  logger.debug('JWT_SECRET presente:', !!process.env.JWT_SECRET);
+  logger.debug('MONGODB_URI presente:', !!process.env.MONGODB_URI);
+  logger.debug('EMAIL_USER presente:', !!process.env.EMAIL_USER);
+  logger.debug('EMAIL_PASSWORD presente:', !!process.env.EMAIL_PASSWORD);
+  logger.debug('EMAIL_SERVICE presente:', !!process.env.EMAIL_SERVICE);
+  logger.debug('EMAIL_HOST presente:', !!process.env.EMAIL_HOST);
+  logger.debug('EMAIL_PORT presente:', !!process.env.EMAIL_PORT);
+  logger.debug('EMAIL_FROM_NAME presente:', !!process.env.EMAIL_FROM_NAME);
+  logger.debug('EMAIL_FROM_ADDRESS presente:', !!process.env.EMAIL_FROM_ADDRESS);
+  logger.debug('CLOUDINARY_CLOUD_NAME presente:', !!process.env.CLOUDINARY_CLOUD_NAME);
+  logger.debug('CLOUDINARY_API_KEY presente:', !!process.env.CLOUDINARY_API_KEY);
+  logger.debug('CLOUDINARY_API_SECRET presente:', !!process.env.CLOUDINARY_API_SECRET);
+  logger.debug('FRONTEND_URL:', process.env.FRONTEND_URL);
+  logger.debug('ALLOWED_ORIGINS:', process.env.ALLOWED_ORIGINS);
+  logger.debug('=== FIN DEBUGGING VARIABLES ===');
 
   const requiredEnvVars = [
     'JWT_SECRET',
@@ -41,15 +43,15 @@ export const validateEnv = () => {
   const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
   if (missingVars.length > 0) {
-    console.error('Variables de entorno faltantes:', missingVars.join(', '));
+    logger.error('Variables de entorno faltantes:', missingVars.join(', '));
     throw new Error('Configuración incompleta. Por favor configura todas las variables de entorno requeridas.');
   }
   
   // Solo advertir sobre email si no está configurado
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-    console.warn('Variables de email no configuradas. Sistema funcionará sin capacidades de email.');
+    logger.warn('Variables de email no configuradas. Sistema funcionará sin capacidades de email.');
   } else {
-    console.log('Sistema de email configurado correctamente.');
+    logger.info('Sistema de email configurado correctamente.');
   }
 };
 

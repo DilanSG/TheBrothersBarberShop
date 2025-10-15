@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from '../../shared/contexts/AuthContext';
+import { useAuth } from '@contexts/AuthContext';
 import UserAppointment from './UserAppointment';
 import BarberAppointment from './BarberAppointment';
 import AdminAppointment from './AdminAppointment';

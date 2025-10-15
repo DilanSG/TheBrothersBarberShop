@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../shared/contexts/AuthContext';
-import { useNotification } from '../../shared/contexts/NotificationContext';
-import { PageContainer } from '../../shared/components/layout/PageContainer';
-import GradientButton from '../../shared/components/ui/GradientButton';
-import GradientText from '../../shared/components/ui/GradientText';
+import { useAuth } from '@contexts/AuthContext';
+import { useNotification } from '@contexts/NotificationContext';
+import { PageContainer } from '@components/layout/PageContainer';
+import GradientButton from '@components/ui/GradientButton';
+import GradientText from '@components/ui/GradientText';
 import { Mail, Lock, AlertTriangle } from 'lucide-react';
-import { LOGOS } from '../../shared/utils/assets';
+import { LOGOS } from '@utils/assets';
 
 function Login() {
   const [email, setEmail] = useState('');

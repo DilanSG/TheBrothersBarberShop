@@ -4,9 +4,7 @@
  */
 
 import IBarberRepository from '../../../core/domain/repositories/IBarberRepository.js';
-import Barber from '../../../core/domain/entities/Barber.js';
-import { logger } from '../../../shared/utils/logger.js';
-import { AppError } from '../../../shared/utils/errors.js';
+import { Barber, logger, AppError } from '../../../barrel.js';
 
 class BarberRepositoryImpl extends IBarberRepository {
   /**

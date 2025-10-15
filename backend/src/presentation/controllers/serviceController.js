@@ -1,5 +1,5 @@
-import ServiceOfferedService from '../../core/application/usecases/serviceOfferedService.js';
-import { AppError } from '../../shared/utils/errors.js';
+import ServiceOfferedService from '../../core/application/usecases/ServiceOfferedUseCases.js';
+import { AppError } from '../../barrel.js';
 import { validateService } from '../middleware/validation.js';
 import { asyncHandler } from '../middleware/index.js';
 

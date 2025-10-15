@@ -4,9 +4,7 @@
  */
 
 import IInventoryRepository from '../../../core/domain/repositories/IInventoryRepository.js';
-import Inventory from '../../../core/domain/entities/Inventory.js';
-import { logger } from '../../../shared/utils/logger.js';
-import { AppError } from '../../../shared/utils/errors.js';
+import { Inventory, logger, AppError } from '../../../barrel.js';
 
 class InventoryRepositoryImpl extends IInventoryRepository {
   /**

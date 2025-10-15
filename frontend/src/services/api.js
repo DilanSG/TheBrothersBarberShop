@@ -1,5 +1,5 @@
 ﻿const API_URL = import.meta.env.VITE_API_URL;
-import logger from '../shared/utils/logger';
+import logger from '@utils/logger';
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0';
 
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));

@@ -1,6 +1,6 @@
-import monitoringService from '../../core/application/usecases/monitoringService.js';
+import monitoringService from '../../core/application/usecases/MonitoringUseCases.js';
 import { performance } from 'perf_hooks';
-import { logger } from '../../shared/utils/logger.js';
+import { logger } from '../../barrel.js';
 
 /**
  * Middleware para monitoreo de métricas de la aplicación

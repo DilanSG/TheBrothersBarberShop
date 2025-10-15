@@ -1,12 +1,12 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../shared/contexts/AuthContext';
-import { useNotification } from '../../shared/contexts/NotificationContext';
-import { PageContainer } from '../../shared/components/layout/PageContainer';
-import GradientText from '../../shared/components/ui/GradientText';
-import UserAvatar from '../../shared/components/ui/UserAvatar';
-import { api } from '../../shared/services/api';
+import { useAuth } from '@contexts/AuthContext';
+import { useNotification } from '@contexts/NotificationContext';
+import { PageContainer } from '@components/layout/PageContainer';
+import GradientText from '@components/ui/GradientText';
+import UserAvatar from '@components/ui/UserAvatar';
+import { api } from '@services/api';
 
-import logger from '../../shared/utils/logger';
+import logger from '@utils/logger';
 function UserRoleManager() {
   const { user, token } = useAuth();
   const { showSuccess, showError } = useNotification();

@@ -1,0 +1,51 @@
+# Dependabot Configuration
+# Automatiza actualizaciones de dependencias de npm
+
+version: 2
+updates:
+  # Backend Dependencies
+  - package-ecosystem: "npm"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    labels:
+      - "dependencies"
+      - "backend"
+    reviewers:
+      - "DilanSG"
+    commit-message:
+      prefix: "chore(backend)"
+      include: "scope"
+
+  # Frontend Dependencies
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    labels:
+      - "dependencies"
+      - "frontend"
+    reviewers:
+      - "DilanSG"
+    commit-message:
+      prefix: "chore(frontend)"
+      include: "scope"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(ci)"

@@ -1,30 +1,33 @@
+// Cargar variables de entorno PRIMERO antes de cualquier import
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '../.env') });
+
 import app from './app.js';
-import { config } from './shared/config/index.js';
+import config from './shared/config/index.js';
 import { connectDB } from './shared/config/database.js';
 import { logger } from './shared/utils/logger.js';
 import cronJobService from './services/cronJobService.js';
-// CORS dinámico actualizado - 2025-09-22
 import emailService from './services/emailService.js';
 import mongoose from 'mongoose';
-
-// Logs inmediatos al inicio
-console.log('=== INICIO DEL ARCHIVO INDEX.JS ===');
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('PORT:', process.env.PORT);
-console.log('=== IMPORTS COMPLETADOS ===');
+import monitoringService from './core/application/usecases/MonitoringUseCases.js';
 
 // Server starting...
 
 const startServer = async () => {
   try {
-    console.log('INICIANDO SERVIDOR...');
-    console.log('Puerto configurado:', config.app.port);
-    console.log('Entorno:', config.app.nodeEnv);
+    logger.info('INICIANDO SERVIDOR...');
+    logger.info('Puerto configurado:', config.app.port);
+    logger.info('Entorno:', config.app.nodeEnv);
     
     // Conectar a la base de datos
     await connectDB();
     logger.info('Conexión a la base de datos establecida');
-    console.log('Base de datos conectada exitosamente');
+    logger.info('Base de datos conectada exitosamente');
 
     // Verificar configuración de email (no bloquear el startup)
     emailService.verifyConnection()
@@ -37,14 +40,14 @@ const startServer = async () => {
 
     // Inicializar trabajos programados (cron jobs)
     cronJobService.initializeJobs();
-    console.log('Cron jobs inicializados');
+    logger.info('Cron jobs inicializados');
     
-    console.log('Iniciando servidor en puerto:', config.app.port);
-    console.log('Host configurado: 0.0.0.0');
+    logger.info('Iniciando servidor en puerto:', config.app.port);
+    logger.info('Host configurado: 0.0.0.0');
     
     // Iniciar el servidor
     const server = app.listen(config.app.port, '0.0.0.0', () => {
-      console.log(`
+      logger.info(`
 ==============================================
 SERVER STARTED SUCCESSFULLY
 ==============================================
@@ -63,6 +66,11 @@ API escuchando en:
 Documentación API: http://localhost:${config.app.port}/api/docs
 Sistema de notificaciones: ${process.env.EMAIL_ENABLED === 'true' ? 'Activo' : 'Deshabilitado'}
       `);
+      
+      // INICIAR MONITOREO DE RECURSOS DESPUÉS de que el servidor esté listo
+      logger.info('Iniciando monitoreo de recursos del sistema...');
+      monitoringService.startResourceMonitoring();
+      logger.info('Monitoreo de recursos activo');
     });
 
     // Manejar señales de terminación
@@ -71,6 +79,9 @@ Sistema de notificaciones: ${process.env.EMAIL_ENABLED === 'true' ? 'Activo' : '
       
       server.close(async () => {
         logger.info('Servidor HTTP cerrado');
+        
+        // Detener monitoreo de recursos
+        monitoringService.stopResourceMonitoring();
         
         // Detener trabajos programados
         cronJobService.stopAllJobs();
@@ -103,5 +114,4 @@ Sistema de notificaciones: ${process.env.EMAIL_ENABLED === 'true' ? 'Activo' : '
 };
 
 // Iniciar el servidor
-console.log('=== LLAMANDO A startServer() ===');
 startServer();

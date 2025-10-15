@@ -1,7 +1,7 @@
 import InventorySnapshot from '../../domain/entities/InventorySnapshot.js';
 import Inventory from '../../domain/entities/Inventory.js';
 import { AppError, logger } from '../../../barrel.js';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 export class InventorySnapshotService {
   
@@ -13,7 +13,7 @@ export class InventorySnapshotService {
    */
   static async createSnapshot(snapshotData, userId) {
     try {
-      logger.info('📸 Creando snapshot de inventario', { 
+      logger.info('Creando snapshot de inventario', { 
         userId,
         itemsCount: snapshotData.items?.length || 0
       });
@@ -43,7 +43,7 @@ export class InventorySnapshotService {
         );
       }
 
-      logger.info('✅ Snapshot de inventario creado exitosamente', { 
+      logger.info('Snapshot de inventario creado exitosamente', { 
         snapshotId: savedSnapshot._id,
         totalItems: savedSnapshot.totalItems,
         totalDifference: savedSnapshot.totalDifference
@@ -52,7 +52,7 @@ export class InventorySnapshotService {
       return savedSnapshot;
 
     } catch (error) {
-      logger.error('❌ Error al crear snapshot de inventario:', error);
+      logger.error('Error al crear snapshot de inventario:', error);
       if (error instanceof AppError) {
         throw error;
       }
@@ -109,7 +109,7 @@ export class InventorySnapshotService {
       };
 
     } catch (error) {
-      logger.error('❌ Error al obtener snapshots de inventario:', error);
+      logger.error('Error al obtener snapshots de inventario:', error);
       throw new AppError('Error interno al obtener los snapshots', 500);
     }
   }
@@ -132,7 +132,7 @@ export class InventorySnapshotService {
       return snapshot;
 
     } catch (error) {
-      logger.error('❌ Error al obtener snapshot por ID:', error);
+      logger.error('Error al obtener snapshot por ID:', error);
       if (error instanceof AppError) {
         throw error;
       }
@@ -155,10 +155,10 @@ export class InventorySnapshotService {
 
       await InventorySnapshot.findByIdAndDelete(snapshotId);
       
-      logger.info('🗑️ Snapshot de inventario eliminado', { snapshotId });
+      logger.info('Snapshot de inventario eliminado', { snapshotId });
 
     } catch (error) {
-      logger.error('❌ Error al eliminar snapshot:', error);
+      logger.error('Error al eliminar snapshot:', error);
       if (error instanceof AppError) {
         throw error;
       }
@@ -209,7 +209,7 @@ export class InventorySnapshotService {
       };
 
     } catch (error) {
-      logger.error('❌ Error al obtener estadísticas de snapshots:', error);
+      logger.error('Error al obtener estadísticas de snapshots:', error);
       throw new AppError('Error interno al obtener estadísticas', 500);
     }
   }
@@ -221,63 +221,84 @@ export class InventorySnapshotService {
    */
   static async generateExcel(snapshotId) {
     try {
-      logger.info('📊 Generando archivo Excel para snapshot', { snapshotId });
+      logger.info('Generando archivo Excel para snapshot', { snapshotId });
 
       const snapshot = await this.getSnapshotById(snapshotId);
       
-      // Crear información del header
+      // Crear workbook
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Inventario');
+
+      // Información del header (primeras 5 filas)
+      const formattedDate = new Date(snapshot.date).toLocaleDateString('es-ES');
       const headerInfo = [
-        [`Inventario Guardado - ${new Date(snapshot.date).toLocaleDateString('es-ES')}`],
-        [`Fecha: ${new Date(snapshot.date).toLocaleDateString('es-ES')}`],
+        ['Inventario Guardado - The Brothers Barber Shop'],
+        [`Fecha: ${formattedDate}`],
         [`Total de productos: ${snapshot.totalItems}`],
         [`Diferencia total: ${snapshot.totalDifference}`],
         [] // Fila vacía
       ];
 
-      // Preparar datos para Excel
-      const excelData = snapshot.items.map(item => ({
-        'Producto': item.productName || item.name || 'Sin nombre',
-        'Categoría': item.category || 'Sin categoría',
-        'Stock Inicial': item.initialStock || 0,
-        'Entradas': item.entries || 0,
-        'Salidas': item.exits || 0,
-        'Ventas': item.sales || 0,
-        'Stock Esperado': item.expectedStock || 0,
-        'Stock Real': item.realStock || 0,
-        'Diferencia': item.difference || 0
-      }));
+      // Agregar header con estilo
+      headerInfo.forEach((row, idx) => {
+        const excelRow = worksheet.getRow(idx + 1);
+        excelRow.values = row;
+        if (idx === 0) {
+          excelRow.font = { bold: true, size: 14 };
+        } else if (idx < 4) {
+          excelRow.font = { size: 11 };
+        }
+      });
 
-      // Crear worksheet con los datos
-      const worksheet = XLSX.utils.json_to_sheet(excelData, { origin: 'A6' });
-
-      // Insertar header al inicio
-      XLSX.utils.sheet_add_aoa(worksheet, headerInfo, { origin: 'A1' });
-
-      // Ajustar ancho de columnas
-      const colWidths = [
-        { wch: 30 }, // Producto
-        { wch: 15 }, // Categoría
-        { wch: 12 }, // Stock Inicial
-        { wch: 10 }, // Entradas
-        { wch: 10 }, // Salidas
-        { wch: 10 }, // Ventas
-        { wch: 15 }, // Stock Esperado
-        { wch: 12 }, // Stock Real
-        { wch: 12 }  // Diferencia
+      // Definir columnas (fila 6)
+      worksheet.getRow(6).values = [
+        'Producto', 'Categoría', 'Stock Inicial', 'Entradas', 
+        'Salidas', 'Ventas', 'Stock Esperado', 'Stock Real', 'Diferencia'
       ];
-      worksheet['!cols'] = colWidths;
+      worksheet.getRow(6).font = { bold: true };
+      worksheet.getRow(6).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' }
+      };
 
-      // Crear workbook
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Inventario');
+      // Configurar anchos de columna
+      worksheet.columns = [
+        { width: 30 }, // Producto
+        { width: 15 }, // Categoría
+        { width: 12 }, // Stock Inicial
+        { width: 10 }, // Entradas
+        { width: 10 }, // Salidas
+        { width: 10 }, // Ventas
+        { width: 15 }, // Stock Esperado
+        { width: 12 }, // Stock Real
+        { width: 12 }  // Diferencia
+      ];
+
+      // Agregar datos (fila 7 en adelante)
+      snapshot.items.forEach(item => {
+        const row = worksheet.addRow([
+          item.productName || item.name || 'Sin nombre',
+          item.category || 'Sin categoría',
+          item.initialStock || 0,
+          item.entries || 0,
+          item.exits || 0,
+          item.sales || 0,
+          item.expectedStock || 0,
+          item.realStock || 0,
+          item.difference || 0
+        ]);
+
+        // Colorear diferencias negativas en rojo
+        if ((item.difference || 0) < 0) {
+          row.getCell(9).font = { color: { argb: 'FFFF0000' } };
+        }
+      });
 
       // Generar buffer
-      const excelBuffer = XLSX.write(workbook, { 
-        type: 'buffer', 
-        bookType: 'xlsx' 
-      });
+      const excelBuffer = await workbook.xlsx.writeBuffer();
       
-      logger.info('✅ Archivo Excel generado exitosamente', { 
+      logger.info('Archivo Excel generado exitosamente', { 
         snapshotId,
         itemsCount: snapshot.items.length
       });
@@ -285,7 +306,7 @@ export class InventorySnapshotService {
       return excelBuffer;
 
     } catch (error) {
-      logger.error('❌ Error al generar archivo Excel:', error);
+      logger.error('Error al generar archivo Excel:', error);
       throw new AppError('Error interno al generar archivo Excel', 500);
     }
   }

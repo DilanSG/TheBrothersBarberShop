@@ -1,9 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { User } from '../../domain/entities/index.js';
-import { AppError } from '../../../shared/utils/errors.js';
-import { logger } from '../../../shared/utils/logger.js';
-import { config } from '../../../shared/config/index.js';
+import { User, AppError, logger, config } from '../../../barrel.js';
 
 class AuthUseCases {
   static async login(email, password) {

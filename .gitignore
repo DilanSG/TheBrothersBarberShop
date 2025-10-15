@@ -1,204 +1,309 @@
-# ============================================# ========================================# ========================================# ========================================
+# ============================================# ============================================
 
-# .gitignore - The Brothers Barber Shop
+# THE BROTHERS BARBER SHOP - .gitignore# THE BROTHERS BARBER SHOP - .gitignore
 
-# Optimizado para Vercel (Frontend) + Render (Backend)# THE BROTHERS BARBER SHOP - .gitignore
+# Optimizado para Vercel (Frontend) + Render (Backend)# Optimizado para Vercel (Frontend) + Render (Backend)
 
-# ============================================
-
-# ========================================# THE BROTHERS BARBER SHOP - .gitignore# THE BROTHERS BARBER SHOP - .gitignore
-
-# ==========================================
-
-# DEPENDENCIAS Y MÓDULOS
-
-# ==========================================
-
-node_modules/# =================# ========================================# ========================================
-
-npm-debug.log*
-
-yarn-debug.log*# DEPENDENCIES
-
-yarn-error.log*
-
-pnpm-debug.log*# =================
-
-package-lock.json
-
-yarn.locknode_modules/
-
-pnpm-lock.yaml
-
-.pnpm-store/npm-debug.log*# =================# =================
+# ============================================# ============================================
 
 
 
-# ==========================================yarn-debug.log*
+# ==========================================# ==========================================
 
-# VARIABLES DE ENTORNO Y CONFIGURACIÓN
+# DEPENDENCIAS Y MÓDULOS# DEPENDENCIAS Y MÓDULOS
 
-# ==========================================yarn-error.log*# DEPENDENCIES# DEPENDENCIES
-
-.env
-
-.env.localpnpm-debug.log*
-
-.env.development.local
-
-.env.test.locallerna-debug.log*# =================# =================
-
-.env.production.local
-
-.env.*.local.pnpm-debug.log*
-
-*.env
+# ==========================================# ==========================================
 
 node_modules/node_modules/
 
-# Mantener archivos de ejemplo
+npm-debug.log*npm-debug.log*
 
-!.env.example# =================
+yarn-debug.log*yarn-debug.log*
 
-!.env.production.example
+yarn-error.log*yarn-error.log*
 
-# LOCK FILESnpm-debug.log*npm-debug.log*
+pnpm-debug.log*pnpm-debug.log*
 
-# ==========================================
+lerna-debug.log*lerna-debug.log*
 
-# ARCHIVOS DE LOGS Y MONITOREO# =================
+.npm.npm
 
-# ==========================================
+.pnpm-store/.pnpm-store/
 
-logs/package-lock.jsonyarn-debug.log*yarn-debug.log*
+
+
+# ==========================================# Lock files (opcional - descomentar para committearlos)
+
+# VARIABLES DE ENTORNO Y CONFIGURACIÓN# package-lock.json
+
+# ==========================================# yarn.lock
+
+.env# pnpm-lock.yaml
+
+.env.local
+
+.env.development.local# ==========================================
+
+.env.test.local# VARIABLES DE ENTORNO Y CONFIGURACIÓN
+
+.env.production.local# ==========================================
+
+.env.*.local.env
+
+*.env.env.local
+
+.env.development.local
+
+# Mantener archivos de ejemplo.env.test.local
+
+!.env.example.env.production.local
+
+!backend/.env.example.env.*.local
+
+!frontend/.env.example*.env
+
+
+
+# ==========================================# Mantener archivos de ejemplo
+
+# ARCHIVOS DE LOGS Y MONITOREO!.env.example
+
+# ==========================================!backend/.env.example
+
+logs/!frontend/.env.example
 
 *.log
 
-npm-debug.log*yarn.lock
+combined.log# ==========================================
 
-yarn-debug.log*
+error.log# ARCHIVOS DE LOGS Y MONITOREO
 
-yarn-error.log*pnpm-lock.yamlyarn-error.log*yarn-error.log*
+exceptions.log# ==========================================
 
-lerna-debug.log*
+rejections.loglogs/
 
-.npm
-
-
-
-# Winston logs (backend)# =================pnpm-debug.log*pnpm-debug.log*
-
-backend/logs/
-
-backend/*.log# ENVIRONMENT FILES
+http.log*.log
 
 combined.log
 
-error.log# =================lerna-debug.log*lerna-debug.log*
+# Winston logs (backend)error.log
 
-exceptions.log
+backend/logs/exceptions.log
 
-rejections.log.env
+backend/*.log
 
-http.log
+backend/src/logs/# Winston logs (backend)
 
-.env.local.pnpm-debug.log*package-lock.json
+backend/logs/
+
+# ==========================================backend/*.log
+
+# BUILDS Y ARCHIVOS DE PRODUCCIÓNbackend/src/logs/
 
 # ==========================================
 
-# BUILDS Y ARCHIVOS DE PRODUCCIÓN.env.development.local
-
-# ==========================================
-
-dist/.env.test.localyarn.lock
+dist/rejections.log.env
 
 build/
 
-out/.env.production.local
+out/http.log
 
 .next/
 
-.nuxt/.env.*.local# =================pnpm-lock.yaml
+.nuxt/.env.local.pnpm-debug.log*package-lock.json
 
 .cache/
 
-.parcel-cache/
+.parcel-cache/# ==========================================
+
+*.tsbuildinfo
+
+# BUILDS Y ARCHIVOS DE PRODUCCIÓN.env.development.local
+
+# Frontend builds
+
+frontend/dist/# ==========================================
+
+frontend/build/
+
+frontend/.vite/dist/.env.test.localyarn.lock
+
+frontend/.vercel/
+
+build/
+
+# Backend builds
+
+backend/dist/out/.env.production.local
+
+backend/build/
+
+.next/
+
+# ==========================================
+
+# BASES DE DATOS Y BACKUPS.nuxt/.env.*.local# =================pnpm-lock.yaml
+
+# ==========================================
+
+*.sqlite.cache/
+
+*.sqlite3
+
+*.db.parcel-cache/
+
+*.db-journal
 
 
 
-# Frontend builds# =================# ENVIRONMENT FILES
+# MongoDB backups (mantener estructura de carpetas)
 
-frontend/dist/
+backend/backups/daily/*.json# Frontend builds# =================# ENVIRONMENT FILES
 
-frontend/build/# BUILD OUTPUTS
+backend/backups/incremental/*.json
 
-frontend/.vite/
+!backend/backups/.gitkeepfrontend/dist/
 
-frontend/.vercel/# =================# =================# =================
+!backend/backups/daily/.gitkeep
 
-
-
-# Backend buildsdist/
-
-backend/dist/
-
-backend/build/build/.env# ENVIRONMENT FILES
+!backend/backups/incremental/.gitkeepfrontend/build/# BUILD OUTPUTS
 
 
 
-# ==========================================out/
+# ==========================================frontend/.vite/
 
-# BASES DE DATOS Y BACKUPS
+# UPLOADS Y ARCHIVOS TEMPORALES
+
+# ==========================================frontend/.vercel/# =================# =================# =================
+
+uploads/
+
+temp/
+
+backend/uploads/
+
+frontend/uploads/# Backend buildsdist/
+
+*.tmp
+
+*.tempbackend/dist/
+
+
+
+# ==========================================backend/build/build/.env# ENVIRONMENT FILES
+
+# TESTING Y COBERTURA
+
+# ==========================================
+
+coverage/
+
+.nyc_output/# ==========================================out/
+
+*.lcov
+
+test-results/# BASES DE DATOS Y BACKUPS
+
+playwright-report/
 
 # ==========================================.next/.env.local# =================
 
-*.sqlite
+# ==========================================
 
-*.sqlite3.nuxt/
+# IDEs Y EDITORES*.sqlite
 
-*.db
+# ==========================================
 
-*.db-journal.cache/.env.development.local.env
+.vscode/**.sqlite3.nuxt/
 
+!.vscode/settings.json
 
+!.vscode/extensions.json*.db
 
-# MongoDB backups*.tsbuildinfo
+.idea/
 
-backend/backups/
-
-backups/.env.test.local.env.local
-
-*.dump
-
-*.bson# =================
-
-
-
-# ==========================================# LOGS & RUNTIME.env.production.local.env.development.local
-
-# ARCHIVOS TEMPORALES Y CACHE
-
-# ==========================================# =================
-
-.DS_Store
-
-.DS_Store?logs/.env.*.local.env.test.local
-
-._*
-
-.Spotlight-V100*.log
-
-.Trashes
-
-ehthumbs.dbnpm-debug.log*.env.production.local
-
-Thumbs.db
-
-*.swpyarn-debug.log*
+*.swp*.db-journal.cache/.env.development.local.env
 
 *.swo
 
-*~yarn-error.log*# =================.env.*.local
+*~
+
+.DS_Store
+
+Thumbs.db# MongoDB backups*.tsbuildinfo
+
+
+
+# ==========================================backend/backups/
+
+# DOCUMENTACIÓN TEMPORAL
+
+# ==========================================backups/.env.test.local.env.local
+
+*.backup
+
+*.old*.dump
+
+*.bak
+
+*.orig*.bson# =================
+
+
+
+# ==========================================
+
+# DEPLOYMENT Y CI/CD
+
+# ==========================================# ==========================================# LOGS & RUNTIME.env.production.local.env.development.local
+
+.vercel
+
+.render# ARCHIVOS TEMPORALES Y CACHE
+
+.netlify
+
+# ==========================================# =================
+
+# ==========================================
+
+# SISTEMA OPERATIVO.DS_Store
+
+# ==========================================
+
+.DS_Store.DS_Store?logs/.env.*.local.env.test.local
+
+.DS_Store?
+
+._*._*
+
+.Spotlight-V100
+
+.Trashes.Spotlight-V100*.log
+
+ehthumbs.db
+
+desktop.ini.Trashes
+
+
+
+# ==========================================ehthumbs.dbnpm-debug.log*.env.production.local
+
+# OTROS
+
+# ==========================================Thumbs.db
+
+.eslintcache
+
+.stylelintcache*.swpyarn-debug.log*
+
+.prettierignore
+
+*.pid*.swo
+
+*.seed
+
+*.pid.lock*~yarn-error.log*# =================.env.*.local
+
 
 .idea/
 

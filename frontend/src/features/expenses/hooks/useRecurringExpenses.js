@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { api } from '../../../shared/services/api';
-import { RecurringExpenseHelper } from '../../../shared/recurring-expenses';
+import { api } from '@services/api';
+import { RecurringExpenseHelper } from '@shared/recurring-expenses';
 
 /**
  * Hook personalizado para trabajar con gastos recurrentes

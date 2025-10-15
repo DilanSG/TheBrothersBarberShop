@@ -1,9 +1,11 @@
 export { default as AppointmentService } from './appointmentService.js';
-export { default as AuthService } from './authService.js';
-export { default as BarberService } from './barberService.js';
-export { default as CacheService } from './cacheService.js';
+// Auth
+export { default as AuthService } from './AuthUseCases.js';
+export { default as BarberService } from './BarberUseCases.js';
+export { default as CacheService } from './CacheUseCases.js';
 export { default as EmailService } from './emailService.js';
-export { default as InventoryService } from './inventoryService.js';
-export { default as MonitoringService } from './monitoringService.js';
-export { default as ServiceOfferedService } from './serviceOfferedService.js';
-export { default as UserService } from './userService.js';
+// Inventory
+export { default as InventoryService } from './InventoryUseCases.js';
+export { default as MonitoringService } from './MonitoringUseCases.js';
+export { default as ServiceOfferedService } from './ServiceOfferedUseCases.js';
+export { default as UserService } from './UserUseCases.js';

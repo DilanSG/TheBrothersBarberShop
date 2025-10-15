@@ -1,7 +1,6 @@
 import cron from 'node-cron';
-import { Appointment, User, Barber } from '../core/domain/entities/index.js';
+import { Appointment, User, Barber, logger } from '../barrel.js';
 import emailService from './emailService.js';
-import { logger } from '../shared/utils/logger.js';
 
 /**
  * Sistema de trabajos programados (Cron Jobs)

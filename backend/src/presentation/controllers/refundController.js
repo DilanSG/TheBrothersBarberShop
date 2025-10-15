@@ -1,8 +1,7 @@
 import mongoose from "mongoose";
 import { asyncHandler } from "../middleware/index.js";
 import RefundService from "../../services/refundService.js";
-import { logger } from "../../shared/utils/logger.js";
-import { AppError } from "../../shared/utils/errors.js";
+import { logger, AppError } from "../../barrel.js";
 import DataNormalizationService from "../../shared/utils/dataNormalization.js";
 
 // @desc    Procesar reembolso de una venta
@@ -180,7 +179,10 @@ export const getMySalesForRefund = asyncHandler(async (req, res) => {
   }
 
   const barberId = barber._id;
-  console.log(`🔍 Barbero encontrado para reembolsos - UserID: ${userId}, BarberID: ${barberId}`);
+  logger.info('Barbero encontrado para consulta de reembolsos', { 
+    userId, 
+    barberId 
+  });
 
   // Construir query para ventas regulares
   const saleQuery = { 
@@ -208,7 +210,7 @@ export const getMySalesForRefund = asyncHandler(async (req, res) => {
     .sort({ saleDate: -1 })
     .lean();
 
-  console.log(`📊 Ventas regulares del barbero encontradas: ${sales.length}`);
+  logger.info('Ventas regulares encontradas', { count: sales.length });
 
   // Construir query para citas completadas
   const appointmentQuery = {
@@ -236,7 +238,7 @@ export const getMySalesForRefund = asyncHandler(async (req, res) => {
       .sort({ date: -1 })
       .lean() : [];
 
-  console.log(`📊 Citas completadas del barbero encontradas: ${appointments.length}`);
+  logger.info('Citas completadas encontradas', { count: appointments.length });
 
   // Normalizar ventas con datos completos
   const normalizedSales = await Promise.all(
@@ -260,7 +262,11 @@ export const getMySalesForRefund = asyncHandler(async (req, res) => {
   // Ordenar por fecha
   allTransactions.sort((a, b) => new Date(b.saleDate || b.createdAt) - new Date(a.saleDate || a.createdAt));
 
-  console.log(`📊 Total de transacciones del barbero (regulares + citas): ${allTransactions.length}`);
+  logger.info('Total de transacciones disponibles para reembolso', { 
+    total: allTransactions.length,
+    sales: completedSales.length,
+    appointments: normalizedAppointments.length
+  });
 
   // Aplicar paginación
   const skip = (parseInt(page) - 1) * parseInt(limit);

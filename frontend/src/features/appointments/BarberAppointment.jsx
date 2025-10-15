@@ -1,15 +1,15 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { PageContainer } from '../../shared/components/layout/PageContainer';
-import GradientText from '../../shared/components/ui/GradientText';
-import { useAuth } from '../../shared/contexts/AuthContext';
-import { api, barberService, appointmentService } from '../../shared/services/api';
-import { useNotification } from '../../shared/contexts/NotificationContext';
+import { PageContainer } from '@components/layout/PageContainer';
+import GradientText from '@components/ui/GradientText';
+import { useAuth } from '@contexts/AuthContext';
+import { api, barberService, appointmentService } from '@services/api';
+import { useNotification } from '@contexts/NotificationContext';
 import { constructFrom, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar, Clock, User, Scissors, CheckCircle, XCircle, AlertTriangle, Eye, Trash2, Check, X } from 'lucide-react';
-import CompleteAppointmentModal from '../../shared/components/modals/CompleteAppointmentModal';
+import CompleteAppointmentModal from '@components/modals/CompleteAppointmentModal';
 
-import logger from '../../shared/utils/logger';
+import logger from '@utils/logger';
 const BarberAppointment = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);

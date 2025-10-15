@@ -72,12 +72,6 @@ const requiredEnvVars = {
   },
   EMAIL_PASS: {
     required: false
-  },
-
-  // Redis (opcional)
-  REDIS_URL: {
-    required: false,
-    validator: (value) => !value || value.startsWith('redis://')
   }
 };
 
@@ -202,21 +196,7 @@ export const getEmailConfig = () => {
   };
 };
 
-/**
- * Obtener configuración de Redis si está disponible
- */
-export const getRedisConfig = () => {
-  if (!process.env.REDIS_URL) {
-    return null;
-  }
-
-  return {
-    url: process.env.REDIS_URL
-  };
-};
-
 export default {
   validateEnvironment,
-  getEmailConfig,
-  getRedisConfig
+  getEmailConfig
 };
