@@ -85,7 +85,9 @@ export const initSentry = (app) => {
 
     logger.info(`Sentry inicializado en ambiente: ${environment}`);
   } catch (error) {
-    logger.error('Error inicializando Sentry:', { error: error.message });
+    logger.error('Error inicializando Sentry:', error.message);
+    logger.error('Stack trace:', error.stack);
+    // No relanzar el error - permitir que el servidor continúe sin Sentry
   }
 };
 
