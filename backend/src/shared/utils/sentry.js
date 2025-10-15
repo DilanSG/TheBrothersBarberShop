@@ -13,11 +13,20 @@ import { logger } from './logger.js';
 /**
  * Inicializar Sentry para error tracking
  * Solo se activa en producción si SENTRY_DSN_BACKEND está configurado
+ * 
+ * IMPORTANTE: Deshabilitado temporalmente por problemas de compatibilidad
+ * que impiden el startup del servidor en Render
  */
 export const initSentry = (app) => {
   const dsn = process.env.SENTRY_DSN_BACKEND;
   const environment = process.env.NODE_ENV || 'development';
 
+  // TEMPORALMENTE DESHABILITADO - Sentry @sentry/node v10.19.0 tiene problemas
+  // que bloquean el event loop e impiden que el servidor abra el puerto
+  logger.warn('Sentry deshabilitado temporalmente (problemas de compatibilidad con v10.19.0)');
+  return;
+
+  /* CÓDIGO ORIGINAL - RE-HABILITAR CUANDO SE RESUELVA EL ISSUE
   // Solo inicializar en producción con DSN configurado
   if (!dsn) {
     if (environment === 'production') {
@@ -32,21 +41,14 @@ export const initSentry = (app) => {
     Sentry.init({
       dsn,
       environment,
-      
-      // Performance monitoring (conservador)
       tracesSampleRate: environment === 'production' ? 0.1 : 1.0,
-      
-      // Filtrar errores sensibles
       beforeSend(event, hint) {
-        // No enviar errores de validación (son esperados)
         if (event.exception) {
           const error = hint.originalException;
           if (error?.name === 'ValidationError' || error?.statusCode === 400) {
             return null;
           }
         }
-        
-        // Sanitizar datos sensibles
         if (event.request) {
           delete event.request.cookies;
           if (event.request.headers) {
@@ -54,11 +56,8 @@ export const initSentry = (app) => {
             delete event.request.headers.cookie;
           }
         }
-        
         return event;
       },
-      
-      // Ignorar errores comunes no críticos
       ignoreErrors: [
         'ECONNREFUSED',
         'ENOTFOUND',
@@ -67,13 +66,12 @@ export const initSentry = (app) => {
         'Non-Error promise rejection',
       ],
     });
-
     logger.info(`Sentry inicializado en ambiente: ${environment}`);
   } catch (error) {
     logger.error('Error inicializando Sentry:', error.message);
     logger.error('Stack trace:', error.stack);
-    // No relanzar el error - permitir que el servidor continúe sin Sentry
   }
+  */
 };
 
 /**
