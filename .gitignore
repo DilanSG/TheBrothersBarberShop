@@ -1104,4 +1104,7 @@ coverage/
 jest.config.js.bak
 
 # Cypress
-cypress/fixtures/examples.json
+cypress/fixtures/examples.json 
+ #   A r c h i v o s   d e   c o n f i g u r a c i o n   c o n   c r e d e n c i a l e s  
+ s c r i p t s / c o n f i g u r e - e m a i l . m d  
+ 
