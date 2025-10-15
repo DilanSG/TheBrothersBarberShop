@@ -4,7 +4,6 @@ import Barber from '../../domain/entities/Barber.js';
 import Service from '../../domain/entities/Service.js';
 import { AppError, logger } from '../../../barrel.js';
 // import ReportsCacheService from './reportsCacheService.js';
-import { logger } from '../../../shared/utils/logger.js';
 
 // const reportsCacheService = new ReportsCacheService();
 
