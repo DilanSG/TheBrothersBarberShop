@@ -14,11 +14,11 @@ class InventoryRepositoryImpl extends IInventoryRepository {
    */
   async findById(id) {
     try {
-      logger.database(`Buscando producto por ID: ${id}`);
+      logger.info(`Buscando producto por ID: ${id}`);
       const product = await Inventory.findById(id);
       
       if (product) {
-        logger.database(`Producto encontrado: ${product.name}`);
+        logger.info(`Producto encontrado: ${product.name}`);
       }
       
       return product;
@@ -35,11 +35,11 @@ class InventoryRepositoryImpl extends IInventoryRepository {
    */
   async findByName(name) {
     try {
-      logger.database(`Buscando producto por nombre: ${name}`);
+      logger.info(`Buscando producto por nombre: ${name}`);
       const product = await Inventory.findOne({ name: new RegExp(name, 'i') });
       
       if (product) {
-        logger.database(`Producto encontrado por nombre: ${name}`);
+        logger.info(`Producto encontrado por nombre: ${name}`);
       }
       
       return product;
@@ -56,9 +56,9 @@ class InventoryRepositoryImpl extends IInventoryRepository {
    */
   async create(inventoryData) {
     try {
-      logger.database(`Creando nuevo producto: ${inventoryData.name}`);
+      logger.info(`Creando nuevo producto: ${inventoryData.name}`);
       const product = await Inventory.create(inventoryData);
-      logger.database(`Producto creado exitosamente: ${product._id}`);
+      logger.info(`Producto creado exitosamente: ${product._id}`);
       
       return product;
     } catch (error) {
@@ -80,7 +80,7 @@ class InventoryRepositoryImpl extends IInventoryRepository {
    */
   async update(id, updateData) {
     try {
-      logger.database(`Actualizando producto: ${id}`);
+      logger.info(`Actualizando producto: ${id}`);
       
       const product = await Inventory.findByIdAndUpdate(
         id,
@@ -95,7 +95,7 @@ class InventoryRepositoryImpl extends IInventoryRepository {
         throw new AppError('Producto no encontrado', 404);
       }
 
-      logger.database(`Producto actualizado exitosamente: ${id}`);
+      logger.info(`Producto actualizado exitosamente: ${id}`);
       return product;
     } catch (error) {
       logger.error(`Error actualizando producto ${id}:`, error);
@@ -119,14 +119,14 @@ class InventoryRepositoryImpl extends IInventoryRepository {
    */
   async delete(id) {
     try {
-      logger.database(`Eliminando producto: ${id}`);
+      logger.info(`Eliminando producto: ${id}`);
       const result = await Inventory.findByIdAndDelete(id);
       
       if (!result) {
         throw new AppError('Producto no encontrado', 404);
       }
 
-      logger.database(`Producto eliminado exitosamente: ${id}`);
+      logger.info(`Producto eliminado exitosamente: ${id}`);
       return true;
     } catch (error) {
       logger.error(`Error eliminando producto ${id}:`, error);
@@ -148,7 +148,7 @@ class InventoryRepositoryImpl extends IInventoryRepository {
    */
   async updateStock(id, quantity, operation) {
     try {
-      logger.database(`Actualizando stock del producto ${id}: ${operation} ${quantity}`);
+      logger.info(`Actualizando stock del producto ${id}: ${operation} ${quantity}`);
       
       const product = await this.findById(id);
       if (!product) {
@@ -177,7 +177,7 @@ class InventoryRepositoryImpl extends IInventoryRepository {
         { new: true, runValidators: true }
       );
 
-      logger.database(`Stock actualizado: ${product.stock} → ${newStock}`);
+      logger.info(`Stock actualizado: ${product.stock} → ${newStock}`);
       return updatedProduct;
     } catch (error) {
       logger.error(`Error actualizando stock del producto ${id}:`, error);
@@ -197,14 +197,14 @@ class InventoryRepositoryImpl extends IInventoryRepository {
    */
   async findLowStock(threshold = 10) {
     try {
-      logger.database(`Buscando productos con stock bajo (umbral: ${threshold})`);
+      logger.info(`Buscando productos con stock bajo (umbral: ${threshold})`);
       
       const products = await Inventory.find({
         stock: { $lte: threshold },
         isActive: true
       }).sort({ stock: 1, name: 1 });
       
-      logger.database(`Encontrados ${products.length} productos con stock bajo`);
+      logger.info(`Encontrados ${products.length} productos con stock bajo`);
       return products;
     } catch (error) {
       logger.error('Error buscando productos con stock bajo:', error);
@@ -222,7 +222,7 @@ class InventoryRepositoryImpl extends IInventoryRepository {
     try {
       const { sort = { name: 1 }, limit } = options;
       
-      logger.database(`Buscando productos por categoría: ${category}`);
+      logger.info(`Buscando productos por categoría: ${category}`);
       
       let query = Inventory.find({ category })
         .sort(sort);
@@ -232,7 +232,7 @@ class InventoryRepositoryImpl extends IInventoryRepository {
       }
       
       const products = await query;
-      logger.database(`Encontrados ${products.length} productos en categoría ${category}`);
+      logger.info(`Encontrados ${products.length} productos en categoría ${category}`);
       
       return products;
     } catch (error) {
@@ -251,7 +251,7 @@ class InventoryRepositoryImpl extends IInventoryRepository {
     try {
       const { sort = { name: 1 }, limit } = options;
       
-      logger.database(`Buscando productos por estado: ${isActive ? 'activo' : 'inactivo'}`);
+      logger.info(`Buscando productos por estado: ${isActive ? 'activo' : 'inactivo'}`);
       
       let query = Inventory.find({ isActive })
         .sort(sort);
@@ -261,7 +261,7 @@ class InventoryRepositoryImpl extends IInventoryRepository {
       }
       
       const products = await query;
-      logger.database(`Encontrados ${products.length} productos ${isActive ? 'activos' : 'inactivos'}`);
+      logger.info(`Encontrados ${products.length} productos ${isActive ? 'activos' : 'inactivos'}`);
       
       return products;
     } catch (error) {
@@ -276,7 +276,7 @@ class InventoryRepositoryImpl extends IInventoryRepository {
    */
   async getTotalValue() {
     try {
-      logger.database('Calculando valor total del inventario');
+      logger.info('Calculando valor total del inventario');
       
       const result = await Inventory.aggregate([
         {
@@ -297,7 +297,7 @@ class InventoryRepositoryImpl extends IInventoryRepository {
       ]);
       
       const stats = result[0] || { totalValue: 0, totalProducts: 0, totalStock: 0 };
-      logger.database(`Valor total del inventario calculado: ${stats.totalValue}`);
+      logger.info(`Valor total del inventario calculado: ${stats.totalValue}`);
       
       return stats.totalValue;
     } catch (error) {
@@ -320,7 +320,7 @@ class InventoryRepositoryImpl extends IInventoryRepository {
         filters = {}
       } = options;
 
-      logger.database(`Listando productos - Página: ${page}, Límite: ${limit}`);
+      logger.info(`Listando productos - Página: ${page}, Límite: ${limit}`);
 
       const skip = (page - 1) * limit;
       
@@ -336,7 +336,7 @@ class InventoryRepositoryImpl extends IInventoryRepository {
 
       const totalPages = Math.ceil(total / limit);
 
-      logger.database(`Encontrados ${products.length} productos de ${total} totales`);
+      logger.info(`Encontrados ${products.length} productos de ${total} totales`);
 
       return {
         products,
@@ -363,7 +363,7 @@ class InventoryRepositoryImpl extends IInventoryRepository {
     try {
       const { sort = { price: 1 }, limit } = options;
       
-      logger.database(`Buscando productos por rango de precios: ${minPrice} - ${maxPrice}`);
+      logger.info(`Buscando productos por rango de precios: ${minPrice} - ${maxPrice}`);
       
       let query = Inventory.find({
         price: {
@@ -377,7 +377,7 @@ class InventoryRepositoryImpl extends IInventoryRepository {
       }
       
       const products = await query;
-      logger.database(`Encontrados ${products.length} productos en el rango de precios`);
+      logger.info(`Encontrados ${products.length} productos en el rango de precios`);
       
       return products;
     } catch (error) {
@@ -392,7 +392,7 @@ class InventoryRepositoryImpl extends IInventoryRepository {
    */
   async getInventoryStats() {
     try {
-      logger.database('Obteniendo estadísticas del inventario');
+      logger.info('Obteniendo estadísticas del inventario');
       
       const [generalStats, categoryStats, stockStats] = await Promise.all([
         // Estadísticas generales
@@ -463,7 +463,7 @@ class InventoryRepositoryImpl extends IInventoryRepository {
         }
       };
       
-      logger.database('Estadísticas del inventario obtenidas exitosamente');
+      logger.info('Estadísticas del inventario obtenidas exitosamente');
       return stats;
     } catch (error) {
       logger.error('Error obteniendo estadísticas del inventario:', error);
@@ -473,3 +473,4 @@ class InventoryRepositoryImpl extends IInventoryRepository {
 }
 
 export default InventoryRepositoryImpl;
+

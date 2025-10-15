@@ -14,12 +14,12 @@ class BarberRepositoryImpl extends IBarberRepository {
    */
   async findById(id) {
     try {
-      logger.database(`Buscando barbero por ID: ${id}`);
+      logger.info(`Buscando barbero por ID: ${id}`);
       const barber = await Barber.findById(id)
         .populate('user', 'name email phone profilePicture role');
       
       if (barber) {
-        logger.database(`Barbero encontrado: ${barber.user?.name || barber._id}`);
+        logger.info(`Barbero encontrado: ${barber.user?.name || barber._id}`);
       }
       
       return barber;
@@ -36,12 +36,12 @@ class BarberRepositoryImpl extends IBarberRepository {
    */
   async findByUserId(userId) {
     try {
-      logger.database(`Buscando barbero por usuario ID: ${userId}`);
+      logger.info(`Buscando barbero por usuario ID: ${userId}`);
       const barber = await Barber.findOne({ user: userId })
         .populate('user', 'name email phone profilePicture role');
       
       if (barber) {
-        logger.database(`Barbero encontrado por usuario: ${userId}`);
+        logger.info(`Barbero encontrado por usuario: ${userId}`);
       }
       
       return barber;
@@ -58,9 +58,9 @@ class BarberRepositoryImpl extends IBarberRepository {
    */
   async create(barberData) {
     try {
-      logger.database('Creando nuevo barbero');
+      logger.info('Creando nuevo barbero');
       const barber = await Barber.create(barberData);
-      logger.database(`Barbero creado exitosamente: ${barber._id}`);
+      logger.info(`Barbero creado exitosamente: ${barber._id}`);
       
       // Retornar con populate
       return await this.findById(barber._id);
@@ -83,7 +83,7 @@ class BarberRepositoryImpl extends IBarberRepository {
    */
   async update(id, updateData) {
     try {
-      logger.database(`Actualizando barbero: ${id}`);
+      logger.info(`Actualizando barbero: ${id}`);
       
       const barber = await Barber.findByIdAndUpdate(
         id,
@@ -98,7 +98,7 @@ class BarberRepositoryImpl extends IBarberRepository {
         throw new AppError('Barbero no encontrado', 404);
       }
 
-      logger.database(`Barbero actualizado exitosamente: ${id}`);
+      logger.info(`Barbero actualizado exitosamente: ${id}`);
       return barber;
     } catch (error) {
       logger.error(`Error actualizando barbero ${id}:`, error);
@@ -118,14 +118,14 @@ class BarberRepositoryImpl extends IBarberRepository {
    */
   async delete(id) {
     try {
-      logger.database(`Eliminando barbero: ${id}`);
+      logger.info(`Eliminando barbero: ${id}`);
       const result = await Barber.findByIdAndDelete(id);
       
       if (!result) {
         throw new AppError('Barbero no encontrado', 404);
       }
 
-      logger.database(`Barbero eliminado exitosamente: ${id}`);
+      logger.info(`Barbero eliminado exitosamente: ${id}`);
       return true;
     } catch (error) {
       logger.error(`Error eliminando barbero ${id}:`, error);
@@ -147,7 +147,7 @@ class BarberRepositoryImpl extends IBarberRepository {
     try {
       const { sort = { createdAt: 1 }, limit } = options;
       
-      logger.database('Buscando barberos activos');
+      logger.info('Buscando barberos activos');
       
       let query = Barber.find({ isActive: true })
         .populate('user', 'name email phone profilePicture role')
@@ -158,7 +158,7 @@ class BarberRepositoryImpl extends IBarberRepository {
       }
       
       const barbers = await query;
-      logger.database(`Encontrados ${barbers.length} barberos activos`);
+      logger.info(`Encontrados ${barbers.length} barberos activos`);
       
       return barbers;
     } catch (error) {
@@ -177,7 +177,7 @@ class BarberRepositoryImpl extends IBarberRepository {
     try {
       const { sort = { createdAt: 1 } } = options;
       
-      logger.database(`Buscando barberos disponibles para: ${date}`);
+      logger.info(`Buscando barberos disponibles para: ${date}`);
       
       // Obtener día de la semana (0 = domingo, 1 = lunes, etc.)
       const dayOfWeek = date.getDay();
@@ -193,7 +193,7 @@ class BarberRepositoryImpl extends IBarberRepository {
         .populate('user', 'name email phone profilePicture role')
         .sort(sort);
       
-      logger.database(`Encontrados ${barbers.length} barberos disponibles`);
+      logger.info(`Encontrados ${barbers.length} barberos disponibles`);
       return barbers;
     } catch (error) {
       logger.error('Error buscando barberos disponibles:', error);
@@ -210,7 +210,7 @@ class BarberRepositoryImpl extends IBarberRepository {
    */
   async getBarberStats(barberId, startDate, endDate) {
     try {
-      logger.database(`Obteniendo estadísticas del barbero ${barberId} de ${startDate} a ${endDate}`);
+      logger.info(`Obteniendo estadísticas del barbero ${barberId} de ${startDate} a ${endDate}`);
       
       // Import aquí para evitar dependencias circulares
       const Appointment = (await import('../../../core/domain/entities/Appointment.js')).default;
@@ -265,7 +265,7 @@ class BarberRepositoryImpl extends IBarberRepository {
         }
       };
       
-      logger.database('Estadísticas del barbero obtenidas exitosamente');
+      logger.info('Estadísticas del barbero obtenidas exitosamente');
       return stats;
     } catch (error) {
       logger.error(`Error obteniendo estadísticas del barbero ${barberId}:`, error);
@@ -287,7 +287,7 @@ class BarberRepositoryImpl extends IBarberRepository {
         filters = {}
       } = options;
 
-      logger.database(`Listando barberos - Página: ${page}, Límite: ${limit}`);
+      logger.info(`Listando barberos - Página: ${page}, Límite: ${limit}`);
 
       const skip = (page - 1) * limit;
       
@@ -304,7 +304,7 @@ class BarberRepositoryImpl extends IBarberRepository {
 
       const totalPages = Math.ceil(total / limit);
 
-      logger.database(`Encontrados ${barbers.length} barberos de ${total} totales`);
+      logger.info(`Encontrados ${barbers.length} barberos de ${total} totales`);
 
       return {
         barbers,
@@ -342,9 +342,9 @@ class BarberRepositoryImpl extends IBarberRepository {
    */
   async count(filters = {}) {
     try {
-      logger.database('Contando barberos con filtros:', filters);
+      logger.info('Contando barberos con filtros:', filters);
       const count = await Barber.countDocuments(filters);
-      logger.database(`Total barberos encontrados: ${count}`);
+      logger.info(`Total barberos encontrados: ${count}`);
       return count;
     } catch (error) {
       logger.error('Error contando barberos:', error);
@@ -360,7 +360,7 @@ class BarberRepositoryImpl extends IBarberRepository {
    */
   async updateSchedule(id, schedule) {
     try {
-      logger.database(`Actualizando horarios del barbero: ${id}`);
+      logger.info(`Actualizando horarios del barbero: ${id}`);
       
       const barber = await Barber.findByIdAndUpdate(
         id,
@@ -375,7 +375,7 @@ class BarberRepositoryImpl extends IBarberRepository {
         throw new AppError('Barbero no encontrado', 404);
       }
 
-      logger.database(`Horarios del barbero actualizados exitosamente: ${id}`);
+      logger.info(`Horarios del barbero actualizados exitosamente: ${id}`);
       return barber;
     } catch (error) {
       logger.error(`Error actualizando horarios del barbero ${id}:`, error);
@@ -390,3 +390,5 @@ class BarberRepositoryImpl extends IBarberRepository {
 }
 
 export default BarberRepositoryImpl;
+
+

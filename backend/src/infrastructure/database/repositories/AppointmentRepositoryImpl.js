@@ -14,14 +14,14 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
    */
   async findById(id) {
     try {
-      logger.database(`Searching appointment by ID: ${id}`);
+      logger.info(`Searching appointment by ID: ${id}`);
       const appointment = await Appointment.findById(id)
         .populate('user', 'name email phone')
         .populate('barber', 'name email')
   .populate('service', 'name price duration');
       
       if (appointment) {
-        logger.database(`Appointment found: ${appointment._id}`);
+        logger.info(`Appointment found: ${appointment._id}`);
       }
       
       return appointment;
@@ -38,9 +38,9 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
    */
   async create(appointmentData) {
     try {
-      logger.database('Creating new appointment');
+      logger.info('Creating new appointment');
       const appointment = await Appointment.create(appointmentData);
-      logger.database(`Appointment created successfully: ${appointment._id}`);
+      logger.info(`Appointment created successfully: ${appointment._id}`);
       
       // Retornar con populate
       return await this.findById(appointment._id);
@@ -58,7 +58,7 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
    */
   async update(id, updateData) {
     try {
-      logger.database(`Updating appointment: ${id}`);
+      logger.info(`Updating appointment: ${id}`);
       
       const appointment = await Appointment.findByIdAndUpdate(
         id,
@@ -75,7 +75,7 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
         throw new AppError('Cita no encontrada', 404);
       }
 
-      logger.database(`Appointment updated successfully: ${id}`);
+      logger.info(`Appointment updated successfully: ${id}`);
       return appointment;
     } catch (error) {
       logger.error(`Error updating appointment ${id}:`, error);
@@ -95,14 +95,14 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
    */
   async delete(id) {
     try {
-      logger.database(`Deleting appointment: ${id}`);
+      logger.info(`Deleting appointment: ${id}`);
       const result = await Appointment.findByIdAndDelete(id);
       
       if (!result) {
         throw new AppError('Cita no encontrada', 404);
       }
 
-      logger.database(`Appointment deleted successfully: ${id}`);
+      logger.info(`Appointment deleted successfully: ${id}`);
       return true;
     } catch (error) {
       logger.error(`Error deleting appointment ${id}:`, error);
@@ -125,7 +125,7 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
     try {
       const { sort = { date: -1 }, limit } = options;
       
-      logger.database(`Searching appointments by user ID: ${userId}`);
+      logger.info(`Searching appointments by user ID: ${userId}`);
       
       let query = Appointment.find({ user: userId })
         .populate('barber', 'name email')
@@ -137,7 +137,7 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
       }
       
       const appointments = await query;
-      logger.database(`Found ${appointments.length} appointments for user ${userId}`);
+      logger.info(`Found ${appointments.length} appointments for user ${userId}`);
       
       return appointments;
     } catch (error) {
@@ -156,7 +156,7 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
     try {
       const { sort = { date: -1 }, limit } = options;
       
-      logger.database(`Searching appointments by barber ID: ${barberId}`);
+      logger.info(`Searching appointments by barber ID: ${barberId}`);
       
       let query = Appointment.find({ barber: barberId })
         .populate('user', 'name email phone')
@@ -168,7 +168,7 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
       }
       
       const appointments = await query;
-      logger.database(`Found ${appointments.length} appointments for barber ${barberId}`);
+      logger.info(`Found ${appointments.length} appointments for barber ${barberId}`);
       
       return appointments;
     } catch (error) {
@@ -187,7 +187,7 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
     try {
       const { sort = { date: 1 } } = options;
       
-      logger.database(`Searching appointments by date: ${date}`);
+      logger.info(`Searching appointments by date: ${date}`);
       
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
@@ -206,7 +206,7 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
   .populate('service', 'name price duration')
         .sort(sort);
       
-      logger.database(`Found ${appointments.length} appointments for date ${date}`);
+      logger.info(`Found ${appointments.length} appointments for date ${date}`);
       return appointments;
     } catch (error) {
       logger.error(`Error finding appointments by date ${date}:`, error);
@@ -225,7 +225,7 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
     try {
       const { sort = { date: 1 }, filters = {} } = options;
       
-      logger.database(`Searching appointments by date range: ${startDate} to ${endDate}`);
+      logger.info(`Searching appointments by date range: ${startDate} to ${endDate}`);
       
       const query = {
         date: {
@@ -241,7 +241,7 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
   .populate('service', 'name price duration')
         .sort(sort);
       
-      logger.database(`Found ${appointments.length} appointments in date range`);
+      logger.info(`Found ${appointments.length} appointments in date range`);
       return appointments;
     } catch (error) {
       logger.error(`Error finding appointments by date range:`, error);
@@ -258,7 +258,7 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
    */
   async checkAvailability(barberId, date, duration) {
     try {
-      logger.database(`Checking availability for barber ${barberId} at ${date}`);
+      logger.info(`Checking availability for barber ${barberId} at ${date}`);
       
       const appointmentStart = new Date(date);
       const appointmentEnd = new Date(date.getTime() + (duration * 60000));
@@ -292,7 +292,7 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
       });
       
       const isAvailable = conflictingAppointments === 0;
-      logger.database(`Availability check result: ${isAvailable}`);
+      logger.info(`Availability check result: ${isAvailable}`);
       
       return isAvailable;
     } catch (error) {
@@ -315,7 +315,7 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
         filters = {}
       } = options;
 
-      logger.database(`Listing appointments - Page: ${page}, Limit: ${limit}`);
+      logger.info(`Listing appointments - Page: ${page}, Limit: ${limit}`);
 
       const skip = (page - 1) * limit;
       
@@ -334,7 +334,7 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
 
       const totalPages = Math.ceil(total / limit);
 
-      logger.database(`Found ${appointments.length} appointments out of ${total} total`);
+      logger.info(`Found ${appointments.length} appointments out of ${total} total`);
 
       return {
         appointments,
@@ -352,3 +352,4 @@ class AppointmentRepositoryImpl extends IAppointmentRepository {
 }
 
 export default AppointmentRepositoryImpl;
+

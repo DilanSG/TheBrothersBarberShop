@@ -15,11 +15,11 @@ class UserRepositoryImpl extends IUserRepository {
    */
   async findById(id) {
     try {
-      logger.database(`Searching user by ID: ${id}`);
+      logger.info(`Searching user by ID: ${id}`);
       const user = await User.findById(id).select('-password');
       
       if (user) {
-        logger.database(`User found: ${user.email}`);
+        logger.info(`User found: ${user.email}`);
       }
       
       return user;
@@ -36,11 +36,11 @@ class UserRepositoryImpl extends IUserRepository {
    */
   async findByEmail(email) {
     try {
-      logger.database(`Searching user by email: ${email}`);
+      logger.info(`Searching user by email: ${email}`);
       const user = await User.findOne({ email: email.toLowerCase() });
       
       if (user) {
-        logger.database(`User found by email: ${email}`);
+        logger.info(`User found by email: ${email}`);
       }
       
       return user;
@@ -65,7 +65,7 @@ class UserRepositoryImpl extends IUserRepository {
         select = '-password'
       } = options;
 
-      logger.database(`Finding users with options:`, { filter, limit, page, sort });
+      logger.info(`Finding users with options:`, { filter, limit, page, sort });
 
       const skip = (page - 1) * limit;
 
@@ -88,7 +88,7 @@ class UserRepositoryImpl extends IUserRepository {
         }
       };
 
-      logger.database(`Found ${users.length} users out of ${total} total`);
+      logger.info(`Found ${users.length} users out of ${total} total`);
       return result;
     } catch (error) {
       logger.error('Error finding users:', error);
@@ -103,7 +103,7 @@ class UserRepositoryImpl extends IUserRepository {
    */
   async create(userData) {
     try {
-      logger.database(`Creating user with email: ${userData.email}`);
+      logger.info(`Creating user with email: ${userData.email}`);
       
       // Verificar que el email no existe
       const existingUser = await this.findByEmail(userData.email);
@@ -117,7 +117,7 @@ class UserRepositoryImpl extends IUserRepository {
       // Retornar sin contraseña
       const userResponse = await User.findById(savedUser._id).select('-password');
       
-      logger.database(`User created successfully: ${userResponse.email}`);
+      logger.info(`User created successfully: ${userResponse.email}`);
       return userResponse;
     } catch (error) {
       logger.error(`Error creating user:`, error);
@@ -142,7 +142,7 @@ class UserRepositoryImpl extends IUserRepository {
    */
   async update(id, updateData) {
     try {
-      logger.database(`Updating user: ${id}`);
+      logger.info(`Updating user: ${id}`);
 
       // Si se está actualizando el email, verificar que no existe
       if (updateData.email) {
@@ -170,7 +170,7 @@ class UserRepositoryImpl extends IUserRepository {
         throw new AppError('Usuario no encontrado', 404);
       }
 
-      logger.database(`User updated successfully: ${updatedUser.email}`);
+      logger.info(`User updated successfully: ${updatedUser.email}`);
       return updatedUser;
     } catch (error) {
       logger.error(`Error updating user ${id}:`, error);
@@ -194,7 +194,7 @@ class UserRepositoryImpl extends IUserRepository {
    */
   async delete(id) {
     try {
-      logger.database(`Deleting user: ${id}`);
+      logger.info(`Deleting user: ${id}`);
       
       const deletedUser = await User.findByIdAndDelete(id);
       
@@ -202,7 +202,7 @@ class UserRepositoryImpl extends IUserRepository {
         throw new AppError('Usuario no encontrado', 404);
       }
 
-      logger.database(`User deleted successfully: ${deletedUser.email}`);
+      logger.info(`User deleted successfully: ${deletedUser.email}`);
       return true;
     } catch (error) {
       logger.error(`Error deleting user ${id}:`, error);
@@ -229,14 +229,14 @@ class UserRepositoryImpl extends IUserRepository {
         sort = { createdAt: -1 }
       } = options;
 
-      logger.database(`Finding users by role: ${role}`);
+      logger.info(`Finding users by role: ${role}`);
       
       const users = await User.find({ role })
         .select(select)
         .sort(sort)
         .limit(limit);
 
-      logger.database(`Found ${users.length} users with role: ${role}`);
+      logger.info(`Found ${users.length} users with role: ${role}`);
       return users;
     } catch (error) {
       logger.error(`Error finding users by role ${role}:`, error);
@@ -251,7 +251,7 @@ class UserRepositoryImpl extends IUserRepository {
    */
   async countByStatus(filters = {}) {
     try {
-      logger.database('Counting users by status');
+      logger.info('Counting users by status');
       
       const [total, active, inactive, clients, barbers, admins] = await Promise.all([
         User.countDocuments(filters),
@@ -273,7 +273,7 @@ class UserRepositoryImpl extends IUserRepository {
         }
       };
 
-      logger.database('User stats calculated:', stats);
+      logger.info('User stats calculated:', stats);
       return stats;
     } catch (error) {
       logger.error('Error counting users by status:', error);
@@ -289,7 +289,7 @@ class UserRepositoryImpl extends IUserRepository {
    */
   async validatePassword(id, password) {
     try {
-      logger.database(`Validating password for user: ${id}`);
+      logger.info(`Validating password for user: ${id}`);
       const user = await User.findById(id).select('+password');
       
       if (!user) {
@@ -297,7 +297,7 @@ class UserRepositoryImpl extends IUserRepository {
       }
 
       const isValid = await user.comparePassword(password);
-      logger.database(`Password validation result for user ${id}: ${isValid}`);
+      logger.info(`Password validation result for user ${id}: ${isValid}`);
       
       return isValid;
     } catch (error) {
@@ -319,7 +319,7 @@ class UserRepositoryImpl extends IUserRepository {
    */
   async updatePassword(id, newPassword) {
     try {
-      logger.database(`Updating password for user: ${id}`);
+      logger.info(`Updating password for user: ${id}`);
       
       const user = await User.findById(id);
       if (!user) {
@@ -329,7 +329,7 @@ class UserRepositoryImpl extends IUserRepository {
       user.password = newPassword;
       await user.save();
 
-      logger.database(`Password updated successfully for user: ${id}`);
+      logger.info(`Password updated successfully for user: ${id}`);
       return true;
     } catch (error) {
       logger.error(`Error updating password for user ${id}:`, error);
@@ -344,3 +344,4 @@ class UserRepositoryImpl extends IUserRepository {
 }
 
 export default UserRepositoryImpl;
+

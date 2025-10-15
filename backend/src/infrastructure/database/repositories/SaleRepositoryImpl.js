@@ -14,12 +14,12 @@ class SaleRepositoryImpl extends ISaleRepository {
    */
   async findById(id) {
     try {
-      logger.database(`Buscando venta por ID: ${id}`);
+      logger.info(`Buscando venta por ID: ${id}`);
       // ✅ FIXED: Remove populate calls since fields are not ObjectIds in the actual data
       const sale = await Sale.findById(id).lean();
       
       if (sale) {
-        logger.database(`Venta encontrada: ${sale._id}`);
+        logger.info(`Venta encontrada: ${sale._id}`);
       }
       
       return sale;
@@ -36,9 +36,9 @@ class SaleRepositoryImpl extends ISaleRepository {
    */
   async create(saleData) {
     try {
-      logger.database('Creando nueva venta');
+      logger.info('Creando nueva venta');
       const sale = await Sale.create(saleData);
-      logger.database(`Venta creada exitosamente: ${sale._id}`);
+      logger.info(`Venta creada exitosamente: ${sale._id}`);
       
       // Retornar con populate
       return await this.findById(sale._id);
@@ -56,7 +56,7 @@ class SaleRepositoryImpl extends ISaleRepository {
    */
   async update(id, updateData) {
     try {
-      logger.database(`Actualizando venta: ${id}`);
+      logger.info(`Actualizando venta: ${id}`);
       
       const sale = await Sale.findByIdAndUpdate(
         id,
@@ -75,7 +75,7 @@ class SaleRepositoryImpl extends ISaleRepository {
         throw new AppError('Venta no encontrada', 404);
       }
 
-      logger.database(`Venta actualizada exitosamente: ${id}`);
+      logger.info(`Venta actualizada exitosamente: ${id}`);
       return sale;
     } catch (error) {
       logger.error(`Error actualizando venta ${id}:`, error);
@@ -95,14 +95,14 @@ class SaleRepositoryImpl extends ISaleRepository {
    */
   async delete(id) {
     try {
-      logger.database(`Eliminando venta: ${id}`);
+      logger.info(`Eliminando venta: ${id}`);
       const result = await Sale.findByIdAndDelete(id);
       
       if (!result) {
         throw new AppError('Venta no encontrada', 404);
       }
 
-      logger.database(`Venta eliminada exitosamente: ${id}`);
+      logger.info(`Venta eliminada exitosamente: ${id}`);
       return true;
     } catch (error) {
       logger.error(`Error eliminando venta ${id}:`, error);
@@ -126,7 +126,7 @@ class SaleRepositoryImpl extends ISaleRepository {
     try {
       const { sort = { date: -1 }, filters = {} } = options;
       
-      logger.database(`Buscando ventas por rango de fechas: ${startDate} a ${endDate}`);
+      logger.info(`Buscando ventas por rango de fechas: ${startDate} a ${endDate}`);
       
       const query = {
         date: {
@@ -144,7 +144,7 @@ class SaleRepositoryImpl extends ISaleRepository {
         .populate('products.product', 'name price category')
         .sort(sort);
       
-      logger.database(`Encontradas ${sales.length} ventas en el rango de fechas`);
+      logger.info(`Encontradas ${sales.length} ventas en el rango de fechas`);
       return sales;
     } catch (error) {
       logger.error(`Error buscando ventas por rango de fechas:`, error);
@@ -162,7 +162,7 @@ class SaleRepositoryImpl extends ISaleRepository {
     try {
       const { sort = { date: -1 }, limit } = options;
       
-      logger.database(`Buscando ventas por barbero ID: ${barberId}`);
+      logger.info(`Buscando ventas por barbero ID: ${barberId}`);
       
       let query = Sale.find({ barberId: barberId })
         .populate('client', 'name email phone')
@@ -176,7 +176,7 @@ class SaleRepositoryImpl extends ISaleRepository {
       }
       
       const sales = await query;
-      logger.database(`Encontradas ${sales.length} ventas para barbero ${barberId}`);
+      logger.info(`Encontradas ${sales.length} ventas para barbero ${barberId}`);
       
       return sales;
     } catch (error) {
@@ -195,7 +195,7 @@ class SaleRepositoryImpl extends ISaleRepository {
     try {
       const { sort = { date: -1 }, limit } = options;
       
-      logger.database(`Buscando ventas por método de pago: ${paymentMethodId}`);
+      logger.info(`Buscando ventas por método de pago: ${paymentMethodId}`);
       
       let query = Sale.find({ paymentMethod: paymentMethodId })
         .populate('barberId', 'name email')
@@ -209,7 +209,7 @@ class SaleRepositoryImpl extends ISaleRepository {
       }
       
       const sales = await query;
-      logger.database(`Encontradas ${sales.length} ventas para método de pago ${paymentMethodId}`);
+      logger.info(`Encontradas ${sales.length} ventas para método de pago ${paymentMethodId}`);
       
       return sales;
     } catch (error) {
@@ -227,7 +227,7 @@ class SaleRepositoryImpl extends ISaleRepository {
    */
   async calculateTotalByPeriod(startDate, endDate, filters = {}) {
     try {
-      logger.database(`Calculando total de ventas de ${startDate} a ${endDate}`);
+      logger.info(`Calculando total de ventas de ${startDate} a ${endDate}`);
       
       const query = {
         date: {
@@ -248,7 +248,7 @@ class SaleRepositoryImpl extends ISaleRepository {
       ]);
       
       const total = result.length > 0 ? result[0].total : 0;
-      logger.database(`Total de ventas calculado: ${total}`);
+      logger.info(`Total de ventas calculado: ${total}`);
       
       return total;
     } catch (error) {
@@ -265,7 +265,7 @@ class SaleRepositoryImpl extends ISaleRepository {
    */
   async getSalesStats(startDate, endDate) {
     try {
-      logger.database(`Obteniendo estadísticas de ventas de ${startDate} a ${endDate}`);
+      logger.info(`Obteniendo estadísticas de ventas de ${startDate} a ${endDate}`);
       
       const [totalStats, barberStats, paymentStats, serviceStats] = await Promise.all([
         // Total general
@@ -344,7 +344,7 @@ class SaleRepositoryImpl extends ISaleRepository {
         byService: serviceStats
       };
       
-      logger.database('Estadísticas de ventas calculadas exitosamente');
+      logger.info('Estadísticas de ventas calculadas exitosamente');
       return stats;
     } catch (error) {
       logger.error('Error obteniendo estadísticas de ventas:', error);
@@ -366,7 +366,7 @@ class SaleRepositoryImpl extends ISaleRepository {
         filters = {}
       } = options;
 
-      logger.database(`Listando ventas - Página: ${page}, Límite: ${limit}`);
+      logger.info(`Listando ventas - Página: ${page}, Límite: ${limit}`);
 
       const skip = (page - 1) * limit;
       
@@ -382,7 +382,7 @@ class SaleRepositoryImpl extends ISaleRepository {
 
       const totalPages = Math.ceil(total / limit);
 
-      logger.database(`Encontradas ${sales.length} ventas de ${total} totales`);
+      logger.info(`Encontradas ${sales.length} ventas de ${total} totales`);
 
       return {
         sales,
@@ -408,7 +408,7 @@ class SaleRepositoryImpl extends ISaleRepository {
     try {
       const { sort = { date: -1 }, limit } = options;
       
-      logger.database(`Buscando ventas por cliente ID: ${clientId}`);
+      logger.info(`Buscando ventas por cliente ID: ${clientId}`);
       
       let query = Sale.find({ client: clientId })
         .populate('barberId', 'name email')
@@ -422,7 +422,7 @@ class SaleRepositoryImpl extends ISaleRepository {
       }
       
       const sales = await query;
-      logger.database(`Encontradas ${sales.length} ventas para cliente ${clientId}`);
+      logger.info(`Encontradas ${sales.length} ventas para cliente ${clientId}`);
       
       return sales;
     } catch (error) {
@@ -438,7 +438,7 @@ class SaleRepositoryImpl extends ISaleRepository {
    */
   async getDailyRevenue(date) {
     try {
-      logger.database(`Obteniendo ingresos del día: ${date}`);
+      logger.info(`Obteniendo ingresos del día: ${date}`);
       
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
@@ -464,7 +464,7 @@ class SaleRepositoryImpl extends ISaleRepository {
       ]);
       
       const revenue = result.length > 0 ? result[0].totalRevenue : 0;
-      logger.database(`Ingresos del día calculados: ${revenue}`);
+      logger.info(`Ingresos del día calculados: ${revenue}`);
       
       return revenue;
     } catch (error) {
@@ -475,3 +475,4 @@ class SaleRepositoryImpl extends ISaleRepository {
 }
 
 export default SaleRepositoryImpl;
+

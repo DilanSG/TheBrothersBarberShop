@@ -14,13 +14,13 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
    */
   async findById(id) {
     try {
-      logger.database(`Searching expense by ID: ${id}`);
+      logger.info(`Searching expense by ID: ${id}`);
       const expense = await Expense.findById(id)
         .populate('paymentMethod', 'name type')
         .populate('createdBy', 'name email');
       
       if (expense) {
-        logger.database(`Expense found: ${expense._id}`);
+        logger.info(`Expense found: ${expense._id}`);
       }
       
       return expense;
@@ -37,9 +37,9 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
    */
   async create(expenseData) {
     try {
-      logger.database('Creating new expense');
+      logger.info('Creating new expense');
       const expense = await Expense.create(expenseData);
-      logger.database(`Expense created successfully: ${expense._id}`);
+      logger.info(`Expense created successfully: ${expense._id}`);
       
       // Retornar con populate
       return await this.findById(expense._id);
@@ -57,7 +57,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
    */
   async update(id, updateData) {
     try {
-      logger.database(`Updating expense: ${id}`);
+      logger.info(`Updating expense: ${id}`);
       
       const expense = await Expense.findByIdAndUpdate(
         id,
@@ -73,7 +73,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
         throw new AppError('Gasto no encontrado', 404);
       }
 
-      logger.database(`Expense updated successfully: ${id}`);
+      logger.info(`Expense updated successfully: ${id}`);
       return expense;
     } catch (error) {
       logger.error(`Error updating expense ${id}:`, error);
@@ -93,14 +93,14 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
    */
   async delete(id) {
     try {
-      logger.database(`Deleting expense: ${id}`);
+      logger.info(`Deleting expense: ${id}`);
       const result = await Expense.findByIdAndDelete(id);
       
       if (!result) {
         throw new AppError('Gasto no encontrado', 404);
       }
 
-      logger.database(`Expense deleted successfully: ${id}`);
+      logger.info(`Expense deleted successfully: ${id}`);
       return true;
     } catch (error) {
       logger.error(`Error deleting expense ${id}:`, error);
@@ -124,7 +124,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
     try {
       const { sort = { date: -1 }, filters = {} } = options;
       
-      logger.database(`Searching expenses by date range: ${startDate} to ${endDate}`);
+      logger.info(`Searching expenses by date range: ${startDate} to ${endDate}`);
       
       const query = {
         date: {
@@ -139,7 +139,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
         .populate('createdBy', 'name email')
         .sort(sort);
       
-      logger.database(`Found ${expenses.length} expenses in date range`);
+      logger.info(`Found ${expenses.length} expenses in date range`);
       return expenses;
     } catch (error) {
       logger.error(`Error finding expenses by date range:`, error);
@@ -157,7 +157,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
     try {
       const { sort = { date: -1 }, limit } = options;
       
-      logger.database(`Searching expenses by category: ${category}`);
+      logger.info(`Searching expenses by category: ${category}`);
       
       let query = Expense.find({ category })
         .populate('paymentMethod', 'name type')
@@ -169,7 +169,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
       }
       
       const expenses = await query;
-      logger.database(`Found ${expenses.length} expenses for category ${category}`);
+      logger.info(`Found ${expenses.length} expenses for category ${category}`);
       
       return expenses;
     } catch (error) {
@@ -187,7 +187,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
     try {
       const { sort = { date: -1 } } = options;
       
-      logger.database('Searching recurring expenses');
+      logger.info('Searching recurring expenses');
       
       const expenses = await Expense.find({ 
         isRecurring: true 
@@ -196,7 +196,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
         .populate('createdBy', 'name email')
         .sort(sort);
       
-      logger.database(`Found ${expenses.length} recurring expenses`);
+      logger.info(`Found ${expenses.length} recurring expenses`);
       return expenses;
     } catch (error) {
       logger.error('Error finding recurring expenses:', error);
@@ -213,7 +213,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
     try {
       const { sort = { date: -1 } } = options;
       
-      logger.database('Searching non-recurring expenses');
+      logger.info('Searching non-recurring expenses');
       
       const expenses = await Expense.find({ 
         $or: [
@@ -225,7 +225,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
         .populate('createdBy', 'name email')
         .sort(sort);
       
-      logger.database(`Found ${expenses.length} non-recurring expenses`);
+      logger.info(`Found ${expenses.length} non-recurring expenses`);
       return expenses;
     } catch (error) {
       logger.error('Error finding non-recurring expenses:', error);
@@ -242,7 +242,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
    */
   async calculateTotalByPeriod(startDate, endDate, filters = {}) {
     try {
-      logger.database(`Calculating total expenses from ${startDate} to ${endDate}`);
+      logger.info(`Calculating total expenses from ${startDate} to ${endDate}`);
       
       const query = {
         date: {
@@ -263,7 +263,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
       ]);
       
       const total = result.length > 0 ? result[0].total : 0;
-      logger.database(`Total expenses calculated: ${total}`);
+      logger.info(`Total expenses calculated: ${total}`);
       
       return total;
     } catch (error) {
@@ -280,7 +280,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
    */
   async getExpenseStats(startDate, endDate) {
     try {
-      logger.database(`Getting expense stats from ${startDate} to ${endDate}`);
+      logger.info(`Getting expense stats from ${startDate} to ${endDate}`);
       
       const [totalStats, categoryStats, recurringStats] = await Promise.all([
         // Total general
@@ -341,7 +341,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
         nonRecurring: recurringStats.find(r => r._id === false) || { total: 0, count: 0 }
       };
       
-      logger.database('Expense stats calculated successfully');
+      logger.info('Expense stats calculated successfully');
       return stats;
     } catch (error) {
       logger.error('Error getting expense stats:', error);
@@ -363,7 +363,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
         filters = {}
       } = options;
 
-      logger.database(`Listing expenses - Page: ${page}, Limit: ${limit}`);
+      logger.info(`Listing expenses - Page: ${page}, Limit: ${limit}`);
 
       const skip = (page - 1) * limit;
       
@@ -381,7 +381,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
 
       const totalPages = Math.ceil(total / limit);
 
-      logger.database(`Found ${expenses.length} expenses out of ${total} total`);
+      logger.info(`Found ${expenses.length} expenses out of ${total} total`);
 
       return {
         expenses,
@@ -407,7 +407,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
     try {
       const { sort = { date: -1 }, limit } = options;
       
-      logger.database(`Searching expenses by payment method: ${paymentMethodId}`);
+      logger.info(`Searching expenses by payment method: ${paymentMethodId}`);
       
       let query = Expense.find({ paymentMethod: paymentMethodId })
         .populate('paymentMethod', 'name type')
@@ -419,7 +419,7 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
       }
       
       const expenses = await query;
-      logger.database(`Found ${expenses.length} expenses for payment method ${paymentMethodId}`);
+      logger.info(`Found ${expenses.length} expenses for payment method ${paymentMethodId}`);
       
       return expenses;
     } catch (error) {
@@ -430,3 +430,4 @@ class ExpenseRepositoryImpl extends IExpenseRepository {
 }
 
 export default ExpenseRepositoryImpl;
+
