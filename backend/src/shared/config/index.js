@@ -47,11 +47,16 @@ export const validateEnv = () => {
     throw new Error('Configuración incompleta. Por favor configura todas las variables de entorno requeridas.');
   }
   
-  // Solo advertir sobre email si no está configurado
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+  // Verificar configuración de email (SendGrid o SMTP)
+  const hasSendGrid = !!process.env.SENDGRID_API_KEY;
+  const hasSMTP = !!(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD);
+  
+  if (!hasSendGrid && !hasSMTP) {
     logger.warn('Variables de email no configuradas. Sistema funcionará sin capacidades de email.');
-  } else {
-    logger.info('Sistema de email configurado correctamente.');
+  } else if (hasSendGrid) {
+    logger.info('✅ Sistema de email configurado con SendGrid');
+  } else if (hasSMTP) {
+    logger.info('✅ Sistema de email configurado con SMTP');
   }
 };
 
