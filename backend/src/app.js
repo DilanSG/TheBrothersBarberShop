@@ -44,13 +44,16 @@ try {
 // Inicializar Express
 const app = express();
 
-// 🐛 Inicializar Sentry (error tracking en Render) - Configuración minimalista
+// 🐛 Inicializar Sentry (error tracking en Render)
+// DESHABILITADO: Sentry v10.19.0 tiene problemas que bloquean el servidor
 initSentry(app);
 
 // 🐛 Sentry request handler (DEBE ir antes de todas las rutas)
-app.use(sentryRequestHandler());
+// DESHABILITADO: Los middlewares de Sentry bloquean el event loop en Render
+// app.use(sentryRequestHandler());
 
 // Configuración de seguridad
+logger.info('🔒 Configurando seguridad (helmet)...');
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -148,7 +151,8 @@ app.get('/health', (req, res) => {
 app.use(notFound);
 
 // 🐛 Sentry error handler (DEBE ir DESPUÉS de rutas, ANTES de error handler)
-app.use(sentryErrorHandler());
+// DESHABILITADO: Los middlewares de Sentry bloquean el event loop en Render
+// app.use(sentryErrorHandler());
 
 // Manejo de errores
 app.use(errorHandler);
@@ -169,6 +173,8 @@ process.on('uncaughtException', (err) => {
   });
   process.exit(1);
 });
+
+logger.info('✅ App.js completamente configurado - Exportando app');
 
 // Exportar la app
 export default app;
