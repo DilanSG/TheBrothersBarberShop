@@ -20,33 +20,39 @@ import monitoringService from './core/application/usecases/MonitoringUseCases.js
 
 const startServer = async () => {
   try {
-    logger.info('INICIANDO SERVIDOR...');
-    logger.info('Puerto configurado:', config.app.port);
-    logger.info('Entorno:', config.app.nodeEnv);
+    logger.info('🚀 INICIANDO SERVIDOR...');
+    logger.info('📍 Puerto configurado:', config.app.port);
+    logger.info('📍 Entorno:', config.app.nodeEnv);
     
     // Conectar a la base de datos
+    logger.info('📊 Conectando a MongoDB...');
     await connectDB();
-    logger.info('Conexión a la base de datos establecida');
-    logger.info('Base de datos conectada exitosamente');
+    logger.info('✅ Conexión a la base de datos establecida');
+    logger.info('✅ Base de datos conectada exitosamente');
 
     // Verificar configuración de email (no bloquear el startup)
+    logger.info('📧 Verificando configuración de email...');
     emailService.verifyConnection()
       .then(() => {
-        logger.info('Servicio de email configurado y listo');
+        logger.info('✅ Servicio de email configurado y listo');
       })
       .catch((error) => {
-        logger.warn('Servicio de email no configurado o con errores:', error.message);
+        logger.warn('⚠️ Servicio de email no configurado o con errores:', error.message);
       });
 
     // Inicializar trabajos programados (cron jobs)
+    logger.info('⏰ Inicializando cron jobs...');
     cronJobService.initializeJobs();
-    logger.info('Cron jobs inicializados');
+    logger.info('✅ Cron jobs inicializados');
     
-    logger.info('Iniciando servidor en puerto:', config.app.port);
-    logger.info('Host configurado: 0.0.0.0');
+    logger.info('🌐 Iniciando servidor en puerto:', config.app.port);
+    logger.info('🌐 Host configurado: 0.0.0.0');
+    
+    logger.info('🔧 Llamando a app.listen()...');
     
     // Iniciar el servidor
     const server = app.listen(config.app.port, '0.0.0.0', () => {
+      logger.info('🎉 CALLBACK DE app.listen() EJECUTADO');
       logger.info(`
 ==============================================
 SERVER STARTED SUCCESSFULLY

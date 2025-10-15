@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { User, AppError, logger, config } from '../../../barrel.js';
+import emailService from '../../../services/emailService.js';
 
 class AuthUseCases {
   static async login(email, password) {
@@ -30,6 +32,15 @@ class AuthUseCases {
       
       // Limpiar datos sensibles
       const userResponse = this.sanitizeUser(user);
+
+      // Enviar notificación de login (sin bloquear el response)
+      if (emailService.isConfigured) {
+        emailService.sendLoginNotification(user, {
+          timestamp: new Date(),
+          device: 'Web Browser',
+          location: 'Colombia' // TODO: Detectar ubicación real
+        }).catch(err => logger.error('Error enviando notificación de login:', err));
+      }
 
       logger.info(`Inicio de sesión exitoso: ${email}`);
       return { token, user: userResponse };
@@ -66,6 +77,12 @@ class AuthUseCases {
       // Limpiar datos sensibles
       const userResponse = this.sanitizeUser(user);
 
+      // Enviar email de bienvenida (sin bloquear el response)
+      if (emailService.isConfigured) {
+        emailService.sendWelcomeEmail(user)
+          .catch(err => logger.error('Error enviando email de bienvenida:', err));
+      }
+
       logger.info(`Nuevo usuario registrado: ${userData.email}`);
       return { token, user: userResponse };
     } catch (error) {
@@ -82,15 +99,23 @@ class AuthUseCases {
         return { message: 'Si el email existe, recibirás instrucciones para restablecer tu contraseña.' };
       }
 
-      // Generar token temporal
+      // Generar token temporal seguro
       const resetToken = this.generateResetToken();
-      user.resetPasswordToken = resetToken;
+      const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+      
+      user.resetPasswordToken = hashedToken;
       user.resetPasswordExpires = Date.now() + 3600000; // 1 hora
       await user.save();
 
-      // TODO: Enviar email con token
-      logger.info(`Solicitud de reset de contraseña: ${email}`);
-      return { message: 'Instrucciones enviadas al email.' };
+      // Enviar email con token (el token original, no el hash)
+      if (emailService.isConfigured) {
+        await emailService.sendPasswordResetEmail(user, resetToken);
+        logger.info(`Email de reset de contraseña enviado a: ${email}`);
+      } else {
+        logger.warn(`Servicio de email no configurado. Token de reset: ${resetToken}`);
+      }
+
+      return { message: 'Si el email existe, recibirás instrucciones para restablecer tu contraseña.' };
     } catch (error) {
       logger.error('Error en resetPassword:', error);
       throw error;
@@ -114,10 +139,53 @@ class AuthUseCases {
       user.password = await this.hashPassword(newPassword);
       await user.save();
 
+      // Enviar confirmación de cambio de contraseña
+      if (emailService.isConfigured) {
+        emailService.sendPasswordChangedConfirmation(user)
+          .catch(err => logger.error('Error enviando confirmación de cambio de contraseña:', err));
+      }
+
       logger.info(`Contraseña cambiada para usuario: ${user.email}`);
       return { message: 'Contraseña actualizada correctamente' };
     } catch (error) {
       logger.error('Error en changePassword:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verificar token de reset y actualizar contraseña
+   */
+  static async verifyResetTokenAndUpdatePassword(token, newPassword) {
+    try {
+      // Hash del token para comparar con el almacenado
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+      
+      const user = await User.findOne({
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: { $gt: Date.now() }
+      });
+
+      if (!user) {
+        throw new AppError('Token inválido o expirado', 400);
+      }
+
+      // Actualizar contraseña
+      user.password = await this.hashPassword(newPassword);
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save();
+
+      // Enviar confirmación de cambio de contraseña
+      if (emailService.isConfigured) {
+        emailService.sendPasswordChangedConfirmation(user)
+          .catch(err => logger.error('Error enviando confirmación de cambio de contraseña:', err));
+      }
+
+      logger.info(`Contraseña restablecida exitosamente para: ${user.email}`);
+      return { message: 'Contraseña restablecida exitosamente' };
+    } catch (error) {
+      logger.error('Error en verifyResetTokenAndUpdatePassword:', error);
       throw error;
     }
   }

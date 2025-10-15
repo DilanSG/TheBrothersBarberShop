@@ -303,10 +303,10 @@ class EmailService {
         <div class="footer">
           ${footerText || `
             <p><strong>The Brothers Barber Shop</strong></p>
-            <p>📍 Dirección de la barbería</p>
-            <p>📞 Teléfono de contacto | 📧 info@thebrothersbarber.com</p>
+            <p>Calle 38 Sur, Kennedy, Bogotá 110861</p>
+            <p>Tel: 311 5882528 | Email: thebrobarbers20@gmail.com</p>
             <p style="margin-top: 10px; opacity: 0.8;">
-              Este email fue enviado automáticamente. Por favor no responder.
+              Este mensaje fue generado automáticamente. Por favor no responder a este correo.
             </p>
           `}
         </div>
@@ -320,13 +320,13 @@ class EmailService {
    */
   async sendAppointmentConfirmation(appointment, user) {
     const content = `
-      <h2 style="color: #1f2937; margin-bottom: 20px;">¡Cita Confirmada! ✅</h2>
-      <p>Hola <strong>${user.name}</strong>,</p>
-      <p>Tu cita ha sido confirmada exitosamente. Aquí tienes los detalles:</p>
+      <h2 style="color: #1f2937; margin-bottom: 20px;">Confirmación de Cita</h2>
+      <p>Estimado/a <strong>${user.name}</strong>,</p>
+      <p>Su cita ha sido confirmada. A continuación los detalles:</p>
       
       <div class="appointment-card">
         <div class="appointment-detail">
-          <span class="label">📅 Fecha:</span>
+          <span class="label">Fecha:</span>
           <span class="value">${new Date(appointment.date).toLocaleDateString('es-ES', {
             weekday: 'long',
             year: 'numeric',
@@ -335,37 +335,38 @@ class EmailService {
           })}</span>
         </div>
         <div class="appointment-detail">
-          <span class="label">⏰ Hora:</span>
+          <span class="label">Hora:</span>
           <span class="value">${appointment.time}</span>
         </div>
         <div class="appointment-detail">
-          <span class="label">✂️ Servicio:</span>
+          <span class="label">Servicio:</span>
           <span class="value">${appointment.service?.name || 'Servicio básico'}</span>
         </div>
         <div class="appointment-detail">
-          <span class="label">👨‍💼 Barbero:</span>
+          <span class="label">Barbero:</span>
           <span class="value">${appointment.barber?.name || 'Por asignar'}</span>
         </div>
         <div class="appointment-detail">
-          <span class="label">💰 Precio:</span>
+          <span class="label">Precio:</span>
           <span class="value">$${appointment.service?.price?.toLocaleString() || 'A definir'}</span>
         </div>
         ${appointment.notes ? `
         <div class="appointment-detail">
-          <span class="label">📝 Notas:</span>
+          <span class="label">Notas:</span>
           <span class="value">${appointment.notes}</span>
         </div>
         ` : ''}
       </div>
 
-      <p><strong>📝 Importante:</strong></p>
+      <p><strong>Información importante:</strong></p>
       <ul style="margin: 15px 0; padding-left: 20px;">
-        <li>Llega 5 minutos antes de tu cita</li>
-        <li>Si necesitas cancelar, hazlo con al menos 2 horas de anticipación</li>
-        <li>Recuerda traer identificación si es tu primera visita</li>
+        <li>Le recomendamos llegar 5 minutos antes de su cita</li>
+        <li>Para cancelaciones, solicitamos un aviso con al menos 2 horas de anticipación</li>
+        <li>Si es su primera visita, por favor traiga identificación</li>
       </ul>
 
-      <p>¡Esperamos verte pronto!</p>
+      <p>Esperamos atenderle pronto.</p>
+      <p>Saludos cordiales,<br>The Brothers Barber Shop</p>
     `;
 
     const html = this.getBaseTemplate({
@@ -375,7 +376,7 @@ class EmailService {
 
     return await this.sendEmail({
       to: user.email,
-      subject: '✅ Cita Confirmada - The Brothers Barber Shop',
+      subject: 'Confirmación de cita - The Brothers Barber Shop',
       html
     });
   }
@@ -385,13 +386,13 @@ class EmailService {
    */
   async sendAppointmentReminder(appointment, user) {
     const content = `
-      <h2 style="color: #1f2937; margin-bottom: 20px;">Recordatorio de Cita 📅</h2>
-      <p>Hola <strong>${user.name}</strong>,</p>
-      <p>Te recordamos que tienes una cita programada para mañana:</p>
+      <h2 style="color: #1f2937; margin-bottom: 20px;">Recordatorio de Cita</h2>
+      <p>Estimado/a <strong>${user.name}</strong>,</p>
+      <p>Le recordamos que tiene una cita programada para mañana con los siguientes detalles:</p>
       
       <div class="appointment-card">
         <div class="appointment-detail">
-          <span class="label">📅 Fecha:</span>
+          <span class="label">Fecha:</span>
           <span class="value">${new Date(appointment.date).toLocaleDateString('es-ES', {
             weekday: 'long',
             year: 'numeric',
@@ -400,23 +401,24 @@ class EmailService {
           })}</span>
         </div>
         <div class="appointment-detail">
-          <span class="label">⏰ Hora:</span>
+          <span class="label">Hora:</span>
           <span class="value">${appointment.time}</span>
         </div>
         <div class="appointment-detail">
-          <span class="label">✂️ Servicio:</span>
+          <span class="label">Servicio:</span>
           <span class="value">${appointment.service?.name || 'Servicio básico'}</span>
         </div>
         <div class="appointment-detail">
-          <span class="label">👨‍💼 Barbero:</span>
+          <span class="label">Barbero:</span>
           <span class="value">${appointment.barber?.name || 'Por asignar'}</span>
         </div>
       </div>
 
-      <p><strong>⚠️ ¿Necesitas cancelar?</strong></p>
-      <p>Si no puedes asistir, cancela tu cita lo antes posible para que otros clientes puedan usar ese horario.</p>
+      <p><strong>¿Necesita reprogramar?</strong></p>
+      <p>Si no puede asistir, le agradecemos nos informe con anticipación para poder ofrecer el horario a otros clientes.</p>
       
-      <p>¡Nos vemos mañana! 🔥</p>
+      <p>Nos vemos mañana.</p>
+      <p>Saludos,<br>The Brothers Barber Shop</p>
     `;
 
     const html = this.getBaseTemplate({
@@ -426,7 +428,7 @@ class EmailService {
 
     return await this.sendEmail({
       to: user.email,
-      subject: '📅 Recordatorio: Tu cita es mañana - The Brothers Barber Shop',
+      subject: 'Recordatorio: Cita programada para mañana',
       html
     });
   }
@@ -436,17 +438,17 @@ class EmailService {
    */
   async sendNewAppointmentNotification(appointment, barber, user) {
     const content = `
-      <h2 style="color: #1f2937; margin-bottom: 20px;">Nueva Cita Asignada 🆕</h2>
+      <h2 style="color: #1f2937; margin-bottom: 20px;">Nueva Cita Asignada</h2>
       <p>Hola <strong>${barber.name}</strong>,</p>
-      <p>Se ha programado una nueva cita contigo:</p>
+      <p>Se ha programado una nueva cita en tu agenda:</p>
       
       <div class="appointment-card">
         <div class="appointment-detail">
-          <span class="label">👤 Cliente:</span>
+          <span class="label">Cliente:</span>
           <span class="value">${user.name}</span>
         </div>
         <div class="appointment-detail">
-          <span class="label">📅 Fecha:</span>
+          <span class="label">Fecha:</span>
           <span class="value">${new Date(appointment.date).toLocaleDateString('es-ES', {
             weekday: 'long',
             year: 'numeric',
@@ -455,26 +457,27 @@ class EmailService {
           })}</span>
         </div>
         <div class="appointment-detail">
-          <span class="label">⏰ Hora:</span>
+          <span class="label">Hora:</span>
           <span class="value">${appointment.time}</span>
         </div>
         <div class="appointment-detail">
-          <span class="label">✂️ Servicio:</span>
+          <span class="label">Servicio:</span>
           <span class="value">${appointment.service?.name || 'Servicio básico'}</span>
         </div>
         <div class="appointment-detail">
-          <span class="label">📞 Teléfono:</span>
+          <span class="label">Teléfono:</span>
           <span class="value">${user.phone || 'No proporcionado'}</span>
         </div>
         ${appointment.notes ? `
         <div class="appointment-detail">
-          <span class="label">📝 Notas del cliente:</span>
+          <span class="label">Notas del cliente:</span>
           <span class="value">${appointment.notes}</span>
         </div>
         ` : ''}
       </div>
 
-      <p>Revisa tu agenda y prepárate para brindar un excelente servicio! 💪</p>
+      <p>Revisa tu agenda para el día indicado.</p>
+      <p>Saludos,<br>The Brothers Barber Shop</p>
     `;
 
     const html = this.getBaseTemplate({
@@ -484,7 +487,7 @@ class EmailService {
 
     return await this.sendEmail({
       to: barber.email,
-      subject: '🆕 Nueva cita asignada para ' + new Date(appointment.date).toLocaleDateString('es-ES'),
+      subject: 'Nueva cita asignada - ' + new Date(appointment.date).toLocaleDateString('es-ES'),
       html
     });
   }
@@ -510,9 +513,9 @@ class EmailService {
     }
 
     const content = `
-      <h2 style="color: #1f2937; margin-bottom: 20px;">Resumen del Día 📊</h2>
+      <h2 style="color: #1f2937; margin-bottom: 20px;">Resumen Diario</h2>
       <p>Buenos días <strong>${barber.name}</strong>,</p>
-      <p>Aquí tienes el resumen de tus citas para hoy, ${today.toLocaleDateString('es-ES', { 
+      <p>A continuación el resumen de tus citas para hoy, ${today.toLocaleDateString('es-ES', { 
         weekday: 'long', 
         year: 'numeric', 
         month: 'long', 
@@ -520,27 +523,26 @@ class EmailService {
       })}:</p>
       
       <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-        <h3 style="margin: 0; font-size: 18px;">📅 Citas del Día</h3>
+        <h3 style="margin: 0; font-size: 18px;">Citas del Día</h3>
         <p style="font-size: 32px; font-weight: bold; margin: 10px 0;">${appointmentCount}</p>
-        <p style="margin: 0; opacity: 0.9;">${appointmentCount === 0 ? 'Día libre' : appointmentCount === 1 ? '1 cita programada' : `${appointmentCount} citas programadas`}</p>
+        <p style="margin: 0; opacity: 0.9;">${appointmentCount === 0 ? 'Sin citas programadas' : appointmentCount === 1 ? '1 cita programada' : `${appointmentCount} citas programadas`}</p>
       </div>
 
       ${appointmentCount > 0 ? `
-        <h3 style="color: #1f2937; margin: 25px 0 15px 0;">Agenda del Día:</h3>
+        <h3 style="color: #1f2937; margin: 25px 0 15px 0;">Agenda del Día</h3>
         ${appointmentsList}
         
         <div style="background: #f0f9ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 15px; margin: 20px 0;">
-          <p style="margin: 0; color: #1e40af;"><strong>💡 Recordatorio:</strong> Revisa que tengas todos los implementos listos y llega 15 minutos antes de la primera cita.</p>
+          <p style="margin: 0; color: #1e40af;"><strong>Recordatorio:</strong> Verifica que cuentes con los implementos necesarios para cada servicio.</p>
         </div>
       ` : `
         <div style="text-align: center; padding: 40px 0;">
-          <p style="font-size: 48px; margin: 0;">🏖️</p>
-          <h3 style="color: #1f2937; margin: 15px 0 5px 0;">¡Día Libre!</h3>
-          <p style="color: #6b7280;">No tienes citas programadas para hoy. Disfruta tu descanso.</p>
+          <h3 style="color: #1f2937; margin: 15px 0 5px 0;">Sin citas programadas</h3>
+          <p style="color: #6b7280;">No tienes citas agendadas para el día de hoy.</p>
         </div>
       `}
 
-      <p>¡Que tengas un excelente día! 🔥</p>
+      <p>Saludos,<br>The Brothers Barber Shop</p>
     `;
 
     const html = this.getBaseTemplate({
@@ -550,7 +552,7 @@ class EmailService {
 
     return await this.sendEmail({
       to: barber.email,
-      subject: `📊 Resumen del día - ${appointmentCount} cita${appointmentCount !== 1 ? 's' : ''} programada${appointmentCount !== 1 ? 's' : ''}`,
+      subject: `Resumen del día - ${appointmentCount} cita${appointmentCount !== 1 ? 's' : ''} programada${appointmentCount !== 1 ? 's' : ''}`,
       html
     });
   }
@@ -560,13 +562,13 @@ class EmailService {
    */
   async sendAppointmentCancellation(appointment, user, reason = '') {
     const content = `
-      <h2 style="color: #dc2626; margin-bottom: 20px;">Cita Cancelada ❌</h2>
-      <p>Hola <strong>${user.name}</strong>,</p>
-      <p>Tu cita ha sido cancelada. Aquí están los detalles:</p>
+      <h2 style="color: #dc2626; margin-bottom: 20px;">Cita Cancelada</h2>
+      <p>Estimado/a <strong>${user.name}</strong>,</p>
+      <p>Le informamos que su cita ha sido cancelada:</p>
       
       <div class="appointment-card">
         <div class="appointment-detail">
-          <span class="label">📅 Fecha:</span>
+          <span class="label">Fecha:</span>
           <span class="value">${new Date(appointment.date).toLocaleDateString('es-ES', {
             weekday: 'long',
             year: 'numeric',
@@ -575,22 +577,23 @@ class EmailService {
           })}</span>
         </div>
         <div class="appointment-detail">
-          <span class="label">⏰ Hora:</span>
+          <span class="label">Hora:</span>
           <span class="value">${appointment.time}</span>
         </div>
         <div class="appointment-detail">
-          <span class="label">✂️ Servicio:</span>
+          <span class="label">Servicio:</span>
           <span class="value">${appointment.service?.name || 'Servicio básico'}</span>
         </div>
         ${reason ? `
         <div class="appointment-detail">
-          <span class="label">📝 Motivo:</span>
+          <span class="label">Motivo:</span>
           <span class="value">${reason}</span>
         </div>
         ` : ''}
       </div>
 
-      <p>¡Esperamos verte pronto! Puedes agendar una nueva cita cuando gustes.</p>
+      <p>Puede agendar una nueva cita cuando lo desee a través de nuestra plataforma.</p>
+      <p>Saludos,<br>The Brothers Barber Shop</p>
     `;
 
     const html = this.getBaseTemplate({
@@ -600,7 +603,338 @@ class EmailService {
 
     return await this.sendEmail({
       to: user.email,
-      subject: '❌ Cita Cancelada - The Brothers Barber Shop',
+      subject: 'Cita cancelada - The Brothers Barber Shop',
+      html
+    });
+  }
+
+  /**
+   * BIENVENIDA - Nuevo usuario registrado
+   */
+  async sendWelcomeEmail(user) {
+    const content = `
+      <h2 style="color: #1f2937; margin-bottom: 20px;">Bienvenido a The Brothers Barber Shop</h2>
+      
+      <p>Hola <strong>${user.name}</strong>,</p>
+      <p>Tu cuenta ha sido creada exitosamente. A continuación encontrarás los detalles de tu registro:</p>
+
+      <div style="background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border-left: 4px solid #3b82f6; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0;">
+        <h3 style="color: #1e40af; margin: 0 0 10px 0;">Información de la cuenta</h3>
+        <div class="appointment-detail">
+          <span class="label">Email:</span>
+          <span class="value">${user.email}</span>
+        </div>
+        <div class="appointment-detail">
+          <span class="label">Nombre:</span>
+          <span class="value">${user.name}</span>
+        </div>
+        <div class="appointment-detail">
+          <span class="label">Teléfono:</span>
+          <span class="value">${user.phone || 'No proporcionado'}</span>
+        </div>
+        <div class="appointment-detail">
+          <span class="label">Tipo de cuenta:</span>
+          <span class="value">${user.role === 'user' ? 'Cliente' : user.role === 'barber' ? 'Barbero' : 'Administrador'}</span>
+        </div>
+      </div>
+
+      <div style="background: #f8f9fa; border-radius: 8px; padding: 20px; margin: 25px 0;">
+        <h3 style="color: #1f2937; margin: 0 0 15px 0;">Servicios disponibles</h3>
+        <ul style="margin: 0; padding-left: 20px; color: #374151;">
+          <li style="margin: 8px 0;">Agendar citas con nuestros barberos profesionales</li>
+          <li style="margin: 8px 0;">Consultar horarios disponibles</li>
+          <li style="margin: 8px 0;">Ver catálogo de servicios y tarifas</li>
+          <li style="margin: 8px 0;">Gestionar tu perfil</li>
+          <li style="margin: 8px 0;">Acceder a tu historial de servicios</li>
+        </ul>
+      </div>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${process.env.FRONTEND_URL || 'https://the-bro-barbers.vercel.app'}/appointments/new" class="button">
+          Agendar una Cita
+        </a>
+      </div>
+
+      <p>Para cualquier consulta, estamos a tu disposición a través de nuestros canales de contacto.</p>
+      <p>Saludos cordiales,<br>Equipo The Brothers Barber Shop</p>
+    `;
+
+    const html = this.getBaseTemplate({
+      title: 'Bienvenido - The Brothers Barber Shop',
+      content
+    });
+
+    return await this.sendEmail({
+      to: user.email,
+      subject: 'Bienvenido a The Brothers Barber Shop',
+      html
+    });
+  }
+
+  /**
+   * CONFIRMACIÓN DE LOGIN - Seguridad adicional
+   */
+  async sendLoginNotification(user, loginInfo = {}) {
+    const { ip, device, location, timestamp } = loginInfo;
+    const loginTime = timestamp ? new Date(timestamp).toLocaleString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }) : new Date().toLocaleString('es-ES');
+
+    const content = `
+      <h2 style="color: #1f2937; margin-bottom: 20px;">Notificación de Acceso a tu Cuenta</h2>
+      <p>Hola <strong>${user.name}</strong>,</p>
+      <p>Se ha registrado un nuevo inicio de sesión en tu cuenta. Si reconoces esta actividad, no es necesario que tomes ninguna acción.</p>
+
+      <div style="background: #f0f9ff; border-left: 4px solid #3b82f6; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0;">
+        <h3 style="color: #1e40af; margin: 0 0 15px 0;">Detalles del acceso</h3>
+        <div class="appointment-detail">
+          <span class="label">Fecha y hora:</span>
+          <span class="value">${loginTime}</span>
+        </div>
+        ${ip ? `
+        <div class="appointment-detail">
+          <span class="label">Dirección IP:</span>
+          <span class="value">${ip}</span>
+        </div>
+        ` : ''}
+        ${device ? `
+        <div class="appointment-detail">
+          <span class="label">Dispositivo:</span>
+          <span class="value">${device}</span>
+        </div>
+        ` : ''}
+        ${location ? `
+        <div class="appointment-detail">
+          <span class="label">Ubicación:</span>
+          <span class="value">${location}</span>
+        </div>
+        ` : ''}
+      </div>
+
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0 0 10px 0; color: #991b1b;"><strong>¿No reconoces esta actividad?</strong></p>
+        <p style="margin: 0; color: #991b1b;">Si no fuiste tú quien inició sesión, te recomendamos cambiar tu contraseña inmediatamente y contactar a nuestro equipo de soporte.</p>
+      </div>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${process.env.FRONTEND_URL || 'https://the-bro-barbers.vercel.app'}/profile/security" class="button" style="background: linear-gradient(135deg, #dc2626, #991b1b);">
+          Cambiar Contraseña
+        </a>
+      </div>
+
+      <p>Este es un mensaje automático de seguridad.</p>
+      <p>Saludos,<br>Equipo The Brothers Barber Shop</p>
+    `;
+
+    const html = this.getBaseTemplate({
+      title: 'Notificación de Acceso - The Brothers Barber Shop',
+      content
+    });
+
+    return await this.sendEmail({
+      to: user.email,
+      subject: 'Notificación de acceso a tu cuenta',
+      html
+    });
+  }
+
+  /**
+   * RESET DE CONTRASEÑA - Enviar token
+   */
+  async sendPasswordResetEmail(user, resetToken) {
+    const resetUrl = `${process.env.FRONTEND_URL || 'https://the-bro-barbers.vercel.app'}/auth/reset-password/${resetToken}`;
+    const expiresIn = '1 hora';
+
+    const content = `
+      <h2 style="color: #1f2937; margin-bottom: 20px;">Restablecimiento de Contraseña</h2>
+      <p>Hola <strong>${user.name}</strong>,</p>
+      <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta.</p>
+
+      <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0;">
+        <p style="margin: 0 0 10px 0; color: #92400e;"><strong>Importante:</strong> Este enlace es válido únicamente por <strong>${expiresIn}</strong>.</p>
+        <p style="margin: 0; color: #92400e;">Si no solicitaste este cambio, puedes ignorar este mensaje. Tu contraseña permanecerá sin cambios.</p>
+      </div>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${resetUrl}" class="button">
+          Restablecer Contraseña
+        </a>
+      </div>
+
+      <div style="background: #f8f9fa; border-radius: 8px; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0 0 10px 0; color: #374151; font-size: 14px;"><strong>¿Problemas con el botón?</strong></p>
+        <p style="margin: 0; color: #6b7280; font-size: 13px; word-break: break-all;">Copia y pega este enlace en tu navegador:</p>
+        <p style="margin: 10px 0 0 0; color: #3b82f6; font-size: 12px; word-break: break-all;">${resetUrl}</p>
+      </div>
+
+      <div style="background: #f0f9ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0; color: #1e40af;"><strong>Nota de seguridad:</strong> Nunca compartas este enlace. Nuestro equipo nunca solicitará tu contraseña por email o teléfono.</p>
+      </div>
+
+      <p>Saludos,<br>Equipo The Brothers Barber Shop</p>
+    `;
+
+    const html = this.getBaseTemplate({
+      title: 'Restablecer Contraseña - The Brothers Barber Shop',
+      content
+    });
+
+    return await this.sendEmail({
+      to: user.email,
+      subject: 'Solicitud de restablecimiento de contraseña',
+      html
+    });
+  }
+
+  /**
+   * CONFIRMACIÓN DE CAMBIO DE CONTRASEÑA
+   */
+  async sendPasswordChangedConfirmation(user) {
+    const changeTime = new Date().toLocaleString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const content = `
+      <h2 style="color: #059669; margin-bottom: 20px;">Contraseña Actualizada</h2>
+      
+      <p>Hola <strong>${user.name}</strong>,</p>
+      <p>Te confirmamos que la contraseña de tu cuenta ha sido modificada exitosamente.</p>
+
+      <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0;">
+        <div class="appointment-detail">
+          <span class="label">Fecha del cambio:</span>
+          <span class="value">${changeTime}</span>
+        </div>
+        <div class="appointment-detail">
+          <span class="label">Cuenta:</span>
+          <span class="value">${user.email}</span>
+        </div>
+        <div class="appointment-detail">
+          <span class="label">Estado:</span>
+          <span class="value">Contraseña actualizada y activa</span>
+        </div>
+      </div>
+
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0 0 10px 0; color: #991b1b;"><strong>¿No realizaste este cambio?</strong></p>
+        <p style="margin: 0; color: #991b1b;">Si no fuiste tú quien modificó la contraseña, contacta inmediatamente a nuestro equipo de soporte para proteger tu cuenta.</p>
+      </div>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${process.env.FRONTEND_URL || 'https://the-bro-barbers.vercel.app'}/profile" class="button">
+          Ir a Mi Perfil
+        </a>
+      </div>
+
+      <div style="background: #f0f9ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0; color: #1e40af;"><strong>Recomendación:</strong> Utiliza una contraseña única y segura. Considera el uso de un gestor de contraseñas.</p>
+      </div>
+
+      <p>Saludos,<br>Equipo The Brothers Barber Shop</p>
+    `;
+
+    const html = this.getBaseTemplate({
+      title: 'Contraseña Actualizada - The Brothers Barber Shop',
+      content
+    });
+
+    return await this.sendEmail({
+      to: user.email,
+      subject: 'Confirmación de cambio de contraseña',
+      html
+    });
+  }
+
+  /**
+   * NOTIFICACIÓN DE VENTA - Para clientes
+   */
+  async sendSaleConfirmation(sale, user) {
+    const saleDate = new Date(sale.createdAt).toLocaleString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    let itemsList = '';
+    if (sale.items && sale.items.length > 0) {
+      itemsList = sale.items.map(item => `
+        <div style="display: flex; justify-content: space-between; padding: 12px; background: #f8f9fa; border-radius: 6px; margin: 8px 0;">
+          <div>
+            <strong style="color: #1f2937;">${item.productName || item.product?.name || 'Producto'}</strong>
+            <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 13px;">Cantidad: ${item.quantity}</p>
+          </div>
+          <div style="text-align: right;">
+            <strong style="color: #1f2937;">$${(item.price * item.quantity).toLocaleString()}</strong>
+            <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 13px;">$${item.price.toLocaleString()} c/u</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    const content = `
+      <h2 style="color: #1f2937; margin-bottom: 20px;">Comprobante de Compra</h2>
+      
+      <p>Estimado/a <strong>${user.name}</strong>,</p>
+      <p>Gracias por su compra. A continuación el detalle de su transacción:</p>
+
+      <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+        <p style="margin: 0; opacity: 0.9; font-size: 14px;">Total</p>
+        <h3 style="margin: 10px 0 5px 0; font-size: 36px;">${sale.total.toLocaleString('es-ES', { style: 'currency', currency: 'COP' })}</h3>
+        <p style="margin: 0; opacity: 0.8; font-size: 12px;">Recibo #${sale._id?.toString().slice(-8).toUpperCase() || 'N/A'}</p>
+      </div>
+
+      <div style="background: #f8f9fa; border-radius: 8px; padding: 20px; margin: 25px 0;">
+        <h3 style="color: #1f2937; margin: 0 0 15px 0;">Productos</h3>
+        ${itemsList || '<p style="margin: 0; color: #6b7280;">Sin productos registrados</p>'}
+      </div>
+
+      <div style="background: #f0f9ff; border-left: 4px solid #3b82f6; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0;">
+        <h3 style="color: #1e40af; margin: 0 0 15px 0;">Resumen</h3>
+        <div class="appointment-detail">
+          <span class="label">Fecha:</span>
+          <span class="value">${saleDate}</span>
+        </div>
+        <div class="appointment-detail">
+          <span class="label">Método de pago:</span>
+          <span class="value">${sale.paymentMethod || 'Efectivo'}</span>
+        </div>
+        <div class="appointment-detail">
+          <span class="label">Atendido por:</span>
+          <span class="value">${sale.barber?.name || 'Staff'}</span>
+        </div>
+        ${sale.discount > 0 ? `
+        <div class="appointment-detail">
+          <span class="label">Descuento:</span>
+          <span class="value">-$${sale.discount.toLocaleString()}</span>
+        </div>
+        ` : ''}
+      </div>
+
+      <p>Agradecemos su preferencia.</p>
+      <p>Saludos cordiales,<br>The Brothers Barber Shop</p>
+    `;
+
+    const html = this.getBaseTemplate({
+      title: 'Comprobante de Compra - The Brothers Barber Shop',
+      content
+    });
+
+    return await this.sendEmail({
+      to: user.email,
+      subject: `Comprobante de compra - The Brothers Barber Shop`,
       html
     });
   }

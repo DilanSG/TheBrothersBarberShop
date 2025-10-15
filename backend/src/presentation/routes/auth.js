@@ -4,6 +4,7 @@ import {
   login, 
   changePassword, 
   requestPasswordReset,
+  resetPasswordWithToken,
   validateToken,
   logout
 } from '../controllers/authController.js';
@@ -126,6 +127,7 @@ router.post('/login', login);
  *         $ref: '#/components/responses/NotFound'
  */
 router.post('/reset-password', requestPasswordReset);
+router.post('/reset-password/:token', resetPasswordWithToken);
 
 // Rutas protegidas
 router.use(protect);

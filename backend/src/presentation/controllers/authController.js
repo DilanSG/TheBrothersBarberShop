@@ -78,6 +78,28 @@ export const requestPasswordReset = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Verificar token y actualizar contraseña
+// @route   POST /api/auth/reset-password/:token
+// @access  Público
+export const resetPasswordWithToken = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  const { newPassword } = req.body;
+
+  if (!newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: 'Por favor proporcione la nueva contraseña'
+    });
+  }
+
+  const result = await AuthUseCases.verifyResetTokenAndUpdatePassword(token, newPassword);
+
+  res.json({
+    success: true,
+    message: result.message
+  });
+});
+
 // @desc    Validar token JWT
 // @route   GET /api/auth/validate-token
 // @access  Privado

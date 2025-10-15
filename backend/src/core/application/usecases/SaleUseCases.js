@@ -3,11 +3,13 @@ import Sale from '../../domain/entities/Sale.js';
 import Barber from '../../domain/entities/Barber.js';
 import Inventory from '../../domain/entities/Inventory.js';
 import Appointment from '../../domain/entities/Appointment.js';
+import User from '../../domain/entities/User.js';
 import InventoryLogService from './InventoryLogUseCases.js';
 import { reportsCacheService } from './reportsCacheService.js';
 import { AppError } from '../../../shared/utils/errors.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { SALE_TYPES, getSaleTypeDisplayName } from '../../../shared/constants/salesConstants.js';
+import emailService from '../../../services/emailService.js';
 
 class SaleUseCases {
   /**
@@ -18,13 +20,13 @@ class SaleUseCases {
     
     // Primero intentar buscar por ID de barbero
     let barber = await Barber.findById(id);
-    console.log(`?? Búsqueda por ID de barbero: ${barber ? 'ENCONTRADO' : 'NO ENCONTRADO'}`);
+    console.log(`?? Bï¿½squeda por ID de barbero: ${barber ? 'ENCONTRADO' : 'NO ENCONTRADO'}`);
     
     // Si no se encuentra, buscar por user ID
     if (!barber) {
       console.log(`?? Buscando por user ID: ${id}`);
       barber = await Barber.findOne({ user: id }).populate('user');
-      console.log(`?? Búsqueda por user ID: ${barber ? 'ENCONTRADO' : 'NO ENCONTRADO'}`);
+      console.log(`?? Bï¿½squeda por user ID: ${barber ? 'ENCONTRADO' : 'NO ENCONTRADO'}`);
     }
     
     if (!barber) {
@@ -43,12 +45,12 @@ class SaleUseCases {
   }
 
   /**
-   * Crear una nueva venta (puede ser de múltiples productos)
+   * Crear una nueva venta (puede ser de mï¿½ltiples productos)
    */
   static async createSale(saleData) {
     const { items, barberId, total, notes } = saleData;
 
-    logger.info('?? Iniciando creación de venta', {
+    logger.info('?? Iniciando creaciï¿½n de venta', {
       barberId,
       hasItems: !!items,
       itemsCount: items?.length || 0,
@@ -59,7 +61,7 @@ class SaleUseCases {
     // Verificar que el barbero existe (buscar por ID de barbero o usuario)
     const barber = await SaleUseCases.findBarberByIdOrUserId(barberId);
 
-    // Si es un solo producto (compatibilidad hacia atrás)
+    // Si es un solo producto (compatibilidad hacia atrï¿½s)
     if (saleData.productId) {
       const { productId, quantity } = saleData;
       
@@ -73,24 +75,24 @@ class SaleUseCases {
         throw new AppError('Stock insuficiente para realizar la venta', 400);
       }
 
-      // Validar método de pago
+      // Validar mï¿½todo de pago
       const validPaymentMethods = ['efectivo', 'tarjeta', 'transferencia'];
       if (saleData.paymentMethod && !validPaymentMethods.includes(saleData.paymentMethod)) {
-        throw new AppError(`Método de pago inválido: ${saleData.paymentMethod}. Métodos válidos: ${validPaymentMethods.join(', ')}`, 400);
+        throw new AppError(`Mï¿½todo de pago invï¿½lido: ${saleData.paymentMethod}. Mï¿½todos vï¿½lidos: ${validPaymentMethods.join(', ')}`, 400);
       }
 
       // Validar campos requeridos
       if (!quantity || quantity <= 0) {
-        logger.error('? Validación fallida: cantidad inválida', { quantity, productId });
+        logger.error('? Validaciï¿½n fallida: cantidad invï¿½lida', { quantity, productId });
         throw new AppError('La cantidad debe ser mayor a 0', 400);
       }
       
       if (!product.price || product.price <= 0) {
-        logger.error('? Validación fallida: precio inválido', { price: product.price, productId, productName: product.name });
+        logger.error('? Validaciï¿½n fallida: precio invï¿½lido', { price: product.price, productId, productName: product.name });
         throw new AppError('El precio del producto debe ser mayor a 0', 400);
       }
 
-      logger.info('? Validaciones pasadas para venta de producto único', {
+      logger.info('? Validaciones pasadas para venta de producto ï¿½nico', {
         productId,
         productName: product.name,
         quantity,
@@ -117,7 +119,7 @@ class SaleUseCases {
 
       await sale.save();
 
-      logger.info('? Venta de producto único creada exitosamente', {
+      logger.info('? Venta de producto ï¿½nico creada exitosamente', {
         saleId: sale._id,
         productId,
         productName: product.name,
@@ -137,25 +139,25 @@ class SaleUseCases {
         productId,
         { 
           $inc: { 
-            stock: -quantity, // Campo principal teórico
-            realStock: -quantity, // Campo real - DEBE ACTUALIZARSE TAMBIÉN
+            stock: -quantity, // Campo principal teï¿½rico
+            realStock: -quantity, // Campo real - DEBE ACTUALIZARSE TAMBIï¿½N
             sales: quantity   // SOLO registrar ventas
           }
         },
         { new: true } // Devolver documento actualizado
       );
       
-      console.log(`?? Stock después: currentStock=${updateResult.currentStock}, stock=${updateResult.stock}, realStock=${updateResult.realStock}`);
+      console.log(`?? Stock despuï¿½s: currentStock=${updateResult.currentStock}, stock=${updateResult.stock}, realStock=${updateResult.realStock}`);
       console.log(`? Inventario actualizado para producto ${product.name}`);
 
-      // Actualizar estadísticas del barbero
+      // Actualizar estadï¿½sticas del barbero
       await SaleUseCases.updateBarberStats(barberId, sale.totalAmount, SALE_TYPES.PRODUCT);
 
       // Registrar log de venta en inventario (carrito completo)
       try {
         await InventoryLogService.createLog(
           'sale',
-          null, // No es un producto específico, es un carrito
+          null, // No es un producto especï¿½fico, es un carrito
           'Venta de productos',
           barber.user?._id || barber._id,
           barber.user ? 'barber' : 'admin',
@@ -174,7 +176,7 @@ class SaleUseCases {
       return sale;
     }
 
-    // Manejo de múltiples productos
+    // Manejo de mï¿½ltiples productos
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new AppError('Se requiere al menos un producto', 400);
     }
@@ -206,10 +208,10 @@ class SaleUseCases {
         throw new AppError('El precio del producto debe ser mayor a 0', 400);
       }
       
-      // Validar método de pago
+      // Validar mï¿½todo de pago
       const validPaymentMethods = ['efectivo', 'tarjeta', 'transferencia'];
       if (saleData.paymentMethod && !validPaymentMethods.includes(saleData.paymentMethod)) {
-        throw new AppError(`Método de pago inválido: ${saleData.paymentMethod}. Métodos válidos: ${validPaymentMethods.join(', ')}`, 400);
+        throw new AppError(`Mï¿½todo de pago invï¿½lido: ${saleData.paymentMethod}. Mï¿½todos vï¿½lidos: ${validPaymentMethods.join(', ')}`, 400);
       }
 
       // Crear venta individual
@@ -232,7 +234,7 @@ class SaleUseCases {
       await sale.save();
 
       // Descontar del inventario con logging detallado
-      console.log(`?? Actualizando inventario múltiple - Producto: ${productId}, Cantidad: ${quantity}`);
+      console.log(`?? Actualizando inventario mï¿½ltiple - Producto: ${productId}, Cantidad: ${quantity}`);
       const productBefore = await Inventory.findById(productId);
       console.log(`?? Stock antes: ${product.name} currentStock=${productBefore.currentStock}, stock=${productBefore.stock}`);
       
@@ -244,19 +246,19 @@ class SaleUseCases {
             sales: quantity   // SOLO registrar ventas
           },
           $set: {
-            currentStock: null // Remover campo obsoleto para evitar confusión
+            currentStock: null // Remover campo obsoleto para evitar confusiï¿½n
           }
         },
         { new: true } // Devolver documento actualizado
       );
       
-      console.log(`?? Stock después: ${product.name} currentStock=${updateResult.currentStock}, stock=${updateResult.stock}`);
+      console.log(`?? Stock despuï¿½s: ${product.name} currentStock=${updateResult.currentStock}, stock=${updateResult.stock}`);
       console.log(`? Inventario actualizado para ${product.name}`);
 
       sales.push(sale);
     }
 
-    // Actualizar estadísticas del barbero
+    // Actualizar estadï¿½sticas del barbero
     const totalAmount = sales.reduce((sum, sale) => sum + sale.totalAmount, 0);
     await SaleUseCases.updateBarberStats(barberId, totalAmount, SALE_TYPES.PRODUCT);
 
@@ -267,7 +269,7 @@ class SaleUseCases {
       
       await InventoryLogService.createLog(
         'sale',
-        null, // No es un producto específico, es un carrito
+        null, // No es un producto especï¿½fico, es un carrito
         'Carrito de productos',
         barber.user?._id || barber._id,
         barber.user ? 'barber' : 'admin',
@@ -278,9 +280,9 @@ class SaleUseCases {
           totalItems: totalItems
         }
       );
-      console.log(`?? Log de carrito múltiple creado - ${sales.length} productos - Total: $${totalAmount}`);
+      console.log(`?? Log de carrito mï¿½ltiple creado - ${sales.length} productos - Total: $${totalAmount}`);
     } catch (logError) {
-      console.error('Error al crear log de carrito múltiple:', logError);
+      console.error('Error al crear log de carrito mï¿½ltiple:', logError);
     }
 
     return sales;
@@ -292,7 +294,7 @@ class SaleUseCases {
   static async createWalkInSale(saleData) {
     const { serviceId, serviceName, price, barberId, total, notes } = saleData;
 
-    logger.info('?? Iniciando creación de venta walk-in', {
+    logger.info('?? Iniciando creaciï¿½n de venta walk-in', {
       serviceId,
       serviceName,
       price,
@@ -314,10 +316,10 @@ class SaleUseCases {
       throw new AppError('El monto total debe ser mayor a 0', 400);
     }
     
-    // Validar método de pago
+    // Validar mï¿½todo de pago
     const validPaymentMethods = ['efectivo', 'tarjeta', 'transferencia'];
     if (saleData.paymentMethod && !validPaymentMethods.includes(saleData.paymentMethod)) {
-      throw new AppError(`Método de pago inválido: ${saleData.paymentMethod}. Métodos válidos: ${validPaymentMethods.join(', ')}`, 400);
+      throw new AppError(`Mï¿½todo de pago invï¿½lido: ${saleData.paymentMethod}. Mï¿½todos vï¿½lidos: ${validPaymentMethods.join(', ')}`, 400);
     }
 
     // Crear la venta walk-in
@@ -350,14 +352,14 @@ class SaleUseCases {
       paymentMethod: sale.paymentMethod
     });
     
-    // Actualizar estadísticas del barbero
+    // Actualizar estadï¿½sticas del barbero
     await SaleUseCases.updateBarberStats(barberId, sale.totalAmount, SALE_TYPES.WALKIN);
     
     return sale;
   }
 
   /**
-   * Actualizar estadísticas del barbero después de una venta
+   * Actualizar estadï¿½sticas del barbero despuï¿½s de una venta
    */
   static async updateBarberStats(barberId, saleAmount, saleType = SALE_TYPES.PRODUCT) {
     try {
@@ -368,11 +370,11 @@ class SaleUseCases {
       
       // Debug: console.log(`?? Barbero encontrado para stats: ${barber._id}`);
       
-      // Obtener estadísticas actuales antes de la actualización
+      // Obtener estadï¿½sticas actuales antes de la actualizaciï¿½n
       const currentBarber = await Barber.findById(barber._id);
       console.log(`?? Stats actuales - Sales: ${currentBarber.totalSales || 0}, Revenue: ${currentBarber.totalRevenue || 0}`);
       
-      // Actualizar estadísticas usando el ID del barbero encontrado
+      // Actualizar estadï¿½sticas usando el ID del barbero encontrado
       const updateResult = await Barber.findByIdAndUpdate(
         barber._id,
         {
@@ -387,12 +389,12 @@ class SaleUseCases {
         { new: true } // Devolver el documento actualizado
       );
       
-      console.log(`?? Stats después de actualizar - Sales: ${updateResult.totalSales}, Revenue: ${updateResult.totalRevenue}`);
-      // Debug: console.log(`? Estadísticas actualizadas exitosamente para barbero ${barber._id}: +$${saleAmount}`);
+      console.log(`?? Stats despuï¿½s de actualizar - Sales: ${updateResult.totalSales}, Revenue: ${updateResult.totalRevenue}`);
+      // Debug: console.log(`? Estadï¿½sticas actualizadas exitosamente para barbero ${barber._id}: +$${saleAmount}`);
       
       return updateResult;
     } catch (error) {
-      console.error('? Error actualizando estadísticas del barbero:', error);
+      console.error('? Error actualizando estadï¿½sticas del barbero:', error);
       console.error('? Stack:', error.stack);
       // No lanzar error para no interrumpir la venta, pero log detallado
       return null;
@@ -400,9 +402,9 @@ class SaleUseCases {
   }
 
   /**
-   * Obtener reporte por período (diario, semanal, mensual)
+   * Obtener reporte por perï¿½odo (diario, semanal, mensual)
    * Para reportes semanales y mensuales, la fecha seleccionada es el punto final
-   * y se calcula hacia atrás desde esa fecha
+   * y se calcula hacia atrï¿½s desde esa fecha
    */
   static async getReportByPeriod(type, date) {
     let startDate, endDate;
@@ -410,7 +412,7 @@ class SaleUseCases {
 
     switch (type) {
       case 'daily':
-        // Reporte diario: solo el día seleccionado
+        // Reporte diario: solo el dï¿½a seleccionado
         startDate = new Date(selectedDate);
         startDate.setHours(0, 0, 0, 0);
         endDate = new Date(selectedDate);
@@ -418,25 +420,25 @@ class SaleUseCases {
         break;
         
       case 'weekly':
-        // Reporte semanal: 7 días hacia atrás desde la fecha seleccionada (incluyendo el día seleccionado)
+        // Reporte semanal: 7 dï¿½as hacia atrï¿½s desde la fecha seleccionada (incluyendo el dï¿½a seleccionado)
         endDate = new Date(selectedDate);
         endDate.setHours(23, 59, 59, 999);
         startDate = new Date(selectedDate);
-        startDate.setDate(startDate.getDate() - 6); // 6 días atrás + día actual = 7 días
+        startDate.setDate(startDate.getDate() - 6); // 6 dï¿½as atrï¿½s + dï¿½a actual = 7 dï¿½as
         startDate.setHours(0, 0, 0, 0);
         break;
         
       case 'monthly':
-        // Reporte mensual: 30 días hacia atrás desde la fecha seleccionada (incluyendo el día seleccionado)
+        // Reporte mensual: 30 dï¿½as hacia atrï¿½s desde la fecha seleccionada (incluyendo el dï¿½a seleccionado)
         endDate = new Date(selectedDate);
         endDate.setHours(23, 59, 59, 999);
         startDate = new Date(selectedDate);
-        startDate.setDate(startDate.getDate() - 29); // 29 días atrás + día actual = 30 días
+        startDate.setDate(startDate.getDate() - 29); // 29 dï¿½as atrï¿½s + dï¿½a actual = 30 dï¿½as
         startDate.setHours(0, 0, 0, 0);
         break;
         
       default:
-        throw new AppError('Tipo de reporte no válido', 400);
+        throw new AppError('Tipo de reporte no vï¿½lido', 400);
     }
 
     // Agregar ventas de productos por barbero
@@ -470,7 +472,7 @@ class SaleUseCases {
       }
     ]);
 
-    // Obtener citas (cortes) del período por barbero
+    // Obtener citas (cortes) del perï¿½odo por barbero
     const Appointment = (await import('../models/Appointment.js')).default;
     const appointments = await Appointment.aggregate([
       {
@@ -580,7 +582,7 @@ class SaleUseCases {
   }
 
   /**
-   * Generar etiqueta del período
+   * Generar etiqueta del perï¿½odo
    */
   static getPeriodLabel(type, startDate, endDate) {
     const options = { 
@@ -602,7 +604,7 @@ class SaleUseCases {
           timeZone: 'America/Bogota'
         });
       default:
-        return 'Período';
+        return 'Perï¿½odo';
     }
   }
 
@@ -610,7 +612,7 @@ class SaleUseCases {
    * Obtener reporte diario (mantener compatibilidad)
    */
   /**
-   * Obtener reporte diario específico para frontend
+   * Obtener reporte diario especï¿½fico para frontend
    */
   static async getDailyReport(date) {
     try {
@@ -619,7 +621,7 @@ class SaleUseCases {
       const startDate = new Date(dateStr + 'T00:00:00.000Z');
       const endDate = new Date(dateStr + 'T23:59:59.999Z');
 
-      // Obtener ventas del día
+      // Obtener ventas del dï¿½a
       const sales = await Sale.find({
         saleDate: { $gte: startDate, $lte: endDate },
         status: 'completed'
@@ -639,7 +641,7 @@ class SaleUseCases {
         saleDate: sale.saleDate
       }));
 
-      // Obtener citas del día
+      // Obtener citas del dï¿½a
       const appointments = await Appointment.find({
         date: { $gte: startDate, $lte: endDate },
         status: 'completed'
@@ -686,7 +688,7 @@ class SaleUseCases {
       return {
         sales: formattedSales,
         appointments: formattedAppointments,
-        walkIns: [], // Por ahora vacío
+        walkIns: [], // Por ahora vacï¿½o
         totals: {
           productTotal,
           appointmentTotal,
@@ -719,7 +721,7 @@ class SaleUseCases {
     };
     
     if (filters.barberId) {
-      // Intentar resolver el barberId (podría ser userId o barberId real)
+      // Intentar resolver el barberId (podrï¿½a ser userId o barberId real)
       try {
         const resolvedBarber = await SaleUseCases.findBarberByIdOrUserId(filters.barberId);
         if (resolvedBarber) {
@@ -764,12 +766,12 @@ class SaleUseCases {
 
     console.log(`?? Ventas regulares encontradas: ${sales.length}`);
     const completedSales = sales.filter(sale => sale.status === 'completed');
-    console.log(`? Ventas completed después del filtro: ${completedSales.length}`);
+    console.log(`? Ventas completed despuï¿½s del filtro: ${completedSales.length}`);
     if (sales.length !== completedSales.length) {
       console.log(`?? Se filtraron ${sales.length - completedSales.length} ventas no-completed`);
     }
 
-    // Obtener citas completadas (también son "ventas")
+    // Obtener citas completadas (tambiï¿½n son "ventas")
     const appointmentQuery = {
       status: 'completed',
       paymentMethod: { $exists: true, $ne: null, $ne: '' }
@@ -869,7 +871,7 @@ class SaleUseCases {
   }
 
   /**
-   * Obtener estadísticas de ventas por barbero
+   * Obtener estadï¿½sticas de ventas por barbero
    */
   static async getBarberSalesStats(barberId, dateFilter = {}) {
     try {
@@ -881,7 +883,7 @@ class SaleUseCases {
 
       // Aplicar filtros de fecha
       if (dateFilter.date) {
-        // Filtro por fecha específica - usar saleDate en lugar de createdAt
+        // Filtro por fecha especï¿½fica - usar saleDate en lugar de createdAt
         const targetDate = new Date(dateFilter.date + 'T00:00:00.000-05:00'); // Colombia UTC-5
         const startOfDay = new Date(targetDate);
         startOfDay.setHours(0, 0, 0, 0);
@@ -918,7 +920,7 @@ class SaleUseCases {
           $group: {
             _id: '$type', // Agrupar por tipo (product, walkIn)
             total: { $sum: '$totalAmount' },
-            count: { $sum: 1 }, // Número de transacciones
+            count: { $sum: 1 }, // Nï¿½mero de transacciones
             totalQuantity: { $sum: '$quantity' }, // Suma de productos/items
             averageSale: { $avg: '$totalAmount' }
           }
@@ -1024,7 +1026,7 @@ class SaleUseCases {
   }
 
   /**
-   * Obtener reporte detallado de ventas agrupado por día con detalle de productos
+   * Obtener reporte detallado de ventas agrupado por dï¿½a con detalle de productos
    */
   static async getDetailedSalesReport(barberId, startDate, endDate) {
     try {
@@ -1069,7 +1071,7 @@ class SaleUseCases {
           console.log(`?? Query utilizada: barberId=${barber._id}${dateQuery.saleDate ? `, saleDate entre ${start ? start.toISOString() : 'undefined'} y ${end ? end.toISOString() : 'undefined'}` : ', sin filtro de fecha'}, status=completed`);
           if (sales.length > 0) {
             console.log(`?? Primera venta: ${sales[0].saleDate}, Total: ${sales[0].totalAmount}`);
-            console.log(`?? Última venta: ${sales[sales.length - 1].saleDate}, Total: ${sales[sales.length - 1].totalAmount}`);
+            console.log(`?? ï¿½ltima venta: ${sales[sales.length - 1].saleDate}, Total: ${sales[sales.length - 1].totalAmount}`);
           } else {
             // Verificar si hay ventas para este barbero sin filtro de fecha
             const allSalesForBarber = await Sale.countDocuments({ barberId: barber._id });
@@ -1080,7 +1082,7 @@ class SaleUseCases {
             console.log(`?? Total de ventas en la base de datos: ${totalSales}`);
           }
 
-          // Agrupar por día
+          // Agrupar por dï¿½a
           const salesByDay = {};
           sales.forEach(sale => {
             const dayKey = sale.saleDate.toISOString().split('T')[0];
@@ -1100,14 +1102,14 @@ class SaleUseCases {
               saleDate: sale.saleDate,
               total: sale.totalAmount,
               notes: sale.notes,
-              type: sale.type, // Siempre será SALE_TYPES.PRODUCT
+              type: sale.type, // Siempre serï¿½ SALE_TYPES.PRODUCT
               quantity: sale.quantity,
               unitPrice: sale.unitPrice,
               customerName: sale.customerName,
               paymentMethod: sale.paymentMethod
             };
 
-            // Agregar información del producto
+            // Agregar informaciï¿½n del producto
             if (sale.productId) {
               saleDetail.product = {
                 _id: sale.productId._id,
@@ -1123,7 +1125,7 @@ class SaleUseCases {
 
           const result = Object.values(salesByDay).sort((a, b) => new Date(a.date) - new Date(b.date));
           
-          console.log(`? Reporte detallado generado: ${result.length} días con ventas`);
+          console.log(`? Reporte detallado generado: ${result.length} dï¿½as con ventas`);
           return result;
         }
       );
@@ -1135,7 +1137,7 @@ class SaleUseCases {
   }
 
   /**
-   * Obtener detalles de cortes walk-in agrupados por día
+   * Obtener detalles de cortes walk-in agrupados por dï¿½a
    */
   static async getWalkInDetails(barberId, startDate, endDate) {
     try {
@@ -1173,7 +1175,7 @@ class SaleUseCases {
           .populate('serviceId', 'name price duration')
           .sort({ saleDate: 1 });
 
-          // Agrupar por día
+          // Agrupar por dï¿½a
           const walkInsByDay = {};
           walkInSales.forEach(sale => {
             const dayKey = sale.saleDate.toISOString().split('T')[0];
@@ -1210,7 +1212,7 @@ class SaleUseCases {
 
           const result = Object.values(walkInsByDay).sort((a, b) => new Date(a.date) - new Date(b.date));
           
-          console.log(`? Detalles de walk-in generados: ${result.length} días con cortes`);
+          console.log(`? Detalles de walk-in generados: ${result.length} dï¿½as con cortes`);
           return result;
         }
       );
@@ -1222,7 +1224,7 @@ class SaleUseCases {
   }
 
   /**
-   * Obtener reporte detallado de cortes (servicios walk-in) agrupado por día
+   * Obtener reporte detallado de cortes (servicios walk-in) agrupado por dï¿½a
    */
   static async getDetailedCutsReport(barberId, startDate, endDate) {
     try {
@@ -1266,7 +1268,7 @@ class SaleUseCases {
           console.log(`?? Query utilizada: barberId=${barber._id}${dateQuery.saleDate ? `, saleDate entre ${start ? start.toISOString() : 'undefined'} y ${end ? end.toISOString() : 'undefined'}` : ', sin filtro de fecha'}, status=completed, type=walkIn`);
           if (cuts.length > 0) {
             console.log(`?? Primer corte: ${cuts[0].saleDate}, Total: ${cuts[0].totalAmount}`);
-            console.log(`?? Último corte: ${cuts[cuts.length - 1].saleDate}, Total: ${cuts[cuts.length - 1].totalAmount}`);
+            console.log(`?? ï¿½ltimo corte: ${cuts[cuts.length - 1].saleDate}, Total: ${cuts[cuts.length - 1].totalAmount}`);
           } else {
             // Verificar si hay cortes para este barbero sin filtro de fecha
             const allCutsForBarber = await Sale.countDocuments({ barberId: barber._id, type: SALE_TYPES.SERVICE });
@@ -1277,7 +1279,7 @@ class SaleUseCases {
             console.log(`?? Total de cortes en la base de datos: ${totalCuts}`);
           }
 
-          // Agrupar por día
+          // Agrupar por dï¿½a
           const cutsByDay = {};
           cuts.forEach(cut => {
             const dayKey = cut.saleDate.toISOString().split('T')[0];
@@ -1303,7 +1305,7 @@ class SaleUseCases {
               unitPrice: cut.unitPrice
             };
 
-            // Agregar información del servicio
+            // Agregar informaciï¿½n del servicio
             if (cut.serviceId) {
               cutDetail.service = {
                 _id: cut.serviceId._id,
@@ -1320,7 +1322,7 @@ class SaleUseCases {
 
           const result = Object.values(cutsByDay).sort((a, b) => new Date(a.date) - new Date(b.date));
           
-          console.log(`? Reporte detallado de cortes generado: ${result.length} días con cortes`);
+          console.log(`? Reporte detallado de cortes generado: ${result.length} dï¿½as con cortes`);
           return result;
         }
       );
@@ -1341,7 +1343,7 @@ class SaleUseCases {
       const start = new Date(startDate + 'T00:00:00.000Z');
       const end = new Date(endDate + 'T23:59:59.999Z');
 
-      // Agregación principal para obtener todos los datos basada en el modelo real
+      // Agregaciï¿½n principal para obtener todos los datos basada en el modelo real
       const summary = await Sale.aggregate([
         {
           $match: {
@@ -1391,7 +1393,7 @@ class SaleUseCases {
               }
             ],
 
-            // Breakdown por métodos de pago
+            // Breakdown por mï¿½todos de pago
             paymentMethods: [
               {
                 $group: {
@@ -1453,13 +1455,13 @@ class SaleUseCases {
           count: item.count
         }));
 
-      // Procesar métodos de pago de ventas
+      // Procesar mï¿½todos de pago de ventas
       const paymentMethodBreakdown = result.paymentMethods.reduce((acc, pm) => {
         acc[pm._id || 'unknown'] = pm.totalAmount;
         return acc;
       }, {});
 
-      // ? Agregar métodos de pago de citas completadas
+      // ? Agregar mï¿½todos de pago de citas completadas
       const appointmentPaymentMethods = await Appointment.aggregate([
         {
           $match: {
@@ -1477,7 +1479,7 @@ class SaleUseCases {
         }
       ]);
 
-      // ? Combinar métodos de pago de ventas y citas
+      // ? Combinar mï¿½todos de pago de ventas y citas
       appointmentPaymentMethods.forEach(apm => {
         const method = apm._id;
         if (paymentMethodBreakdown[method]) {
@@ -1487,7 +1489,7 @@ class SaleUseCases {
         }
       });
 
-      // Debug: Ver métodos de pago procesados
+      // Debug: Ver mï¿½todos de pago procesados
       console.log('?? Payment methods breakdown from backend:', paymentMethodBreakdown);
 
       // Datos diarios formateados
@@ -1502,11 +1504,11 @@ class SaleUseCases {
       const productRevenue = productBreakdown.reduce((sum, p) => sum + p.totalRevenue, 0);
       const totalServices = serviceBreakdown.reduce((sum, s) => sum + s.totalQuantity, 0);
       const totalProducts = productBreakdown.reduce((sum, p) => sum + p.totalQuantity, 0);
-      // ? Calcular número de transacciones (no cantidades)
+      // ? Calcular nï¿½mero de transacciones (no cantidades)
       const totalProductSales = productBreakdown.reduce((sum, p) => sum + p.count, 0);
       const totalServiceSales = serviceBreakdown.reduce((sum, s) => sum + s.count, 0);
 
-      // Obtener total de citas del período y calcular revenue
+      // Obtener total de citas del perï¿½odo y calcular revenue
       const appointmentStats = await Appointment.aggregate([
         {
           $match: {
@@ -1526,7 +1528,7 @@ class SaleUseCases {
       const totalAppointments = appointmentStats[0]?.totalAppointments || 0;
       const appointmentRevenue = appointmentStats[0]?.appointmentRevenue || 0;
 
-      // ? Calcular costos directos reales (gastos de categoría 'supplies')
+      // ? Calcular costos directos reales (gastos de categorï¿½a 'supplies')
       const suppliesCostsResult = await mongoose.connection.db.collection('expenses').aggregate([
         {
           $match: {
@@ -1544,14 +1546,14 @@ class SaleUseCases {
 
       const suppliesCosts = suppliesCostsResult[0]?.suppliesCosts || 0;
 
-      // Obtener la fecha más antigua de los datos
+      // Obtener la fecha mï¿½s antigua de los datos
       const oldestDataDate = dailyData.length > 0 ? dailyData[0].date : null;
 
       const financialSummary = {
         summary: {
           totalRevenue: generalSummary.totalRevenue + appointmentRevenue, // ? Incluir revenue de citas
-          totalServices: totalServiceSales, // ? CORREGIDO: Número de ventas walk-in
-          totalProducts: totalProductSales, // ? CORREGIDO: Número de ventas de productos
+          totalServices: totalServiceSales, // ? CORREGIDO: Nï¿½mero de ventas walk-in
+          totalProducts: totalProductSales, // ? CORREGIDO: Nï¿½mero de ventas de productos
           totalServiceQuantity: totalServices, // ? Cantidad total de servicios
           totalProductQuantity: totalProducts, // ? Cantidad total de productos
           totalAppointments,
@@ -1561,19 +1563,19 @@ class SaleUseCases {
           // ? Agregar ingresos por tipo para el frontend
           serviceRevenue: serviceRevenue,
           productRevenue: productRevenue,
-          oldestDataDate: oldestDataDate // ? AÑADIDO PARA EL FRONTEND
+          oldestDataDate: oldestDataDate // ? Aï¿½ADIDO PARA EL FRONTEND
         },
         serviceBreakdown,
         productBreakdown,
         paymentMethodBreakdown: result.paymentMethods,
         dailyData,
-        daysWithData: dailyData.length // ? AÑADIDO PARA EL FRONTEND
+        daysWithData: dailyData.length // ? Aï¿½ADIDO PARA EL FRONTEND
       };
 
       console.log(`? Resumen financiero generado:`, {
         totalRevenue: financialSummary.summary.totalRevenue,
-        totalServices: totalServiceSales, // ? CORREGIDO: Mostrar número de ventas
-        totalProducts: totalProductSales, // ? CORREGIDO: Mostrar número de ventas
+        totalServices: totalServiceSales, // ? CORREGIDO: Mostrar nï¿½mero de ventas
+        totalProducts: totalProductSales, // ? CORREGIDO: Mostrar nï¿½mero de ventas
         serviceRevenue: serviceRevenue,
         productRevenue: productRevenue,
         daysWithData: dailyData.length,
@@ -1590,15 +1592,15 @@ class SaleUseCases {
   }
 
   /**
-   * Crear venta desde carrito con métodos de pago múltiples
+   * Crear venta desde carrito con mï¿½todos de pago mï¿½ltiples
    */
   static async createCartSale(cartData) {
     const { cart, barberId, notes } = cartData;
     
-    logger.info('?? Iniciando creación de venta desde carrito', {
+    logger.info('?? Iniciando creaciï¿½n de venta desde carrito', {
       cartLength: cart?.length || 0,
       barberId,
-      notes: notes ? 'Sí' : 'No'
+      notes: notes ? 'Sï¿½' : 'No'
     });
 
     // Verificar que el barbero existe
@@ -1606,8 +1608,8 @@ class SaleUseCases {
 
     // Validar que hay items en el carrito
     if (!cart || !Array.isArray(cart) || cart.length === 0) {
-      logger.error('? Carrito vacío o inválido', { cart });
-      throw new AppError('El carrito no puede estar vacío', 400);
+      logger.error('? Carrito vacï¿½o o invï¿½lido', { cart });
+      throw new AppError('El carrito no puede estar vacï¿½o', 400);
     }
 
     // Procesar cada item del carrito
@@ -1687,7 +1689,7 @@ class SaleUseCases {
           paymentMethod
         };
       } else {
-        throw new AppError(`Tipo de item no válido: ${type}`, 400);
+        throw new AppError(`Tipo de item no vï¿½lido: ${type}`, 400);
       }
 
       saleItems.push(saleItem);
@@ -1711,10 +1713,10 @@ class SaleUseCases {
         throw new AppError('El monto total debe ser mayor a 0', 400);
       }
       
-      // Validar método de pago
+      // Validar mï¿½todo de pago
       const validPaymentMethods = ['efectivo', 'tarjeta', 'transferencia'];
       if (!validPaymentMethods.includes(saleItem.paymentMethod)) {
-        throw new AppError(`Método de pago inválido: ${saleItem.paymentMethod}. Métodos válidos: ${validPaymentMethods.join(', ')}`, 400);
+        throw new AppError(`Mï¿½todo de pago invï¿½lido: ${saleItem.paymentMethod}. Mï¿½todos vï¿½lidos: ${validPaymentMethods.join(', ')}`, 400);
       }
 
       const sale = new Sale({
@@ -1743,7 +1745,7 @@ class SaleUseCases {
 
     const finalTotalAmount = createdSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
 
-    // Actualizar estadísticas del barbero
+    // Actualizar estadï¿½sticas del barbero
     await SaleUseCases.updateBarberStats(barberId, finalTotalAmount, 'mixed');
 
     // Registrar log de venta
@@ -1758,7 +1760,7 @@ class SaleUseCases {
       await InventoryLogService.createLog(
         'sale',
         null,
-        'Venta desde carrito con métodos de pago múltiples',
+        'Venta desde carrito con mï¿½todos de pago mï¿½ltiples',
         barber.user?._id || barber._id,
         barber.user ? 'barber' : 'admin',
         {
