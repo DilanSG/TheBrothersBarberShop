@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from '@contexts/AuthContext";
+import { useAuth } from "@contexts/AuthContext";
 
 // Este componente redirige a usuarios autenticados fuera de rutas públicas
 export const PublicRoute = ({ children }) => {
