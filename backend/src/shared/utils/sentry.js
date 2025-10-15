@@ -6,7 +6,8 @@
  */
 
 import * as Sentry from "@sentry/node";
-import { ProfilingIntegration } from "@sentry/profiling-node";
+// NOTE: ProfilingIntegration no disponible en @sentry/profiling-node v10.19.0
+// import { ProfilingIntegration } from "@sentry/profiling-node";
 import { logger } from './logger.js';
 
 /**
@@ -40,8 +41,8 @@ export const initSentry = (app) => {
         // Express request handler
         new Sentry.Integrations.Express({ app }),
         
-        // Performance profiling (opcional)
-        new ProfilingIntegration(),
+        // Performance profiling (opcional) - Deshabilitado por incompatibilidad API v10.19.0
+        // new ProfilingIntegration(),
       ],
       
       // Performance monitoring
