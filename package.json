@@ -2,6 +2,7 @@
   "name": "the-brothers-barber-shop",
   "version": "1.0.0",
   "description": "Sistema de gestión integral para barbería con backend Node.js/Express y frontend React",
+  "type": "module",
   "main": "dev-launcher.js",
   "bin": {
     "dev-launcher": "./dev-launcher.js"

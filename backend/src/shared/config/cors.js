@@ -13,6 +13,7 @@ const allowedOrigins = [
   
   // GitHub Pages (backup)
   'https://dilansg.github.io',
+  
   // Variable de entorno personalizada
   process.env.FRONTEND_URL,
   process.env.ALLOWED_ORIGINS?.split(',')
