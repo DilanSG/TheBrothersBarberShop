@@ -28,11 +28,13 @@ export const editBarberProfile = asyncHandler(async (req, res) => {
 // @route   GET /api/barbers
 // @access  P�blico
 export const getBarbers = asyncHandler(async (req, res) => {
-  const barbers = await barberService.getBarbers();
+  const result = await barberService.getBarbers();
   
+  // El UseCase devuelve { data, total, pagination }
+  // Extraer solo el array de barberos para mantener compatibilidad con frontend
   res.json({
     success: true,
-    data: barbers
+    data: result.data || result || []
   });
 });
 

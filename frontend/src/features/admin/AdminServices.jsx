@@ -86,7 +86,8 @@ const AdminServices = () => {
       const response = await api.get(url);
       
       if (response.success) {
-        const barbersData = response.data || [];
+        // VALIDACIÓN DEFENSIVA: Garantizar que sea array
+        const barbersData = Array.isArray(response.data) ? response.data : [];
         const endTime = Date.now();
         logger.debug(`📦 [AdminServices] Datos recibidos en ${endTime - startTime}ms:`, barbersData.length, 'barberos');
         
