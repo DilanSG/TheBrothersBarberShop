@@ -150,8 +150,8 @@ async function networkFirst(request) {
     // Intentar red primero
     const networkResponse = await fetch(request);
     
-    // Si es exitoso, cachear la respuesta
-    if (networkResponse.ok) {
+    // Solo cachear requests GET exitosas (Cache API no soporta POST/PUT/DELETE)
+    if (networkResponse.ok && request.method === 'GET') {
       // Clonar antes de cachear (las respuestas se pueden leer solo una vez)
       const responseToCache = networkResponse.clone();
       cache.put(request, responseToCache);
@@ -159,15 +159,17 @@ async function networkFirst(request) {
     
     return networkResponse;
   } catch (error) {
-    // Si falla la red, usar caché
-    console.log('🔄 SW: Network failed, trying cache for:', request.url);
-    const cachedResponse = await cache.match(request);
-    
-    if (cachedResponse) {
-      return cachedResponse;
+    // Si falla la red, usar caché (solo para GET)
+    if (request.method === 'GET') {
+      console.log('🔄 SW: Network failed, trying cache for:', request.url);
+      const cachedResponse = await cache.match(request);
+      
+      if (cachedResponse) {
+        return cachedResponse;
+      }
     }
     
-    // Si no hay caché, manejar fallback
+    // Si no hay caché o no es GET, manejar fallback
     throw error;
   }
 }
@@ -185,7 +187,8 @@ async function cacheFirst(request) {
   try {
     const networkResponse = await fetch(request);
     
-    if (networkResponse.ok) {
+    // Solo cachear GET requests
+    if (networkResponse.ok && request.method === 'GET') {
       cache.put(request, networkResponse.clone());
     }
     
@@ -202,7 +205,8 @@ async function staleWhileRevalidate(request) {
   // Buscar en caché y red en paralelo
   const cachedResponse = cache.match(request);
   const networkResponsePromise = fetch(request).then((response) => {
-    if (response.ok) {
+    // Solo cachear GET requests
+    if (response.ok && request.method === 'GET') {
       cache.put(request, response.clone());
     }
     return response;
