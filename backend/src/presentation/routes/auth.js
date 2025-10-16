@@ -5,6 +5,7 @@ import {
   changePassword, 
   requestPasswordReset,
   resetPasswordWithToken,
+  refreshToken,
   validateToken,
   logout
 } from '../controllers/authController.js';
@@ -101,6 +102,43 @@ router.post('/register', validateRegister, register);
  *         $ref: '#/components/responses/Unauthorized'
  */
 router.post('/login', login);
+
+/**
+ * @swagger
+ * /auth/refresh-token:
+ *   post:
+ *     summary: Refrescar token JWT expirado
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Token JWT a refrescar (puede estar expirado)
+ *     responses:
+ *       200:
+ *         description: Token refrescado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 token:
+ *                   type: string
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Token inválido o usuario inactivo
+ */
+router.post('/refresh-token', refreshToken);
 
 /**
  * @swagger

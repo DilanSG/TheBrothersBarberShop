@@ -1,5 +1,6 @@
-import { asyncHandler } from '../middleware/index.js';
+﻿import { asyncHandler } from '../middleware/index.js';
 import { AppError, User, Barber, Appointment } from '../../barrel.js';
+import { now } from '../../shared/utils/dateUtils.js';
 import BarberUseCases from '../../core/application/usecases/BarberUseCases.js';
 
 const barberService = BarberUseCases.getInstance();
@@ -195,7 +196,7 @@ export const getBarberAvailability = asyncHandler(async (req, res) => {
       const slotTime = new Date(targetDate);
       slotTime.setHours(hour, minute, 0, 0);
 
-      if (slotTime <= new Date()) {
+      if (slotTime <= now()) {
         continue;
       }
 
@@ -336,7 +337,7 @@ export const deleteBarber = asyncHandler(async (req, res) => {
 
   const futureAppointments = await Appointment.countDocuments({
     barber: req.params.id,
-    date: { $gte: new Date() },
+    date: { $gte: now() },
     status: { $in: ['pending', 'confirmed'] }
   });
 
@@ -373,7 +374,7 @@ export const getBarberStats = asyncHandler(async (req, res) => {
     throw new AppError('No tienes permisos para ver estas estad�sticas', 403);
   }
 
-  const today = new Date();
+  const today = now();
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const startOfWeek = new Date(today);
   startOfWeek.setDate(today.getDate() - today.getDay());

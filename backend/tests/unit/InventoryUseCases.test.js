@@ -4,11 +4,11 @@
  */
 
 import InventoryUseCases from '../../src/core/application/usecases/InventoryUseCases.js';
-import Product from '../../src/core/domain/entities/Product.js';
+import Inventory from '../../src/core/domain/entities/Inventory.js';
 import Sale from '../../src/core/domain/entities/Sale.js';
 
 // Mocks
-jest.mock('../../src/core/domain/entities/Product.js');
+jest.mock('../../src/core/domain/entities/Inventory.js');
 jest.mock('../../src/core/domain/entities/Sale.js');
 
 describe('InventoryUseCases', () => {
@@ -34,13 +34,13 @@ describe('InventoryUseCases', () => {
         save: jest.fn().mockResolvedValue(true)
       };
 
-      Product.findOne = jest.fn().mockResolvedValue(null);
-      Product.mockImplementation(() => mockProduct);
+      Inventory.findOne = jest.fn().mockResolvedValue(null);
+      Inventory.mockImplementation(() => mockProduct);
 
       const result = await InventoryUseCases.createProduct(productData);
 
-      expect(Product.findOne).toHaveBeenCalledWith({ barcode: productData.barcode });
-      expect(mockProduct.save).toHaveBeenCalled();
+      expect(Inventory.findOne).toHaveBeenCalledWith({ barcode: productData.barcode });
+      expect(mockInventory.save).toHaveBeenCalled();
       expect(result).toHaveProperty('_id', 'product123');
       expect(result).toHaveProperty('name', 'Gel Fijador');
     });
@@ -56,7 +56,7 @@ describe('InventoryUseCases', () => {
         barcode: '7891234567890'
       };
 
-      Product.findOne = jest.fn().mockResolvedValue(existingProduct);
+      Inventory.findOne = jest.fn().mockResolvedValue(existingProduct);
 
       await expect(InventoryUseCases.createProduct(productData)).rejects.toThrow('Código de barras ya existe');
     });
@@ -87,13 +87,13 @@ describe('InventoryUseCases', () => {
         save: jest.fn().mockResolvedValue(true)
       };
 
-      Product.findOne = jest.fn().mockResolvedValue(null);
-      Product.mockImplementation(() => mockProduct);
+      Inventory.findOne = jest.fn().mockResolvedValue(null);
+      Inventory.mockImplementation(() => mockProduct);
 
       await InventoryUseCases.createProduct(productData);
 
       // Margen = ((15000 - 8000) / 8000) * 100 = 87.5%
-      expect(mockProduct.profitMargin).toBeCloseTo(87.5, 1);
+      expect(mockInventory.profitMargin).toBeCloseTo(87.5, 1);
     });
   });
 
@@ -110,12 +110,12 @@ describe('InventoryUseCases', () => {
         save: jest.fn().mockResolvedValue(true)
       };
 
-      Product.findById = jest.fn().mockResolvedValue(mockProduct);
+      Inventory.findById = jest.fn().mockResolvedValue(mockProduct);
 
       const result = await InventoryUseCases.updateStock(productId, stockChange);
 
-      expect(mockProduct.stock).toBe(30); // 20 + 10
-      expect(mockProduct.save).toHaveBeenCalled();
+      expect(mockInventory.stock).toBe(30); // 20 + 10
+      expect(mockInventory.save).toHaveBeenCalled();
       expect(result).toHaveProperty('stock', 30);
     });
 
@@ -131,11 +131,11 @@ describe('InventoryUseCases', () => {
         save: jest.fn().mockResolvedValue(true)
       };
 
-      Product.findById = jest.fn().mockResolvedValue(mockProduct);
+      Inventory.findById = jest.fn().mockResolvedValue(mockProduct);
 
       const result = await InventoryUseCases.updateStock(productId, stockChange);
 
-      expect(mockProduct.stock).toBe(15); // 20 - 5
+      expect(mockInventory.stock).toBe(15); // 20 - 5
       expect(result).toHaveProperty('stock', 15);
     });
 
@@ -149,7 +149,7 @@ describe('InventoryUseCases', () => {
         stock: 20
       };
 
-      Product.findById = jest.fn().mockResolvedValue(mockProduct);
+      Inventory.findById = jest.fn().mockResolvedValue(mockProduct);
 
       await expect(InventoryUseCases.updateStock(productId, stockChange))
         .rejects.toThrow('Stock insuficiente');
@@ -168,12 +168,12 @@ describe('InventoryUseCases', () => {
         save: jest.fn().mockResolvedValue(true)
       };
 
-      Product.findById = jest.fn().mockResolvedValue(mockProduct);
+      Inventory.findById = jest.fn().mockResolvedValue(mockProduct);
 
       const result = await InventoryUseCases.updateStock(productId, stockChange);
 
-      expect(mockProduct.stock).toBe(4);
-      expect(mockProduct.lowStockAlert).toBe(true);
+      expect(mockInventory.stock).toBe(4);
+      expect(mockInventory.lowStockAlert).toBe(true);
       expect(result).toHaveProperty('alert', true);
     });
   });
@@ -185,13 +185,13 @@ describe('InventoryUseCases', () => {
         { _id: 'p2', name: 'Cera', stock: 2, minStock: 5 }
       ];
 
-      Product.find = jest.fn().mockReturnValue({
+      Inventory.find = jest.fn().mockReturnValue({
         sort: jest.fn().mockResolvedValue(mockProducts)
       });
 
       const result = await InventoryUseCases.getLowStockProducts();
 
-      expect(Product.find).toHaveBeenCalledWith({
+      expect(Inventory.find).toHaveBeenCalledWith({
         $expr: { $lt: ['$stock', '$minStock'] },
         isActive: true
       });
@@ -205,7 +205,7 @@ describe('InventoryUseCases', () => {
         { _id: 'p2', name: 'Gel', stock: 3, minStock: 5 }
       ];
 
-      Product.find = jest.fn().mockReturnValue({
+      Inventory.find = jest.fn().mockReturnValue({
         sort: jest.fn().mockResolvedValue(mockProducts)
       });
 
@@ -288,7 +288,7 @@ describe('InventoryUseCases', () => {
         { _id: 'p2', name: 'Cera', price: 15000, cost: 8000, save: jest.fn() }
       ];
 
-      Product.find = jest.fn().mockResolvedValue(mockProducts);
+      Inventory.find = jest.fn().mockResolvedValue(mockProducts);
 
       await InventoryUseCases.bulkUpdatePrices(updates);
 
@@ -308,7 +308,7 @@ describe('InventoryUseCases', () => {
         { _id: 'p1', price: 10000, cost: 5000, profitMargin: 100, save: jest.fn() }
       ];
 
-      Product.find = jest.fn().mockResolvedValue(mockProducts);
+      Inventory.find = jest.fn().mockResolvedValue(mockProducts);
 
       await InventoryUseCases.bulkUpdatePrices(updates);
 
@@ -330,7 +330,7 @@ describe('InventoryUseCases', () => {
         { _id: 'p2', name: 'Cera', stock: 5 }
       ];
 
-      Product.findById = jest.fn()
+      Inventory.findById = jest.fn()
         .mockResolvedValueOnce(mockProducts[0])
         .mockResolvedValueOnce(mockProducts[1]);
 
@@ -351,7 +351,7 @@ describe('InventoryUseCases', () => {
         { _id: 'p2', name: 'Cera', stock: 5 }
       ];
 
-      Product.findById = jest.fn()
+      Inventory.findById = jest.fn()
         .mockResolvedValueOnce(mockProducts[0])
         .mockResolvedValueOnce(mockProducts[1]);
 
@@ -375,7 +375,7 @@ describe('InventoryUseCases', () => {
         isActive: false
       };
 
-      Product.findById = jest.fn().mockResolvedValue(mockProduct);
+      Inventory.findById = jest.fn().mockResolvedValue(mockProduct);
 
       const result = await InventoryUseCases.validateStock(items);
 
@@ -393,7 +393,7 @@ describe('InventoryUseCases', () => {
         { _id: 'p3', name: 'Shampoo', stock: 15, cost: 12000 }
       ];
 
-      Product.find = jest.fn().mockResolvedValue(mockProducts);
+      Inventory.find = jest.fn().mockResolvedValue(mockProducts);
 
       const result = await InventoryUseCases.getInventoryValue();
 
@@ -408,11 +408,11 @@ describe('InventoryUseCases', () => {
         { _id: 'p1', stock: 10, cost: 5000, isActive: true }
       ];
 
-      Product.find = jest.fn().mockResolvedValue(mockProducts);
+      Inventory.find = jest.fn().mockResolvedValue(mockProducts);
 
       await InventoryUseCases.getInventoryValue();
 
-      expect(Product.find).toHaveBeenCalledWith({ isActive: true });
+      expect(Inventory.find).toHaveBeenCalledWith({ isActive: true });
     });
   });
 });

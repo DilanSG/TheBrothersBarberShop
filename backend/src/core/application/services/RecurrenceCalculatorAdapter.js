@@ -187,24 +187,6 @@ class RecurrenceCalculator {
       };
     }
   }
-
-  // Métodos legacy para compatibilidad con código existente
-  
-  /**
-   * @deprecated - Usar calculateNextOccurrence en su lugar
-   */
-  getNextDueDate(expense, fromDate) {
-    logger.warn('Método getNextDueDate está deprecado. Usar calculateNextOccurrence.');
-    return this.calculateNextOccurrence(expense, fromDate);
-  }
-
-  /**
-   * @deprecated - Usar shouldOccurOnDate en su lugar
-   */
-  isDue(expense, date) {
-    logger.warn('Método isDue está deprecado. Usar shouldOccurOnDate.');
-    return this.shouldOccurOnDate(expense, date);
-  }
 }
 
 export default RecurrenceCalculator;

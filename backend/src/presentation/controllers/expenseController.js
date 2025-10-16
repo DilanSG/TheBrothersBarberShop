@@ -1,4 +1,4 @@
-import ExpenseService from '../../core/application/services/ExpenseService.js';
+﻿import ExpenseService from '../../core/application/services/ExpenseService.js';
 import { validationResult } from 'express-validator';
 import { asyncHandler } from '../middleware/index.js';
 import { AppError } from '../../barrel.js';
@@ -48,9 +48,9 @@ class ExpenseController {
     // 🔍 DEBUG: Log diagnóstico de retorno de plantillas
     try {
       const sampleIds = Array.isArray(plain) ? plain.slice(0, 5).map(p => p._id?.toString()) : [];
-      console.log('[ExpenseController.getRecurringExpenses] count:', Array.isArray(plain) ? plain.length : 'n/a', 'migratedInlineCount:', migratedInlineCount, 'sampleIds:', sampleIds);
+      logger.debug('[ExpenseController.getRecurringExpenses] count:', Array.isArray(plain) ? plain.length : 'n/a', 'migratedInlineCount:', migratedInlineCount, 'sampleIds:', sampleIds);
     } catch (e) {
-      console.warn('[ExpenseController.getRecurringExpenses] No se pudo loggear diagnóstico:', e.message);
+      logger.warn('[ExpenseController.getRecurringExpenses] No se pudo loggear diagnóstico:', e.message);
     }
     res.json({
       success: true,
@@ -88,7 +88,7 @@ class ExpenseController {
     }
 
     // 🔍 DEBUG: log entrada bruta para creación de recurrente
-    console.log('[ExpenseController.createRecurringExpense] payload recibido', {
+    logger.debug('[ExpenseController.createRecurringExpense] payload recibido', {
       keys: Object.keys(req.body || {}),
       hasRecurrence: !!req.body?.recurrence,
       hasRecurringConfig: !!req.body?.recurringConfig,
@@ -113,15 +113,15 @@ class ExpenseController {
         if (req.body.recurrence.pattern === 'monthly' && cfg.dayOfMonth != null) {
           req.body.recurrence.config.monthDays = [parseInt(cfg.dayOfMonth, 10)];
         }
-        console.log('[ExpenseController.createRecurringExpense] Generada recurrence desde recurringConfig');
+        logger.debug('[ExpenseController.createRecurringExpense] Generada recurrence desde recurringConfig');
       } catch (e) {
-        console.warn('[ExpenseController.createRecurringExpense] Falló conversión legacy->recurrence', e.message);
+        logger.warn('[ExpenseController.createRecurringExpense] Falló conversión legacy->recurrence', e.message);
       }
     }
 
     // DEBUG: confirmar normalización de método de pago post-validador
     try {
-      console.log('[ExpenseController.createRecurringExpense] normalized payment fields:', {
+      logger.debug('[ExpenseController.createRecurringExpense] normalized payment fields:', {
         paymentMethod: req.body?.paymentMethod,
         paymentMethodId: req.body?.paymentMethodId
       });
@@ -205,7 +205,7 @@ class ExpenseController {
   getExpenseSummary = asyncHandler(async (req, res) => {
     const { startDate, endDate, ...filters } = req.query;
     // DEBUG: log de entrada para diagnosticar 400 desde frontend
-    console.log('[ExpenseController.getExpenseSummary] query params recibidos:', { startDate, endDate, filters });
+    logger.debug('[ExpenseController.getExpenseSummary] query params recibidos:', { startDate, endDate, filters });
     if (!startDate || !endDate) {
       throw new AppError('Los parámetros startDate y endDate son requeridos', 400);
     }

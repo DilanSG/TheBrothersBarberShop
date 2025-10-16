@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@contexts/AuthContext';
 import { useNotification } from '@contexts/NotificationContext';
+import { getCurrentDateColombia } from '@/shared/utils/dateUtils';
 import { PageContainer } from '@components/layout/PageContainer';
 import GradientText from '@components/ui/GradientText';
 import GradientButton from '@components/ui/GradientButton';
@@ -862,7 +863,7 @@ const AdminBarbers = () => {
       hasApplyFilter: typeof applyFilter === 'function',
       statisticsKeysCount: Object.keys(statistics).length,
       filteredStatsKeysCount: Object.keys(filteredStats).length,
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toLocaleTimeString("es-CO", { timeZone: "America/Bogota" })
     });
     
     // Aplicar filtro general si:
@@ -1540,7 +1541,7 @@ const AdminBarbers = () => {
                 filterLoading,
                 filterType,
                 barbersCount: barbers.length,
-                timestamp: new Date().toLocaleTimeString()
+                timestamp: new Date().toLocaleTimeString("es-CO", { timeZone: "America/Bogota" })
               });
               return null;
             })()}

@@ -3,9 +3,10 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { User, AppError, logger, config } from '../../../barrel.js';
 import emailService from '../../../services/emailService.js';
+import { getLocationFromIP, getRealIP } from '../../../shared/utils/geoLocation.js';
 
 class AuthUseCases {
-  static async login(email, password) {
+  static async login(email, password, req = null) {
     try {
       // Buscar usuario y seleccionar explícitamente el password
       const user = await User.findOne({ email }).select('+password');
@@ -35,10 +36,12 @@ class AuthUseCases {
 
       // Enviar notificación de login (sin bloquear el response)
       if (emailService.isConfigured) {
+        const location = req ? getLocationFromIP(getRealIP(req)) : 'Unknown';
+        
         emailService.sendLoginNotification(user, {
           timestamp: new Date(),
           device: 'Web Browser',
-          location: 'Colombia' // TODO: Detectar ubicación real
+          location
         }).catch(err => logger.error('Error enviando notificación de login:', err));
       }
 
@@ -222,6 +225,55 @@ class AuthUseCases {
     delete userObj.resetPasswordToken;
     delete userObj.resetPasswordExpires;
     return userObj;
+  }
+
+  /**
+   * Refrescar token JWT
+   * Valida el token actual y genera uno nuevo si el usuario sigue activo
+   */
+  static async refreshToken(token) {
+    try {
+      // Intentar validar el token (puede estar expirado)
+      let decoded;
+      try {
+        decoded = jwt.verify(token, config.jwt.secret);
+      } catch (error) {
+        // Si está expirado, verificar igualmente pero sin validar fecha
+        if (error.name === 'TokenExpiredError') {
+          decoded = jwt.verify(token, config.jwt.secret, { ignoreExpiration: true });
+        } else {
+          throw new AppError('Token inválido', 401);
+        }
+      }
+
+      // Buscar usuario y verificar que esté activo
+      const user = await User.findById(decoded.id);
+      
+      if (!user) {
+        throw new AppError('Usuario no encontrado', 404);
+      }
+
+      if (!user.isActive) {
+        throw new AppError('Usuario inactivo. Contacta al administrador.', 401);
+      }
+
+      // Generar nuevo token
+      const newToken = this.generateToken(user);
+      const userResponse = this.sanitizeUser(user);
+
+      logger.info(`Token refrescado para usuario: ${user.email}`);
+      
+      return { 
+        token: newToken, 
+        user: userResponse 
+      };
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      logger.error('Error en refreshToken:', error);
+      throw new AppError('Error al refrescar token', 500);
+    }
   }
 
   static async validateToken(token) {

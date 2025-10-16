@@ -7,13 +7,13 @@ import SaleUseCases from '../../src/core/application/usecases/SaleUseCases.js';
 import Sale from '../../src/core/domain/entities/Sale.js';
 import Barber from '../../src/core/domain/entities/Barber.js';
 import Service from '../../src/core/domain/entities/Service.js';
-import Product from '../../src/core/domain/entities/Product.js';
+import Inventory from '../../src/core/domain/entities/Inventory.js';
 
 // Mocks
 jest.mock('../../src/core/domain/entities/Sale.js');
 jest.mock('../../src/core/domain/entities/Barber.js');
 jest.mock('../../src/core/domain/entities/Service.js');
-jest.mock('../../src/core/domain/entities/Product.js');
+jest.mock('../../src/core/domain/entities/Inventory.js');
 
 describe('SaleUseCases', () => {
   beforeEach(() => {
@@ -105,7 +105,7 @@ describe('SaleUseCases', () => {
       };
 
       Barber.findById = jest.fn().mockResolvedValue(mockBarber);
-      Product.findById = jest.fn()
+      Inventory.findById = jest.fn()
         .mockResolvedValueOnce(mockProducts[0])
         .mockResolvedValueOnce(mockProducts[1]);
       Sale.mockImplementation(() => mockSale);
@@ -164,7 +164,7 @@ describe('SaleUseCases', () => {
       };
 
       Barber.findById = jest.fn().mockResolvedValue(mockBarber);
-      Product.findById = jest.fn().mockResolvedValue(mockProduct);
+      Inventory.findById = jest.fn().mockResolvedValue(mockProduct);
 
       await expect(SaleUseCases.createSale(saleData)).rejects.toThrow('Stock insuficiente para Gel');
     });
@@ -207,7 +207,7 @@ describe('SaleUseCases', () => {
 
       Barber.findById = jest.fn().mockResolvedValue(mockBarber);
       Service.find = jest.fn().mockResolvedValue(mockServices);
-      Product.findById = jest.fn().mockResolvedValue(mockProduct);
+      Inventory.findById = jest.fn().mockResolvedValue(mockProduct);
       Sale.mockImplementation(() => mockSale);
 
       const result = await SaleUseCases.createSale(saleData);
@@ -399,7 +399,7 @@ describe('SaleUseCases', () => {
       Sale.findById = jest.fn().mockReturnValue({
         populate: jest.fn().mockResolvedValue(mockSale)
       });
-      Product.findById = jest.fn()
+      Inventory.findById = jest.fn()
         .mockResolvedValueOnce(mockProducts[0])
         .mockResolvedValueOnce(mockProducts[1]);
       Barber.findById = jest.fn().mockResolvedValue(mockBarber);

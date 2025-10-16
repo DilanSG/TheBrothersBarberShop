@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+﻿import mongoose from 'mongoose';
 import Sale from '../../domain/entities/Sale.js';
 import Barber from '../../domain/entities/Barber.js';
 import Inventory from '../../domain/entities/Inventory.js';
@@ -8,6 +8,7 @@ import InventoryLogService from './InventoryLogUseCases.js';
 import { reportsCacheService } from './reportsCacheService.js';
 import { AppError } from '../../../shared/utils/errors.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { now, today } from '../../../shared/utils/dateUtils.js';
 import { SALE_TYPES, getSaleTypeDisplayName } from '../../../shared/constants/salesConstants.js';
 import emailService from '../../../services/emailService.js';
 
@@ -16,25 +17,25 @@ class SaleUseCases {
    * Buscar barbero por ID de barbero o ID de usuario
    */
   static async findBarberByIdOrUserId(id) {
-    // Debug: console.log(`?? Buscando barbero con ID: ${id}`);
+    // Debug: logger.debug(`?? Buscando barbero con ID: ${id}`);
     
     // Primero intentar buscar por ID de barbero
     let barber = await Barber.findById(id);
-    console.log(`?? B�squeda por ID de barbero: ${barber ? 'ENCONTRADO' : 'NO ENCONTRADO'}`);
+    logger.debug(`?? B�squeda por ID de barbero: ${barber ? 'ENCONTRADO' : 'NO ENCONTRADO'}`);
     
     // Si no se encuentra, buscar por user ID
     if (!barber) {
-      console.log(`?? Buscando por user ID: ${id}`);
+      logger.debug(`?? Buscando por user ID: ${id}`);
       barber = await Barber.findOne({ user: id }).populate('user');
-      console.log(`?? B�squeda por user ID: ${barber ? 'ENCONTRADO' : 'NO ENCONTRADO'}`);
+      logger.debug(`?? B�squeda por user ID: ${barber ? 'ENCONTRADO' : 'NO ENCONTRADO'}`);
     }
     
     if (!barber) {
-      // Debug: console.log(`? Barbero no encontrado con ID: ${id}`);
+      // Debug: logger.debug(`? Barbero no encontrado con ID: ${id}`);
       throw new AppError('Barbero no encontrado', 404);
     }
     
-    console.log(`? Barbero encontrado:`, {
+    logger.debug(`? Barbero encontrado:`, {
       barberId: barber._id,
       userId: barber.user?._id,
       userName: barber.user?.name,
@@ -113,7 +114,7 @@ class SaleUseCases {
         type: SALE_TYPES.PRODUCT,
         // Campos obligatorios
         status: 'completed',
-        saleDate: new Date(),
+        saleDate: now(),
         paymentMethod: saleData.paymentMethod || 'efectivo' // Default a efectivo si no se especifica
       });
 
@@ -133,7 +134,7 @@ class SaleUseCases {
       // Descontar del inventario con logging detallado
       logger.info(`?? Actualizando inventario - Producto: ${productId}, Cantidad a descontar: ${quantity}`);
       const productBefore = await Inventory.findById(productId);
-      console.log(`?? Stock antes: currentStock=${productBefore.currentStock}, stock=${productBefore.stock}`);
+      logger.debug(`?? Stock antes: currentStock=${productBefore.currentStock}, stock=${productBefore.stock}`);
       
       const updateResult = await Inventory.findByIdAndUpdate(
         productId,
@@ -147,8 +148,8 @@ class SaleUseCases {
         { new: true } // Devolver documento actualizado
       );
       
-      console.log(`?? Stock despu�s: currentStock=${updateResult.currentStock}, stock=${updateResult.stock}, realStock=${updateResult.realStock}`);
-      console.log(`? Inventario actualizado para producto ${product.name}`);
+      logger.debug(`?? Stock despu�s: currentStock=${updateResult.currentStock}, stock=${updateResult.stock}, realStock=${updateResult.realStock}`);
+      logger.debug(`? Inventario actualizado para producto ${product.name}`);
 
       // Actualizar estad�sticas del barbero
       await SaleUseCases.updateBarberStats(barberId, sale.totalAmount, SALE_TYPES.PRODUCT);
@@ -168,9 +169,9 @@ class SaleUseCases {
             quantity: quantity
           }
         );
-        console.log(`?? Log de carrito creado - Total: $${sale.totalAmount}`);
+        logger.debug(`?? Log de carrito creado - Total: $${sale.totalAmount}`);
       } catch (logError) {
-        console.error('Error al crear log de carrito:', logError);
+        logger.error('Error al crear log de carrito:', logError);
       }
 
       return sale;
@@ -227,16 +228,16 @@ class SaleUseCases {
         type: SALE_TYPES.PRODUCT,
         // Campos obligatorios
         status: 'completed',
-        saleDate: new Date(),
+        saleDate: now(),
         paymentMethod: saleData.paymentMethod || 'efectivo' // Default a efectivo si no se especifica
       });
 
       await sale.save();
 
       // Descontar del inventario con logging detallado
-      console.log(`?? Actualizando inventario m�ltiple - Producto: ${productId}, Cantidad: ${quantity}`);
+      logger.debug(`?? Actualizando inventario m�ltiple - Producto: ${productId}, Cantidad: ${quantity}`);
       const productBefore = await Inventory.findById(productId);
-      console.log(`?? Stock antes: ${product.name} currentStock=${productBefore.currentStock}, stock=${productBefore.stock}`);
+      logger.debug(`?? Stock antes: ${product.name} currentStock=${productBefore.currentStock}, stock=${productBefore.stock}`);
       
       const updateResult = await Inventory.findByIdAndUpdate(
         productId,
@@ -252,8 +253,8 @@ class SaleUseCases {
         { new: true } // Devolver documento actualizado
       );
       
-      console.log(`?? Stock despu�s: ${product.name} currentStock=${updateResult.currentStock}, stock=${updateResult.stock}`);
-      console.log(`? Inventario actualizado para ${product.name}`);
+      logger.debug(`?? Stock despu�s: ${product.name} currentStock=${updateResult.currentStock}, stock=${updateResult.stock}`);
+      logger.debug(`? Inventario actualizado para ${product.name}`);
 
       sales.push(sale);
     }
@@ -280,9 +281,9 @@ class SaleUseCases {
           totalItems: totalItems
         }
       );
-      console.log(`?? Log de carrito m�ltiple creado - ${sales.length} productos - Total: $${totalAmount}`);
+      logger.debug(`?? Log de carrito m�ltiple creado - ${sales.length} productos - Total: $${totalAmount}`);
     } catch (logError) {
-      console.error('Error al crear log de carrito m�ltiple:', logError);
+      logger.error('Error al crear log de carrito m�ltiple:', logError);
     }
 
     return sales;
@@ -335,7 +336,7 @@ class SaleUseCases {
       notes,
       // Campos obligatorios
       status: 'completed',
-      saleDate: new Date(),
+      saleDate: now(),
       paymentMethod: saleData.paymentMethod || 'efectivo' // Default a efectivo si no se especifica
     });
 
@@ -363,16 +364,16 @@ class SaleUseCases {
    */
   static async updateBarberStats(barberId, saleAmount, saleType = SALE_TYPES.PRODUCT) {
     try {
-      console.log(`?? Actualizando stats - BarberId: ${barberId}, Amount: ${saleAmount}, Type: ${saleType}`);
+      logger.debug(`?? Actualizando stats - BarberId: ${barberId}, Amount: ${saleAmount}, Type: ${saleType}`);
       
       // Buscar el barbero primero para obtener el ID correcto
       const barber = await SaleUseCases.findBarberByIdOrUserId(barberId);
       
-      // Debug: console.log(`?? Barbero encontrado para stats: ${barber._id}`);
+      // Debug: logger.debug(`?? Barbero encontrado para stats: ${barber._id}`);
       
       // Obtener estad�sticas actuales antes de la actualizaci�n
       const currentBarber = await Barber.findById(barber._id);
-      console.log(`?? Stats actuales - Sales: ${currentBarber.totalSales || 0}, Revenue: ${currentBarber.totalRevenue || 0}`);
+      logger.debug(`?? Stats actuales - Sales: ${currentBarber.totalSales || 0}, Revenue: ${currentBarber.totalRevenue || 0}`);
       
       // Actualizar estad�sticas usando el ID del barbero encontrado
       const updateResult = await Barber.findByIdAndUpdate(
@@ -383,19 +384,19 @@ class SaleUseCases {
             totalRevenue: saleAmount
           },
           $set: {
-            lastSaleDate: new Date()
+            lastsaleDate: now()
           }
         },
         { new: true } // Devolver el documento actualizado
       );
       
-      console.log(`?? Stats despu�s de actualizar - Sales: ${updateResult.totalSales}, Revenue: ${updateResult.totalRevenue}`);
-      // Debug: console.log(`? Estad�sticas actualizadas exitosamente para barbero ${barber._id}: +$${saleAmount}`);
+      logger.debug(`?? Stats despu�s de actualizar - Sales: ${updateResult.totalSales}, Revenue: ${updateResult.totalRevenue}`);
+      // Debug: logger.debug(`? Estad�sticas actualizadas exitosamente para barbero ${barber._id}: +$${saleAmount}`);
       
       return updateResult;
     } catch (error) {
-      console.error('? Error actualizando estad�sticas del barbero:', error);
-      console.error('? Stack:', error.stack);
+      logger.error('? Error actualizando estad�sticas del barbero:', error);
+      logger.error('? Stack:', error.stack);
       // No lanzar error para no interrumpir la venta, pero log detallado
       return null;
     }
@@ -659,11 +660,11 @@ class SaleUseCases {
         select: 'name price'
       });
 
-      console.log(`?? Encontradas ${appointments.length} citas completadas en la fecha ${selectedDate.toISOString()}`);
+      logger.debug(`?? Encontradas ${appointments.length} citas completadas en la fecha ${selectedDate.toISOString()}`);
 
       // Formatear citas para el frontend
       const formattedAppointments = appointments.map(apt => {
-        console.log('?? Cita original:', {
+        logger.debug('?? Cita original:', {
           _id: apt._id,
           price: apt.price,
           service: apt.service ? { name: apt.service.name, price: apt.service.price } : 'Sin servicio',
@@ -697,7 +698,7 @@ class SaleUseCases {
         }
       };
     } catch (error) {
-      console.error('Error getting daily report:', error);
+      logger.error('Error getting daily report:', error);
       return {
         sales: [],
         appointments: [],
@@ -726,12 +727,12 @@ class SaleUseCases {
         const resolvedBarber = await SaleUseCases.findBarberByIdOrUserId(filters.barberId);
         if (resolvedBarber) {
           query.barberId = resolvedBarber.barberId || resolvedBarber._id;
-          console.log(`?? Barbero resuelto - Input: ${filters.barberId}, Resolved: ${query.barberId}`);
+          logger.debug(`?? Barbero resuelto - Input: ${filters.barberId}, Resolved: ${query.barberId}`);
         } else {
           query.barberId = filters.barberId; // Usar el ID original si no se pudo resolver
         }
       } catch (error) {
-        console.warn('?? Error resolviendo barberId, usando valor original:', error.message);
+        logger.warn('?? Error resolviendo barberId, usando valor original:', error.message);
         query.barberId = filters.barberId;
       }
     }
@@ -756,7 +757,7 @@ class SaleUseCases {
       };
     }
 
-    console.log('?? Consulta de ventas con filtros:', JSON.stringify(query, null, 2));
+    logger.debug('?? Consulta de ventas con filtros:', JSON.stringify(query, null, 2));
 
     // Obtener ventas regulares
     const sales = await Sale.find(query)
@@ -764,11 +765,11 @@ class SaleUseCases {
       .populate('barberId', 'name')
       .sort({ saleDate: -1 });
 
-    console.log(`?? Ventas regulares encontradas: ${sales.length}`);
+    logger.debug(`?? Ventas regulares encontradas: ${sales.length}`);
     const completedSales = sales.filter(sale => sale.status === 'completed');
-    console.log(`? Ventas completed despu�s del filtro: ${completedSales.length}`);
+    logger.debug(`? Ventas completed despu�s del filtro: ${completedSales.length}`);
     if (sales.length !== completedSales.length) {
-      console.log(`?? Se filtraron ${sales.length - completedSales.length} ventas no-completed`);
+      logger.debug(`?? Se filtraron ${sales.length - completedSales.length} ventas no-completed`);
     }
 
     // Obtener citas completadas (tambi�n son "ventas")
@@ -794,7 +795,7 @@ class SaleUseCases {
       };
     }
 
-    console.log('?? Consulta de citas completadas con filtros:', JSON.stringify(appointmentQuery, null, 2));
+    logger.debug('?? Consulta de citas completadas con filtros:', JSON.stringify(appointmentQuery, null, 2));
 
     const appointments = await Appointment.find(appointmentQuery)
       .populate('service', 'name')
@@ -802,7 +803,7 @@ class SaleUseCases {
       .populate('user', 'name')
       .sort({ date: -1 });
 
-    console.log(`?? Citas completadas encontradas: ${appointments.length}`);
+    logger.debug(`?? Citas completadas encontradas: ${appointments.length}`);
 
     // Formatear citas como ventas
     const appointmentSales = appointments.map(apt => ({
@@ -835,7 +836,7 @@ class SaleUseCases {
     // Ordenar por fecha
     allSales.sort((a, b) => new Date(b.saleDate || b.createdAt) - new Date(a.saleDate || a.createdAt));
 
-    console.log(`?? Total de ventas (regulares + citas): ${allSales.length}`);
+    logger.debug(`?? Total de ventas (regulares + citas): ${allSales.length}`);
     
     return allSales;
   }
@@ -907,7 +908,7 @@ class SaleUseCases {
         };
       }
 
-      console.log(`?? Filtros aplicados para barbero ${barberId}:`, {
+      logger.debug(`?? Filtros aplicados para barbero ${barberId}:`, {
         matchConditions,
         dateFilter
       });
@@ -972,7 +973,7 @@ class SaleUseCases {
       result.totalQuantity = totalQuantityGeneral;
       result.averageSale = countGeneral > 0 ? totalGeneral / countGeneral : 0;
 
-      console.log(`?? Stats separadas para barbero ${barberId} con filtros:`, {
+      logger.debug(`?? Stats separadas para barbero ${barberId} con filtros:`, {
         productos: result.ventas,
         walkIns: result.cortes,
         total: result.total,
@@ -981,7 +982,7 @@ class SaleUseCases {
 
       return result;
     } catch (error) {
-      console.error('Error getting barber sales stats:', error);
+      logger.error('Error getting barber sales stats:', error);
       return {
         ventas: [],
         cortes: [],
@@ -1020,7 +1021,7 @@ class SaleUseCases {
 
       return sales.map(s => s._id);
     } catch (error) {
-      console.error('Error obteniendo fechas disponibles de ventas:', error);
+      logger.error('Error obteniendo fechas disponibles de ventas:', error);
       return [];
     }
   }
@@ -1030,10 +1031,10 @@ class SaleUseCases {
    */
   static async getDetailedSalesReport(barberId, startDate, endDate) {
     try {
-      // Debug: console.log(`?? Obteniendo reporte detallado de ventas - Barbero: ${barberId}, Desde: ${startDate || 'SIN LIMITE'}, Hasta: ${endDate || 'SIN LIMITE'}`);
+      // Debug: logger.debug(`?? Obteniendo reporte detallado de ventas - Barbero: ${barberId}, Desde: ${startDate || 'SIN LIMITE'}, Hasta: ${endDate || 'SIN LIMITE'}`);
       
       const barber = await SaleUseCases.findBarberByIdOrUserId(barberId);
-      // Debug: console.log(`?? Barbero encontrado: ${barber?.user?.name || barber?.name}, ID: ${barber._id}`);
+      // Debug: logger.debug(`?? Barbero encontrado: ${barber?.user?.name || barber?.name}, ID: ${barber._id}`);
       
       let start, end;
       let dateQuery = {};
@@ -1044,9 +1045,9 @@ class SaleUseCases {
         end = new Date(endDate + 'T23:59:59.999Z');
         
         dateQuery = { saleDate: { $gte: start, $lte: end } };
-        console.log(`?? Rango de fechas procesado con UTC: ${start.toISOString()} - ${end.toISOString()}`);
+        logger.debug(`?? Rango de fechas procesado con UTC: ${start.toISOString()} - ${end.toISOString()}`);
       } else {
-        console.log(`?? Sin filtro de fechas - obteniendo todos los registros`);
+        logger.debug(`?? Sin filtro de fechas - obteniendo todos los registros`);
       }
 
       // Usar cache inteligente
@@ -1056,7 +1057,7 @@ class SaleUseCases {
         start || new Date(0),
         end || new Date(),
         async () => {
-          console.log(`?? Generando reporte detallado de ventas desde DB`);
+          logger.debug(`?? Generando reporte detallado de ventas desde DB`);
           
           const sales = await Sale.find({
             barberId: barber._id,
@@ -1067,19 +1068,19 @@ class SaleUseCases {
           .populate('productId', 'name price')
           .sort({ saleDate: 1 });
           
-          // Debug: console.log(`?? Ventas encontradas en DB: ${sales.length} registros para barbero ${barber._id}`);
-          console.log(`?? Query utilizada: barberId=${barber._id}${dateQuery.saleDate ? `, saleDate entre ${start ? start.toISOString() : 'undefined'} y ${end ? end.toISOString() : 'undefined'}` : ', sin filtro de fecha'}, status=completed`);
+          // Debug: logger.debug(`?? Ventas encontradas en DB: ${sales.length} registros para barbero ${barber._id}`);
+          logger.debug(`?? Query utilizada: barberId=${barber._id}${dateQuery.saleDate ? `, saleDate entre ${start ? start.toISOString() : 'undefined'} y ${end ? end.toISOString() : 'undefined'}` : ', sin filtro de fecha'}, status=completed`);
           if (sales.length > 0) {
-            console.log(`?? Primera venta: ${sales[0].saleDate}, Total: ${sales[0].totalAmount}`);
-            console.log(`?? �ltima venta: ${sales[sales.length - 1].saleDate}, Total: ${sales[sales.length - 1].totalAmount}`);
+            logger.debug(`?? Primera venta: ${sales[0].saleDate}, Total: ${sales[0].totalAmount}`);
+            logger.debug(`?? �ltima venta: ${sales[sales.length - 1].saleDate}, Total: ${sales[sales.length - 1].totalAmount}`);
           } else {
             // Verificar si hay ventas para este barbero sin filtro de fecha
             const allSalesForBarber = await Sale.countDocuments({ barberId: barber._id });
-            console.log(`?? Total de ventas para este barbero (sin filtro de fecha): ${allSalesForBarber}`);
+            logger.debug(`?? Total de ventas para este barbero (sin filtro de fecha): ${allSalesForBarber}`);
             
             // Verificar si hay ventas en general
             const totalSales = await Sale.countDocuments();
-            console.log(`?? Total de ventas en la base de datos: ${totalSales}`);
+            logger.debug(`?? Total de ventas en la base de datos: ${totalSales}`);
           }
 
           // Agrupar por d�a
@@ -1125,13 +1126,13 @@ class SaleUseCases {
 
           const result = Object.values(salesByDay).sort((a, b) => new Date(a.date) - new Date(b.date));
           
-          console.log(`? Reporte detallado generado: ${result.length} d�as con ventas`);
+          logger.debug(`? Reporte detallado generado: ${result.length} d�as con ventas`);
           return result;
         }
       );
 
     } catch (error) {
-      console.error('Error generando reporte detallado de ventas:', error);
+      logger.error('Error generando reporte detallado de ventas:', error);
       throw error;
     }
   }
@@ -1141,7 +1142,7 @@ class SaleUseCases {
    */
   static async getWalkInDetails(barberId, startDate, endDate) {
     try {
-      // Debug: console.log(`?? Obteniendo detalles de cortes walk-in - Barbero: ${barberId}, Desde: ${startDate || 'SIN LIMITE'}, Hasta: ${endDate || 'SIN LIMITE'}`);
+      // Debug: logger.debug(`?? Obteniendo detalles de cortes walk-in - Barbero: ${barberId}, Desde: ${startDate || 'SIN LIMITE'}, Hasta: ${endDate || 'SIN LIMITE'}`);
       
       const barber = await SaleUseCases.findBarberByIdOrUserId(barberId);
       
@@ -1163,7 +1164,7 @@ class SaleUseCases {
         start || new Date(0),
         end || new Date(),
         async () => {
-          console.log(`?? Generando detalles de walk-in desde DB`);
+          logger.debug(`?? Generando detalles de walk-in desde DB`);
           
           // Buscar ventas walk-in (ventas sin items de productos, solo servicios)
           const walkInSales = await Sale.find({
@@ -1212,13 +1213,13 @@ class SaleUseCases {
 
           const result = Object.values(walkInsByDay).sort((a, b) => new Date(a.date) - new Date(b.date));
           
-          console.log(`? Detalles de walk-in generados: ${result.length} d�as con cortes`);
+          logger.debug(`? Detalles de walk-in generados: ${result.length} d�as con cortes`);
           return result;
         }
       );
 
     } catch (error) {
-      console.error('Error generando detalles de walk-in:', error);
+      logger.error('Error generando detalles de walk-in:', error);
       throw error;
     }
   }
@@ -1228,10 +1229,10 @@ class SaleUseCases {
    */
   static async getDetailedCutsReport(barberId, startDate, endDate) {
     try {
-      // Debug: console.log(`?? Obteniendo reporte detallado de cortes - Barbero: ${barberId}, Desde: ${startDate || 'SIN LIMITE'}, Hasta: ${endDate || 'SIN LIMITE'}`);
+      // Debug: logger.debug(`?? Obteniendo reporte detallado de cortes - Barbero: ${barberId}, Desde: ${startDate || 'SIN LIMITE'}, Hasta: ${endDate || 'SIN LIMITE'}`);
       
       const barber = await SaleUseCases.findBarberByIdOrUserId(barberId);
-      // Debug: console.log(`?? Barbero encontrado: ${barber?.user?.name || barber?.name}, ID: ${barber._id}`);
+      // Debug: logger.debug(`?? Barbero encontrado: ${barber?.user?.name || barber?.name}, ID: ${barber._id}`);
       
       let start, end;
       let dateQuery = {};
@@ -1241,9 +1242,9 @@ class SaleUseCases {
         start = new Date(startDate + 'T00:00:00.000Z');
         end = new Date(endDate + 'T23:59:59.999Z');
         dateQuery = { saleDate: { $gte: start, $lte: end } };
-        console.log(`?? Rango de fechas procesado: ${start.toISOString()} - ${end.toISOString()}`);
+        logger.debug(`?? Rango de fechas procesado: ${start.toISOString()} - ${end.toISOString()}`);
       } else {
-        console.log(`?? Sin filtro de fechas - obteniendo todos los registros`);
+        logger.debug(`?? Sin filtro de fechas - obteniendo todos los registros`);
       }
 
       // Usar cache inteligente
@@ -1253,7 +1254,7 @@ class SaleUseCases {
         start || new Date(0),
         end || new Date(),
         async () => {
-          console.log(`?? Generando reporte detallado de cortes desde DB`);
+          logger.debug(`?? Generando reporte detallado de cortes desde DB`);
           
           const cuts = await Sale.find({
             barberId: barber._id,
@@ -1264,19 +1265,19 @@ class SaleUseCases {
           .populate('serviceId', 'name price duration')
           .sort({ saleDate: 1 });
           
-          // Debug: console.log(`?? Cortes encontrados en DB: ${cuts.length} registros para barbero ${barber._id}`);
-          console.log(`?? Query utilizada: barberId=${barber._id}${dateQuery.saleDate ? `, saleDate entre ${start ? start.toISOString() : 'undefined'} y ${end ? end.toISOString() : 'undefined'}` : ', sin filtro de fecha'}, status=completed, type=walkIn`);
+          // Debug: logger.debug(`?? Cortes encontrados en DB: ${cuts.length} registros para barbero ${barber._id}`);
+          logger.debug(`?? Query utilizada: barberId=${barber._id}${dateQuery.saleDate ? `, saleDate entre ${start ? start.toISOString() : 'undefined'} y ${end ? end.toISOString() : 'undefined'}` : ', sin filtro de fecha'}, status=completed, type=walkIn`);
           if (cuts.length > 0) {
-            console.log(`?? Primer corte: ${cuts[0].saleDate}, Total: ${cuts[0].totalAmount}`);
-            console.log(`?? �ltimo corte: ${cuts[cuts.length - 1].saleDate}, Total: ${cuts[cuts.length - 1].totalAmount}`);
+            logger.debug(`?? Primer corte: ${cuts[0].saleDate}, Total: ${cuts[0].totalAmount}`);
+            logger.debug(`?? �ltimo corte: ${cuts[cuts.length - 1].saleDate}, Total: ${cuts[cuts.length - 1].totalAmount}`);
           } else {
             // Verificar si hay cortes para este barbero sin filtro de fecha
             const allCutsForBarber = await Sale.countDocuments({ barberId: barber._id, type: SALE_TYPES.SERVICE });
-            console.log(`?? Total de cortes para este barbero (sin filtro de fecha): ${allCutsForBarber}`);
+            logger.debug(`?? Total de cortes para este barbero (sin filtro de fecha): ${allCutsForBarber}`);
             
             // Verificar si hay cortes en general
             const totalCuts = await Sale.countDocuments({ type: SALE_TYPES.SERVICE });
-            console.log(`?? Total de cortes en la base de datos: ${totalCuts}`);
+            logger.debug(`?? Total de cortes en la base de datos: ${totalCuts}`);
           }
 
           // Agrupar por d�a
@@ -1322,13 +1323,13 @@ class SaleUseCases {
 
           const result = Object.values(cutsByDay).sort((a, b) => new Date(a.date) - new Date(b.date));
           
-          console.log(`? Reporte detallado de cortes generado: ${result.length} d�as con cortes`);
+          logger.debug(`? Reporte detallado de cortes generado: ${result.length} d�as con cortes`);
           return result;
         }
       );
 
     } catch (error) {
-      console.error('Error generando reporte detallado de cortes:', error);
+      logger.error('Error generando reporte detallado de cortes:', error);
       throw error;
     }
   }
@@ -1338,7 +1339,7 @@ class SaleUseCases {
    */
   static async getFinancialSummary(startDate, endDate) {
     try {
-      console.log(`?? Generando resumen financiero: ${startDate} - ${endDate}`);
+      logger.debug(`?? Generando resumen financiero: ${startDate} - ${endDate}`);
 
       const start = new Date(startDate + 'T00:00:00.000Z');
       const end = new Date(endDate + 'T23:59:59.999Z');
@@ -1490,7 +1491,7 @@ class SaleUseCases {
       });
 
       // Debug: Ver m�todos de pago procesados
-      console.log('?? Payment methods breakdown from backend:', paymentMethodBreakdown);
+      logger.debug('?? Payment methods breakdown from backend:', paymentMethodBreakdown);
 
       // Datos diarios formateados
       const dailyData = result.dailyData.map(day => ({
@@ -1572,7 +1573,7 @@ class SaleUseCases {
         daysWithData: dailyData.length // ? A�ADIDO PARA EL FRONTEND
       };
 
-      console.log(`? Resumen financiero generado:`, {
+      logger.debug(`? Resumen financiero generado:`, {
         totalRevenue: financialSummary.summary.totalRevenue,
         totalServices: totalServiceSales, // ? CORREGIDO: Mostrar n�mero de ventas
         totalProducts: totalProductSales, // ? CORREGIDO: Mostrar n�mero de ventas
@@ -1586,7 +1587,7 @@ class SaleUseCases {
       return financialSummary;
 
     } catch (error) {
-      console.error('Error generando resumen financiero:', error);
+      logger.error('Error generando resumen financiero:', error);
       throw error;
     }
   }
@@ -1736,7 +1737,7 @@ class SaleUseCases {
         notes: `${notes} - Item del carrito`,
         // Campos obligatorios
         status: 'completed',
-        saleDate: new Date()
+        saleDate: now()
       });
 
       await sale.save();

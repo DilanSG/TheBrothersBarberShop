@@ -2,6 +2,7 @@
 import { barberService, salesService, appointmentsService } from '../services/api';
 import { availableDatesService } from '../services/availableDatesService';
 import { useNotification } from '../contexts/NotificationContext';
+import { getCurrentDateColombia } from '../utils/dateUtils';
 import cacheService from '../services/cacheService';
 import batchProcessingService from '../services/batchProcessingService';
 
@@ -413,7 +414,7 @@ export const useBarberStats = () => {
         // PRECARGA DESACTIVADA TEMPORALMENTE para evitar rate limiting
         // setTimeout(() => {
         //   batchProcessingService.preloadCommonFilters(barbersData, async (barber) => {
-        //     const queryParams = { date: new Date().toISOString().split('T')[0] };
+        //     const queryParams = { date: getCurrentDateColombia() };
         //     
         //     const [salesResponse, appointmentsResponse] = await Promise.all([
         //       salesService.getBarberSalesStats(barber._id, queryParams),
@@ -448,7 +449,7 @@ export const useBarberStats = () => {
     setLoadingReport(true);
     setSelectedBarber(barberId);
     try {
-      const reportDate = date || new Date().toISOString().split('T')[0];
+      const reportDate = date || getCurrentDateColombia();
       const salesResponse = await salesService.getDailyReport(reportDate, barberId);
       
       debugLog('🔍 Respuesta del servidor:', salesResponse);

@@ -8,14 +8,14 @@ import app from '../../src/app.js';
 import Sale from '../../src/core/domain/entities/Sale.js';
 import Barber from '../../src/core/domain/entities/Barber.js';
 import Service from '../../src/core/domain/entities/Service.js';
-import Product from '../../src/core/domain/entities/Product.js';
+import Inventory from '../../src/core/domain/entities/Inventory.js';
 import jwt from 'jsonwebtoken';
 
 // Mocks
 jest.mock('../../src/core/domain/entities/Sale.js');
 jest.mock('../../src/core/domain/entities/Barber.js');
 jest.mock('../../src/core/domain/entities/Service.js');
-jest.mock('../../src/core/domain/entities/Product.js');
+jest.mock('../../src/core/domain/entities/Inventory.js');
 
 describe('Sales API Integration Tests', () => {
   let authToken;
@@ -125,7 +125,7 @@ describe('Sales API Integration Tests', () => {
       };
 
       Barber.findById = jest.fn().mockResolvedValue(mockBarber);
-      Product.findById = jest.fn().mockResolvedValue(mockProduct);
+      Inventory.findById = jest.fn().mockResolvedValue(mockProduct);
       Sale.mockImplementation(() => mockSale);
 
       const response = await request(app)
@@ -202,7 +202,7 @@ describe('Sales API Integration Tests', () => {
       };
 
       Barber.findById = jest.fn().mockResolvedValue(mockBarber);
-      Product.findById = jest.fn().mockResolvedValue(mockProduct);
+      Inventory.findById = jest.fn().mockResolvedValue(mockProduct);
 
       const response = await request(app)
         .post('/api/sales')

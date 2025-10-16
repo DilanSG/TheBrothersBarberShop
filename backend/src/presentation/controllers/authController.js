@@ -32,7 +32,7 @@ export const login = asyncHandler(async (req, res) => {
     });
   }
 
-  const { token, user } = await AuthUseCases.login(email, password);
+  const { token, user } = await AuthUseCases.login(email, password, req);
 
   res.json({
     success: true,
@@ -97,6 +97,25 @@ export const resetPasswordWithToken = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: result.message
+  });
+});
+
+// @desc    Refrescar token JWT
+// @route   POST /api/auth/refresh-token
+// @access  Público (requiere token en body)
+export const refreshToken = asyncHandler(async (req, res) => {
+  const { token } = req.body;
+  
+  if (!token) {
+    throw new AppError('Token requerido', 400);
+  }
+
+  const result = await AuthUseCases.refreshToken(token);
+  
+  res.json({
+    success: true,
+    token: result.token,
+    user: result.user
   });
 });
 
