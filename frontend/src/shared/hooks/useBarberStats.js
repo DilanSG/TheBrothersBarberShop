@@ -126,47 +126,50 @@ export const useBarberStats = () => {
 
         setLoadingStatus(prev => ({ ...prev, [barberId]: 'processing' }));
 
-        // Procesar ventas de productos
+        // Procesar ventas de productos - VALIDACIÓN DEFENSIVA
         let totalProductos = 0;
         let countProductos = 0;
-        if (salesResponse.data && Array.isArray(salesResponse.data.ventas)) {
-          salesResponse.data.ventas.forEach(v => {
+        const ventasArray = salesResponse?.data?.ventas;
+        if (ventasArray && Array.isArray(ventasArray)) {
+          ventasArray.forEach(v => {
             totalProductos += v.total || 0;
             countProductos += v.totalQuantity || v.count || 0; // Priorizar totalQuantity
           });
-        } else if (salesResponse.data && typeof salesResponse.data.total === 'number') {
+        } else if (salesResponse?.data && typeof salesResponse.data.total === 'number') {
           totalProductos = salesResponse.data.total;
           countProductos = salesResponse.data.totalQuantity || salesResponse.data.count || 0; // Priorizar totalQuantity
         }
 
-        // Procesar cortes
+        // Procesar cortes - VALIDACIÓN DEFENSIVA
         let cortesCount = 0;
         let cortesTotal = 0;
-        if (salesResponse.data && Array.isArray(salesResponse.data.cortes)) {
-          salesResponse.data.cortes.forEach(c => {
+        const cortesArray = salesResponse?.data?.cortes;
+        if (cortesArray && Array.isArray(cortesArray)) {
+          cortesArray.forEach(c => {
             cortesTotal += c.total || 0;
             cortesCount += c.totalQuantity || c.count || 0; // Priorizar totalQuantity
           });
         }
 
-        // Procesar citas
+        // Procesar citas - VALIDACIÓN DEFENSIVA
         let totalCitas = 0;
         let completedCitas = 0;
-        if (appointmentsResponse.data && Array.isArray(appointmentsResponse.data.citas)) {
-          appointmentsResponse.data.citas.forEach(c => {
+        const citasArray = appointmentsResponse?.data?.citas;
+        if (citasArray && Array.isArray(citasArray)) {
+          citasArray.forEach(c => {
             totalCitas += c.revenue || c.service?.price || 0;
             completedCitas += c.count || 1;
           });
-        } else if (appointmentsResponse.data && typeof appointmentsResponse.data.revenue === 'number') {
+        } else if (appointmentsResponse?.data && typeof appointmentsResponse.data.revenue === 'number') {
           totalCitas = appointmentsResponse.data.revenue;
           completedCitas = appointmentsResponse.data.completed || 1;
         }
 
         const barberStats = {
-          // Arrays para reportes detallados
-          salesArray: salesResponse.data?.ventas || [],
-          appointmentsArray: appointmentsResponse.data?.citas || [],
-          walkInsArray: salesResponse.data?.cortes || [],
+          // Arrays para reportes detallados - GARANTIZAR ARRAYS
+          salesArray: Array.isArray(salesResponse?.data?.ventas) ? salesResponse.data.ventas : [],
+          appointmentsArray: Array.isArray(appointmentsResponse?.data?.citas) ? appointmentsResponse.data.citas : [],
+          walkInsArray: Array.isArray(salesResponse?.data?.cortes) ? salesResponse.data.cortes : [],
           
           // Objetos con totales para las cards
           sales: {
