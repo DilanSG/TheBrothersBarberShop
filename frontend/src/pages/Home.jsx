@@ -153,8 +153,9 @@ function Home() {
                     throw new Error('Error al cargar los datos');
                 }
 
-                const servicesData = servicesRes.data || [];
-                const barbersData = barbersRes.data || [];
+                // VALIDACIÓN DEFENSIVA: Garantizar que sean arrays
+                const servicesData = Array.isArray(servicesRes.data) ? servicesRes.data : [];
+                const barbersData = Array.isArray(barbersRes.data) ? barbersRes.data : [];
 
                 logger.debug('Datos de barberos recibidos:', barbersData);
 

@@ -125,8 +125,10 @@ const AdminServices = () => {
       const response = await api.get('/services');
       
       if (response.success) {
-        const homeServicesFromBackend = response.data.filter(service => service.showInHome);
-        setServices(response.data);
+        // VALIDACIÓN DEFENSIVA: Garantizar que sea array
+        const servicesData = Array.isArray(response.data) ? response.data : [];
+        const homeServicesFromBackend = servicesData.filter(service => service.showInHome);
+        setServices(servicesData);
         setHomeServices(homeServicesFromBackend);
       }
     } catch (error) {
