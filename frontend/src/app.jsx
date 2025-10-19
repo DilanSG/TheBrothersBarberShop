@@ -15,6 +15,9 @@ import AppointmentRouter from './features/appointments/AppointmentRouter';
 import PublicBarbers from './pages/PublicBarbers';
 import Dashboard from './pages/Dashboard';
 
+// Review Pages
+import CreateReview from './features/reviews/CreateReview';
+
 // Auth Pages
 import Login from './features/auth/Login';
 import Register from './features/auth/Register';
@@ -119,6 +122,16 @@ function App() {
           element={
             <ProtectedRoute>
               <AppointmentRouter />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Rutas de reseñas - accesible para clientes autenticados */}
+        <Route 
+          path="/reviews/create/:appointmentId" 
+          element={
+            <ProtectedRoute>
+              <CreateReview />
             </ProtectedRoute>
           }
         />

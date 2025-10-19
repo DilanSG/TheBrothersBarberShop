@@ -11,6 +11,8 @@ import expenseRoutes from './expenseRoutes.js';
 import paymentMethodRoutes from './paymentMethodRoutes.js';
 import sociosRoutes from './sociosRoutes.js';
 import refundRoutes from './refundRoutes.js';
+import invoiceRoutes from './invoices.js';
+import reviewRoutes from './reviewRoutes.js';
 import monitoringRoutes from './monitoring.js';
 import debugRoutes from './debug.js';
 import { errorHandler, monitoringMiddleware } from '../middleware/index.js';
@@ -33,6 +35,8 @@ router.use('/expenses', expenseRoutes);
 router.use('/payment-methods', paymentMethodRoutes);
 router.use('/socios', sociosRoutes);
 router.use('/refunds', refundRoutes);
+router.use('/invoices', invoiceRoutes);
+router.use('/reviews', reviewRoutes);
 router.use('/monitoring', monitoringRoutes);
 
 // Solo montar rutas de debug en desarrollo

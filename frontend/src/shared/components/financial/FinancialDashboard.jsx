@@ -16,7 +16,6 @@ import {
   Minus
 } from 'lucide-react';
 import GradientText from '../ui/GradientText';
-import { SimpleDateFilter } from '../common/SimpleDateFilter';
 import SociosModal from '../modals/SociosModal';
 import RefundedSalesModal from '../common/RefundedSalesModal';
 import { sociosService } from '../../services/sociosService';
@@ -40,11 +39,7 @@ export const FinancialDashboard = ({
   formatCurrency, 
   loading = false,
   className = '',
-  onCardClick,
-  dateRange,
-  onPresetChange,
-  onCustomDateChange,
-  availableDates = []
+  onCardClick
 }) => {
   // Asegurar que siempre exista un objeto summary para evitar crashes en render inicial
   const { summary = {} } = data || {};
@@ -396,17 +391,7 @@ export const FinancialDashboard = ({
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Filtro de fechas */}
-      {(dateRange && onPresetChange && onCustomDateChange) && (
-        <SimpleDateFilter
-          dateRange={dateRange}
-          onPresetChange={onPresetChange}
-          onCustomDateChange={onCustomDateChange}
-          availableDates={availableDates}
-          loading={loading}
-          className="mb-6"
-        />
-      )}
+      {/* Filtro de fechas removido - ahora se maneja globalmente en Reports.jsx */}
 
       {/* Grid de métricas principales - Responsivo al contenido */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">

@@ -938,6 +938,149 @@ class EmailService {
       html
     });
   }
+
+  /**
+   * Enviar email solicitando reseña después de cita completada
+   * @param {Object} appointment - Objeto de cita completada
+   * @param {Object} user - Usuario que recibió el servicio
+   * @param {Object} barber - Barbero que realizó el servicio
+   */
+  async sendReviewRequest(appointment, user, barber) {
+    // Usar URL de producción si estamos en producción, sino localhost
+    const frontendUrl = process.env.NODE_ENV === 'production' 
+      ? (process.env.FRONTEND_URL || 'https://the-bro-barbers.vercel.app')
+      : 'http://localhost:5173';
+    
+    const reviewUrl = `${frontendUrl}/reviews/create/${appointment._id}`;
+    
+    logger.info(`📧 Generando URL de reseña: ${reviewUrl} (env: ${process.env.NODE_ENV})`);
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>¡Cuéntanos tu experiencia!</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: 'Arial', sans-serif; background-color: #f4f4f7; padding: 20px; line-height: 1.6; }
+          .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+          .header { background: linear-gradient(135deg, #1F2937 0%, #111827 100%); color: white; padding: 40px 30px; text-align: center; }
+          .header h1 { font-size: 28px; margin-bottom: 10px; font-weight: bold; }
+          .header p { font-size: 16px; opacity: 0.9; }
+          .content { padding: 40px 30px; }
+          .appointment-card { background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 10px; padding: 25px; margin: 25px 0; color: white; }
+          .appointment-card h3 { font-size: 18px; margin-bottom: 15px; font-weight: 600; }
+          .appointment-detail { display: flex; align-items: center; margin: 10px 0; font-size: 15px; }
+          .appointment-detail strong { margin-right: 8px; }
+          .stars-preview { text-align: center; margin: 30px 0; }
+          .stars-preview .star { font-size: 40px; color: #FFD700; margin: 0 5px; cursor: pointer; transition: transform 0.2s; display: inline-block; }
+          .stars-preview .star:hover { transform: scale(1.2); }
+          .cta-button { display: inline-block; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 17px; font-weight: 600; margin: 20px 0; text-align: center; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); transition: all 0.3s; }
+          .cta-button:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4); }
+          .message { font-size: 16px; color: #374151; line-height: 1.8; margin: 20px 0; }
+          .footer { background: #F3F4F6; padding: 30px; text-align: center; color: #6B7280; font-size: 14px; border-top: 1px solid #E5E7EB; }
+          .footer p { margin: 8px 0; }
+          .highlight { color: #3B82F6; font-weight: 600; }
+          @media (max-width: 600px) {
+            .header h1 { font-size: 24px; }
+            .content { padding: 30px 20px; }
+            .cta-button { padding: 14px 30px; font-size: 16px; }
+            .stars-preview .star { font-size: 35px; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <!-- Header -->
+          <div class="header">
+            <h1>✂️ ¡Gracias por tu visita!</h1>
+            <p>Tu opinión es muy importante para nosotros</p>
+          </div>
+
+          <!-- Content -->
+          <div class="content">
+            <p class="message">
+              Hola <strong>${user.name}</strong>,
+            </p>
+            
+            <p class="message">
+              ¡Esperamos que hayas disfrutado de tu experiencia en <span class="highlight">The Brothers Barber Shop</span>! 
+            </p>
+
+            <!-- Appointment Details -->
+            <div class="appointment-card">
+              <h3>📅 Detalles de tu visita</h3>
+              <div class="appointment-detail">
+                <strong>✂️ Barbero:</strong> ${barber.user?.name || 'N/A'}
+              </div>
+              <div class="appointment-detail">
+                <strong>📅 Fecha:</strong> ${new Date(appointment.date).toLocaleDateString('es-ES', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </div>
+              <div class="appointment-detail">
+                <strong>🕐 Hora:</strong> ${new Date(appointment.date).toLocaleTimeString('es-ES', { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  hour12: false
+                })}
+              </div>
+            </div>
+
+            <p class="message">
+              Nos encantaría conocer tu opinión sobre el servicio que recibiste. 
+              <strong>¿Cómo calificarías tu experiencia?</strong>
+            </p>
+
+            <!-- Stars Preview -->
+            <div class="stars-preview">
+              <span class="star">⭐</span>
+              <span class="star">⭐</span>
+              <span class="star">⭐</span>
+              <span class="star">⭐</span>
+              <span class="star">⭐</span>
+            </div>
+
+            <!-- CTA Button -->
+            <div style="text-align: center;">
+              <a href="${reviewUrl}" class="cta-button">
+                ⭐ Dejar mi reseña
+              </a>
+            </div>
+
+            <p class="message" style="font-size: 14px; color: #6B7280; margin-top: 30px;">
+              Tu calificación nos ayuda a mejorar continuamente y a brindar el mejor servicio posible. 
+              <strong>¡Solo te tomará 10 segundos!</strong>
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div class="footer">
+            <p><strong>The Brothers Barber Shop</strong></p>
+            <p>📍 Dirección de la barbería</p>
+            <p>📞 Teléfono de contacto</p>
+            <p style="margin-top: 15px; font-size: 12px;">
+              Si tienes alguna pregunta o comentario, no dudes en contactarnos.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    logger.info(`Enviando solicitud de reseña a ${user.email} para cita ${appointment._id}`);
+
+    return await this.sendEmail({
+      to: user.email,
+      subject: '⭐ ¡Cuéntanos tu experiencia en The Brothers Barber Shop!',
+      html
+    });
+  }
 }
 
 // Exportar instancia singleton

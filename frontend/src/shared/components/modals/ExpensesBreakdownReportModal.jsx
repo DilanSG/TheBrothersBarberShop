@@ -13,6 +13,7 @@ import {
 import { differenceInCalendarMonths } from 'date-fns';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import { calculator as RecurringExpenseCalculator } from '../../recurring-expenses';
+import { getCategoryLabel } from '../../utils/categoryTranslations';
 
 /**
  * Modal de desglose de gastos para la pestaña RESUMEN - Respeta filtros de tiempo
@@ -243,28 +244,8 @@ export const ExpensesBreakdownReportModal = ({
     }))
     .sort((a, b) => b.total - a.total);
 
-  // Obtener nombre de categoría legible
-  const getCategoryName = (categoryId) => {
-    const categoryMap = {
-      'rent': 'Arriendo/Alquiler',
-      'utilities': 'Servicios Públicos',
-      'supplies': 'Insumos/Materiales',
-      'equipment': 'Equipos/Herramientas',
-      'salaries': 'Salarios/Nómina',
-      'marketing': 'Marketing/Publicidad',
-      'maintenance': 'Mantenimiento',
-      'insurance': 'Seguros',
-      'taxes': 'Impuestos/Tributos',
-      'transport': 'Transporte',
-      'food': 'Alimentación',
-      'training': 'Capacitación',
-      'software': 'Software/Licencias',
-      'other': 'Otros',
-      'arriendo': 'Arriendo/Alquiler',
-      'nomina': 'Salarios/Nómina'
-    };
-    return categoryMap[categoryId] || categoryId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
+  // Usar función centralizada de traducción (eliminado getCategoryName local)
+  // const getCategoryName = ... REMOVIDO - usar getCategoryLabel importado
 
   // Obtener icono de categoría
   const getCategoryIcon = (categoryId) => {
@@ -370,7 +351,7 @@ export const ExpensesBreakdownReportModal = ({
                             </div>
                             <div>
                               <h4 className="font-medium text-white text-sm sm:text-base">
-                                {getCategoryName(categoryData.category)}
+                                {getCategoryLabel(categoryData.category)} {/* ✅ Usar función centralizada */}
                               </h4>
                               <p className="text-xs text-gray-400">
                                 {categoryData.count} gasto{categoryData.count !== 1 ? 's' : ''}

@@ -8,3 +8,4 @@ export { default as Review } from './Review.js';
 export { default as Sale } from './Sale.js';
 export { default as InventoryLog } from './InventoryLog.js';
 export { default as Expense } from './Expense.js';
+export { default as Invoice } from './Invoice.js';

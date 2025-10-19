@@ -173,7 +173,7 @@ export const getAppointment = asyncHandler(async (req, res) => {
   }
 
   if (req.user.role === 'barber') {
-    const barber = await barberService.getBarberByUserId(req.user._id);
+    const barber = await Barber.findOne({ user: req.user._id });
     const appointmentBarberId = appointment.barber._id || appointment.barber;
     if (!barber || appointmentBarberId.toString() !== barber._id.toString()) {
       throw new AppError('No tienes permiso para ver esta cita', 403);
@@ -308,7 +308,7 @@ export const completeAppointment = asyncHandler(async (req, res) => {
   }
 
   // Solo el barbero asignado puede marcar como completada
-  const barber = await barberService.getBarberByUserId(req.user._id);
+  const barber = await Barber.findOne({ user: req.user._id });
   
   // Obtener el ID del barbero de la cita (puede estar poblado o no)
   const appointmentBarberId = appointment.barber._id || appointment.barber;
@@ -341,6 +341,30 @@ export const completeAppointment = asyncHandler(async (req, res) => {
   logger.info('✅ Permisos verificados correctamente para completar cita');
 
   const completedAppointment = await AppointmentUseCases.completeAppointment(id, req.user._id, req.user.role, paymentMethod);
+
+  // 🌟 NUEVA FUNCIONALIDAD: Enviar email de solicitud de reseña
+  try {
+    // Poblar datos necesarios para el email
+    await completedAppointment.populate([
+      { path: 'user', select: 'name email' },
+      { path: 'barber', populate: { path: 'user', select: 'name' } }
+    ]);
+
+    // Enviar email asíncrono (no bloquear la respuesta)
+    emailService.sendReviewRequest(
+      completedAppointment,
+      completedAppointment.user,
+      completedAppointment.barber
+    ).catch(error => {
+      logger.error('Error enviando email de solicitud de reseña:', error);
+      // No lanzar error para no afectar el flujo principal
+    });
+
+    logger.info(`✅ Email de solicitud de reseña programado para ${completedAppointment.user.email}`);
+  } catch (emailError) {
+    logger.error('Error preparando email de reseña:', emailError);
+    // Continuar aunque falle el email
+  }
 
   res.json({
     success: true,
@@ -380,7 +404,7 @@ export const markNoShow = asyncHandler(async (req, res) => {
   }
 
   // Solo el barbero asignado puede marcar no show
-  const barber = await barberService.getBarberByUserId(req.user._id);
+  const barber = await Barber.findOne({ user: req.user._id });
   const appointmentBarberId = appointment.barber._id || appointment.barber;
   
   if (!barber || appointmentBarberId.toString() !== barber._id.toString()) {
@@ -404,7 +428,7 @@ export const getAppointmentStats = asyncHandler(async (req, res) => {
 
   // Si es barbero, solo ver sus estadísticas
   if (req.user.role === 'barber') {
-    const barber = await barberService.getBarberByUserId(req.user._id);
+    const barber = await Barber.findOne({ user: req.user._id });
     if (!barber) {
       throw new AppError('Barbero no encontrado', 404);
     }
@@ -493,6 +517,11 @@ export const getBarberAvailability = asyncHandler(async (req, res) => {
 
   // Usar el servicio corregido que maneja zona horaria
   const availableTimes = await AppointmentUseCases.getAvailableTimes(barberId, date);
+
+  // Desactivar caché para esta respuesta (para debug)
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 
   res.status(200).json({
     success: true,

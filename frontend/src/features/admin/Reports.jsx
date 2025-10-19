@@ -37,13 +37,67 @@ import AppointmentsBreakdownModal from '@components/modals/AppointmentsBreakdown
 import useFinancialReports from '@hooks/useFinancialReports';
 import { useRecurringExpenses } from '../../features/expenses/hooks/useRecurringExpenses';
 import { calculator as RecurringExpenseCalculator } from '@shared/recurring-expenses';
-import { format, differenceInCalendarMonths } from 'date-fns'
+import { format, differenceInCalendarMonths } from 'date-fns';
+import { getCategoryLabel, getPaymentMethodLabel } from '@utils/categoryTranslations';
 
 const frequencies = [
   { value: 'daily', label: 'Diario' },
   { value: 'weekly', label: 'Semanal' },
   { value: 'monthly', label: 'Mensual' }
 ];
+
+/**
+ * Calcula los gastos diarios correctos considerando gastos recurrentes y únicos
+ * @param {Array} expenses - Array de gastos (recurrentes y únicos)
+ * @param {string} startDate - Fecha de inicio
+ * @param {string} endDate - Fecha de fin
+ * @returns {Object} - { dailyRate, monthlyProjection }
+ */
+const calculateCorrectDailyExpenses = (expenses, startDate, endDate) => {
+  if (!expenses || expenses.length === 0) {
+    return { dailyRate: 0, monthlyProjection: 0 };
+  }
+
+  // Separar gastos recurrentes y únicos
+  const recurringExpenses = expenses.filter(exp => 
+    exp.type === 'recurring' || exp.recurrence || exp.recurringConfig
+  );
+  const oneTimeExpenses = expenses.filter(exp => 
+    exp.type !== 'recurring' && !exp.recurrence && !exp.recurringConfig
+  );
+
+  // Calcular total de gastos únicos
+  const oneTimeTotal = oneTimeExpenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
+
+  // Calcular total de gastos recurrentes usando el calculador
+  const recurringMonthlyTotal = recurringExpenses.reduce((sum, exp) => {
+    try {
+      const monthlyAmount = RecurringExpenseCalculator.calculateMonthlyAmount(exp);
+      return sum + monthlyAmount;
+    } catch (error) {
+      console.warn('Error calculando gasto recurrente:', exp.description, error);
+      return sum;
+    }
+  }, 0);
+
+  // Calcular días en el periodo
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const daysInPeriod = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+  // Proyección mensual de gastos recurrentes (ya está en formato mensual)
+  const monthlyProjection = recurringMonthlyTotal;
+
+  // Gasto diario = (gastos únicos / días) + (gastos recurrentes mensuales / 30)
+  const dailyFromOneTime = oneTimeTotal / daysInPeriod;
+  const dailyFromRecurring = recurringMonthlyTotal / 30;
+  const dailyRate = dailyFromOneTime + dailyFromRecurring;
+
+  return {
+    dailyRate,
+    monthlyProjection
+  };
+};
 
 /**
  * Página de reportes financieros completa
@@ -183,20 +237,26 @@ const Reports = () => {
   const safeExpenseCategories = React.useMemo(() => {
     const breakdown = financialData?.expenseBreakdown || financialData?.expenseCategories || [];
     if (!Array.isArray(breakdown)) return [];
-    // Normalizar estructura: { value, label, total }
-    return breakdown.map(item => ({
-      value: item.value || item.category || item.key || item._id || 'unknown',
-      label: item.label || item.name || item.category || item.value || 'Desconocido',
-      total: item.total || item.totalAmount || item.amount || 0
-    }));
+    // Normalizar estructura: { value, label, total } con traducciones
+    return breakdown.map(item => {
+      const value = item.value || item.category || item.key || item._id || 'unknown';
+      return {
+        value,
+        label: getCategoryLabel(value), // ✅ Usar función de traducción
+        total: item.total || item.totalAmount || item.amount || 0
+      };
+    });
   }, [financialData]);
+  
   // Normalizar métodos de pago a partir del summary (fuente primaria) o lista previa
   const safePaymentMethods = React.useMemo(() => {
     const pmObj = financialData?.summary?.paymentMethods || {};
-    // Si tenemos un objeto con montos, convertirlo a array con value/label para componentes que esperan esa forma
-    const fromSummary = Object.keys(pmObj).map(k => ({ value: k, label: k, amount: pmObj[k] }));
-    // Si había previamente una lista (legacy), la fusionamos priorizando labels existentes
-    // paymentMethods ya no se desestructura; si en el futuro se reintroduce se puede fusionar aquí
+    // Si tenemos un objeto con montos, convertirlo a array con value/label traducidos
+    const fromSummary = Object.keys(pmObj).map(k => ({ 
+      value: k, 
+      label: getPaymentMethodLabel(k), // ✅ Usar función de traducción
+      amount: pmObj[k] 
+    }));
     return fromSummary;
   }, [financialData]);
 
@@ -300,10 +360,7 @@ const Reports = () => {
 
     // ✅ APLICAR LÓGICA CORRECTA SEGÚN TIPO DE FILTRO
     const isGeneralFilter = dateRange?.preset === 'all' || dateRange?.preset === 'allData' || !dateRange?.preset;
-    const isLongPeriodFilter = isGeneralFilter; // El filtro general es el período largo
     let daysWithData = financialData?.summary?.daysWithData || 0;
-    
-    // Análisis de filtro completado
     
     // ✅ LÓGICA CORRECTA: Calcular meses desde la fecha más antigua con datos
     let monthsWithData = 1; // Mínimo 1 mes por defecto
@@ -320,20 +377,14 @@ const Reports = () => {
         // ✅ CÁLCULO CORREGIDO Y PRECISO con date-fns
         const monthsDiff = differenceInCalendarMonths(today, startDate);
         monthsWithData = Math.max(1, monthsDiff + 1); // +1 para incluir mes actual
-        
-        // Calculado desde fecha más antigua con date-fns
       } else {
         // Respaldo: estimar meses basándose en daysWithData distribuidos
-        // Si hay 57 días distribuidos en el tiempo, estimar cuántos meses abarca
         monthsWithData = Math.max(1, Math.ceil(daysWithData / 15)); // Asumir ~15 días promedio por mes con datos
-        
-        // Estimando meses desde daysWithData
       }
     }
     
     if (isGeneralFilter && daysWithData > 30) {
       // 📊 FILTRO GENERAL: Multiplicar por cantidad de meses transcurridos
-      // Necesitamos acceder a monthsDiff calculado anteriormente
       let monthsToUse = monthsWithData; // Por defecto usar monthsWithData
       
       // Si tenemos oldestDate, recalcular monthsDiff para usar el valor correcto
@@ -346,8 +397,6 @@ const Reports = () => {
       }
       
       const totalForPeriod = total * monthsToUse;
-      
-      // Cálculo filtro general aplicado
       
       return {
         count: activeRecurringExpenses.length,
@@ -370,6 +419,51 @@ const Reports = () => {
         calculation: 'monthly-specific'
       };
     }
+  };
+
+  // ✅ NUEVA FUNCIÓN: Para la card de gastos (suma exacta mensual sin multiplicación)
+  const getRecurringExpensesMonthlyStats = () => {
+    // ✅ LÓGICA IMPORTANTE: Los gastos recurrentes solo se contabilizan si hay ventas
+    const hasRevenue = (financialData?.summary?.totalRevenue || 0) > 0;
+    
+    if (!hasRevenue) {
+      return { 
+        count: 0, 
+        total: 0, 
+        inferred: false,
+        message: 'Sin ventas = sin gastos recurrentes'
+      };
+    }
+
+    if (!sanitizedRecurringExpenses || sanitizedRecurringExpenses.length === 0) {
+      return { 
+        count: 0, 
+        total: 0, 
+        inferred: false,
+        message: 'Sin gastos recurrentes definidos'
+      };
+    }
+    
+    const activeRecurringExpenses = sanitizedRecurringExpenses.filter(exp => (exp._isActive !== undefined
+      ? exp._isActive
+      : (exp.recurrence?.isActive ?? exp.recurringConfig?.isActive ?? exp.isActive ?? true)));
+
+    // ✅ SUMA EXACTA: Solo montos mensuales SIN multiplicación
+    const total = activeRecurringExpenses.reduce((sum, exp) => {
+      try {
+        return sum + RecurringExpenseCalculator.calculateMonthlyAmount(exp);
+      } catch (e) {
+        console.warn('Error calculando recurrente', exp.description, e.message);
+        return sum;
+      }
+    }, 0);
+
+    return {
+      count: activeRecurringExpenses.length,
+      total: total, // Suma exacta mensual
+      inferred: false,
+      calculation: 'monthly-sum-exact'
+    };
   };
 
   const getTotalExpensesStats = () => {
@@ -423,12 +517,12 @@ const Reports = () => {
     return Object.entries(totals)
       .map(([key, value]) => ({
         key,
-        label: safeExpenseCategories.find(c => c.value === key)?.label || key,
+        label: getCategoryLabel(key), // ✅ Usar función de traducción
         value
       }))
       .sort((a,b) => b.value - a.value)
       .slice(0, 10);
-  }, [financialData?.expenses, safeExpenseCategories]);
+  }, [financialData?.expenses]);
 
   const paymentMethodChartData = React.useMemo(() => {
     // Usar ingresos (summary.paymentMethods) si están disponibles; fallback a conteo en gastos
@@ -437,7 +531,7 @@ const Reports = () => {
     if (entries.length > 0) {
       return entries.map(([method, amount]) => ({
           key: method,
-          label: safePaymentMethods.find(p => p.value === method)?.label || method,
+          label: getPaymentMethodLabel(method), // ✅ Usar función de traducción
           value: amount
         })).sort((a,b) => b.value - a.value);
     }
@@ -450,10 +544,10 @@ const Reports = () => {
     }, {});
     return Object.entries(counts).map(([key, value]) => ({
       key,
-      label: safePaymentMethods.find(p => p.value === key)?.label || key,
+      label: getPaymentMethodLabel(key), // ✅ Usar función de traducción
       value
     })).sort((a,b) => b.value - a.value);
-  }, [financialData, safePaymentMethods]);
+  }, [financialData]); // ✅ Removida dependencia de safePaymentMethods
 
   const revenueTypeChartData = React.useMemo(() => {
     const summary = financialData?.summary || {};
@@ -759,10 +853,6 @@ const Reports = () => {
               formatCurrency={formatCurrency}
               formatDate={formatDate}
               onCardClick={handleCardClick}
-              dateRange={dateRange}
-              onPresetChange={setDateRangePreset}
-              onCustomDateChange={setCustomDateRange}
-              availableDates={financialData?.availableDates || []}
             />
 
             {/* Métricas rápidas */}
@@ -910,7 +1000,7 @@ const Reports = () => {
                     </div>
                     <h3 className="text-sm font-semibold text-gray-300">Gastos Recurrentes</h3>
                   </div>
-                  {(() => { const stats = getRecurringExpensesStats(); return (
+                  {(() => { const stats = getRecurringExpensesMonthlyStats(); return (
                     <>
                       <p className="text-xl font-bold text-purple-400">
                         {formatCurrency(stats.total)}
@@ -1005,7 +1095,7 @@ const Reports = () => {
                           <div className="flex items-center gap-3 mb-1">
                             <h4 className="font-semibold text-white text-sm truncate">{expense.description}</h4>
                             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-300 border border-red-500/30 flex-shrink-0">
-                              {safeExpenseCategories.find(c => c.value === expense.category)?.label || expense.category}
+                              {getCategoryLabel(expense.category)} {/* ✅ Usar función de traducción */}
                             </span>
                           </div>
                           
@@ -1014,7 +1104,7 @@ const Reports = () => {
                               {formatDate(expense.date)}
                             </span>
                             <span>
-                              {safePaymentMethods.find(p => p.value === expense.paymentMethod)?.label || expense.paymentMethod}
+                              {getPaymentMethodLabel(expense.paymentMethod)} {/* ✅ Usar función de traducción */}
                             </span>
                           </div>
                         </div>

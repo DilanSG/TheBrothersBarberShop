@@ -1,9 +1,25 @@
 ﻿import { asyncHandler } from '../middleware/index.js';
-import { AppError, User, Barber, Appointment } from '../../barrel.js';
+import { AppError, User, Barber, Appointment, logger } from '../../barrel.js';
 import { now } from '../../shared/utils/dateUtils.js';
 import BarberUseCases from '../../core/application/usecases/BarberUseCases.js';
 
 const barberService = BarberUseCases.getInstance();
+
+/**
+ * Helper: Mapear averageRating y totalReviews a formato rating para el frontend
+ */
+const mapBarberRating = (barber) => {
+  if (!barber) return null;
+  
+  const barberObj = barber.toObject ? barber.toObject() : barber;
+  return {
+    ...barberObj,
+    rating: {
+      average: barberObj.averageRating || 0,
+      count: barberObj.totalReviews || 0
+    }
+  };
+};
 
 export const editBarberProfile = asyncHandler(async (req, res) => {
   const updates = { ...req.body };
@@ -105,12 +121,12 @@ export const getBarberByUserId = asyncHandler(async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Perfil de barbero creado exitosamente',
-      data: barber
+      data: mapBarberRating(barber)
     });
     return;
   }
 
-  // Si el barbero existe pero est� inactivo, lo reactivamos
+  // Si el barbero existe pero está inactivo, lo reactivamos
   if (!barber.isActive) {
     barber.isActive = true;
     await barber.save();
@@ -118,7 +134,7 @@ export const getBarberByUserId = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    data: barber
+    data: mapBarberRating(barber)
   });
 });
 
@@ -149,7 +165,7 @@ export const getBarber = asyncHandler(async (req, res) => {
   // Debug: // Debug: console.log('Barbero encontrado:', barber._id);
   res.json({
     success: true,
-    data: barber
+    data: mapBarberRating(barber)
   });
 });
 
@@ -321,7 +337,7 @@ export const updateBarber = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: 'Barbero actualizado exitosamente',
-    data: updatedBarber
+    data: mapBarberRating(updatedBarber)
   });
 });
 
@@ -457,7 +473,12 @@ export const getBarberStats = asyncHandler(async (req, res) => {
     averageRating: stats[0]?.averageRating || 0,
     thisMonth: stats[0]?.thisMonth || 0,
     thisWeek: stats[0]?.thisWeek || 0,
-    appointmentsByService
+    appointmentsByService,
+    // También incluir el rating del modelo Barber (de las reviews)
+    rating: {
+      average: barber.averageRating || 0,
+      count: barber.totalReviews || 0
+    }
   };
 
   res.json({
@@ -547,10 +568,12 @@ export const updateMainBarberStatus = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: `Barbero ${isMainBarber ? 'agregado a' : 'removido de'} barberos principales`,
-    data: {
+    data: mapBarberRating({
       _id: barber._id,
       isMainBarber: barber.isMainBarber,
-      user: barber.user
-    }
+      user: barber.user,
+      averageRating: barber.averageRating,
+      totalReviews: barber.totalReviews
+    })
   });
 });

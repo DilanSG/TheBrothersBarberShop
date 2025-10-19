@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import { calculator as RecurringExpenseCalculator } from '../../recurring-expenses';
+import { getCategoryLabel } from '../../utils/categoryTranslations';
 
 /**
  * Modal para mostrar desglose detallado de gastos con lógica de filtros
@@ -307,26 +308,8 @@ export const ExpensesBreakdownModal = ({
     }))
     .sort((a, b) => b.total - a.total);
 
-  // Obtener nombre de categoría legible
-  const getCategoryName = (categoryId) => {
-    const categoryMap = {
-      'rent': 'Arriendo/Alquiler',
-      'utilities': 'Servicios Públicos',
-      'supplies': 'Insumos/Materiales',
-      'equipment': 'Equipos/Herramientas',
-      'salaries': 'Salarios/Nómina',
-      'marketing': 'Marketing/Publicidad',
-      'maintenance': 'Mantenimiento',
-      'insurance': 'Seguros',
-      'taxes': 'Impuestos/Tributos',
-      'transport': 'Transporte',
-      'food': 'Alimentación',
-      'training': 'Capacitación',
-      'software': 'Software/Licencias',
-      'other': 'Otros'
-    };
-    return categoryMap[categoryId] || categoryId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
+  // Usar función centralizada de traducción (eliminado getCategoryName local)
+  // const getCategoryName = ... REMOVIDO - usar getCategoryLabel importado
 
   // Obtener icono de categoría
   const getCategoryIcon = (categoryId) => {
@@ -429,7 +412,7 @@ export const ExpensesBreakdownModal = ({
                             </div>
                             <div>
                               <h4 className="font-medium text-white text-sm sm:text-base">
-                                {getCategoryName(categoryData.category)}
+                                {getCategoryLabel(categoryData.category)} {/* ✅ Usar función centralizada */}
                               </h4>
                               <p className="text-xs text-gray-400">
                                 {categoryData.count} gasto{categoryData.count !== 1 ? 's' : ''}

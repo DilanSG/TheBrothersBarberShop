@@ -47,6 +47,18 @@ const barberSchema = new mongoose.Schema({
       default: 0
     }
   },
+  // Campos adicionales para sistema de reseñas
+  averageRating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5
+  },
+  totalReviews: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   isActive: {
     type: Boolean,
     default: true

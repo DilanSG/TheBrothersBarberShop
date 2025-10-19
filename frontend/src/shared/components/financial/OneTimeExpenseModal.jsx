@@ -24,6 +24,31 @@ export const OneTimeExpenseModal = ({
   onSave,
   loading = false
 }) => {
+  // Fallbacks en caso de que aún no hayan cargado categorías o métodos
+  const DEFAULT_EXPENSE_CATEGORIES = [
+    { value: 'rent', label: 'Arriendo' },
+    { value: 'utilities', label: 'Servicios Públicos' },
+    { value: 'supplies', label: 'Insumos' },
+    { value: 'marketing', label: 'Marketing' },
+    { value: 'maintenance', label: 'Mantenimiento' },
+    { value: 'other', label: 'Otros' }
+  ];
+  const DEFAULT_PAYMENT_METHODS = [
+    { value: 'cash', label: 'Efectivo' },
+    { value: 'transfer', label: 'Transferencia' },
+    { value: 'nequi', label: 'Nequi' },
+    { value: 'daviplata', label: 'Daviplata' },
+    { value: 'card', label: 'Tarjeta' },
+    { value: 'other', label: 'Otro' }
+  ];
+
+  const safeExpenseCategories = Array.isArray(expenseCategories) && expenseCategories.length > 0
+    ? expenseCategories
+    : DEFAULT_EXPENSE_CATEGORIES;
+  const safePaymentMethods = Array.isArray(paymentMethods) && paymentMethods.length > 0
+    ? paymentMethods
+    : DEFAULT_PAYMENT_METHODS;
+
   const [formData, setFormData] = useState(() => ({
     description: expense?.description || '',
     amount: expense?.amount || '',
@@ -245,17 +270,32 @@ export const OneTimeExpenseModal = ({
                     }`}
                   >
                     <option value="">Seleccionar categoría</option>
-                    {expenseCategories.map((category) => (
+                    {safeExpenseCategories.map((category) => (
                       <option key={category.value} value={category.value}>
-                        {category.icon} {category.label}
+                        {category.label}
                       </option>
                     ))}
+                    <option value="custom">➕ Crear nueva categoría...</option>
                   </select>
                   {errors.category && (
                     <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" />
                       {errors.category}
                     </p>
+                  )}
+                  
+                  {/* Campo para categoría personalizada */}
+                  {formData.category === 'custom' && (
+                    <input
+                      type="text"
+                      placeholder="Nombre de la nueva categoría"
+                      className="glassmorphism-input w-full shadow-xl shadow-green-500/20 mt-2"
+                      onChange={(e) => {
+                        const customValue = e.target.value.toLowerCase().replace(/\s+/g, '-');
+                        updateField('category', customValue);
+                      }}
+                      autoFocus
+                    />
                   )}
                 </div>
 
@@ -272,7 +312,7 @@ export const OneTimeExpenseModal = ({
                     }`}
                   >
                     <option value="">Seleccionar método</option>
-                    {paymentMethods.map((method) => (
+                    {safePaymentMethods.map((method) => (
                       <option key={method.value} value={method.value}>
                         {method.label}
                       </option>

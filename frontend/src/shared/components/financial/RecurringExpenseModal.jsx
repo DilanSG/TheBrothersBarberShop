@@ -401,7 +401,22 @@ export const RecurringExpenseModal = ({
                             {category.icon ? `${category.icon} ` : ''}{category.label}
                           </option>
                         ))}
+                        <option value="custom">➕ Crear nueva categoría...</option>
                       </select>
+                      
+                      {formData.category === 'custom' && (
+                        <input
+                          type="text"
+                          placeholder="Nombre de la nueva categoría"
+                          className="glassmorphism-select w-full shadow-xl shadow-purple-500/20 mt-2"
+                          onChange={(e) => {
+                            const customValue = e.target.value.toLowerCase().replace(/\s+/g, '-');
+                            updateField('category', customValue);
+                          }}
+                          autoFocus
+                        />
+                      )}
+                      
                       {errors.category && (
                         <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />

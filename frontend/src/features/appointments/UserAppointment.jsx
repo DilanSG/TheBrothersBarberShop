@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { PageContainer } from '@components/layout/PageContainer';
 import { useAuth } from '@contexts/AuthContext';
 import { api, appointmentService, serviceService, barberService } from '@services/api';
@@ -8,10 +8,11 @@ import { format, parse, isAfter, isBefore, startOfDay, isSameDay } from 'date-fn
 import { es } from 'date-fns/locale';
 import GradientButton from '@components/ui/GradientButton';
 import GradientText from '@components/ui/GradientText';
-import { Calendar, Clock, User, Scissors, CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
+import { Calendar, Clock, User, Scissors, CheckCircle, XCircle, AlertCircle, Info, Star } from 'lucide-react';
 
 import logger from '@utils/logger';
 const UserAppointment = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [appointments, setAppointments] = useState([]);
   const [success, setSuccess] = useState('');
@@ -835,6 +836,15 @@ const UserAppointment = () => {
                               title="Cancelar con motivo"
                             >
                               <XCircle className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {appointment.status === 'completed' && (
+                            <button
+                              onClick={() => navigate(`/reviews/create/${appointment._id}`)}
+                              className="p-1.5 bg-yellow-500/10 border border-yellow-500/30 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/20 transition-all duration-300 shadow-sm shadow-yellow-500/20"
+                              title={appointment.hasReview ? "Ver tu reseña" : "Dejar reseña"}
+                            >
+                              <Star className="w-3.5 h-3.5" />
                             </button>
                           )}
                           {(appointment.status === 'completed' || appointment.status === 'cancelled') && (

@@ -5,7 +5,7 @@
  * Gestión integral de inventario con Repository Pattern
  */
 
-import { AppError, logger } from '../../../barrel.js';
+import { AppError, logger, Inventory } from '../../../barrel.js';
 import DIContainer from '../../../shared/container/index.js';
 
 class InventoryUseCases {
@@ -303,49 +303,57 @@ class InventoryUseCases {
   // ========================================================================
 
   static async getAllItems(filters = {}) {
-    const { data } = await this.getInventory(filters);
+    const instance = InventoryUseCases.getInstance();
+    const { data } = await instance.getInventory(filters);
     return data; // Retornar solo el array sin paginación
   }
 
   static async getItemById(itemId) {
-    return await this.getInventoryItemById(itemId);
+    const instance = InventoryUseCases.getInstance();
+    return await instance.getInventoryItemById(itemId);
   }
 
   static async createItem(itemData) {
+    const instance = InventoryUseCases.getInstance();
     // inventoryService.js no pasa user, usar null como fallback
-    return await this.createInventoryItem(itemData, null);
+    return await instance.createInventoryItem(itemData, null);
   }
 
   static async updateItem(itemId, updateData) {
+    const instance = InventoryUseCases.getInstance();
     // inventoryService.js no pasa user, usar null como fallback
-    return await this.updateInventoryItem(itemId, updateData, null);
+    return await instance.updateInventoryItem(itemId, updateData, null);
   }
 
   static async deleteItem(itemId) {
-    return await this.deleteInventoryItem(itemId, null);
+    const instance = InventoryUseCases.getInstance();
+    return await instance.deleteInventoryItem(itemId, null);
   }
 
   static async adjustStock(itemId, quantity, type = 'add', reason, options = {}) {
+    const instance = InventoryUseCases.getInstance();
     // Convertir el parámetro 'type' al formato esperado
     const finalQuantity = type === 'subtract' ? -Math.abs(quantity) : Math.abs(quantity);
-    return await this.updateStock(itemId, finalQuantity, null, reason);
+    return await instance.updateStock(itemId, finalQuantity, null, reason);
   }
 
   static async getItemsByCategory(category) {
-    const { data } = await this.getInventory({ category });
+    const instance = InventoryUseCases.getInstance();
+    const { data } = await instance.getInventory({ category });
     return data;
   }
 
   static async getMovementHistory(itemId, startDate, endDate) {
-    return await this.getInventoryMovements(startDate, endDate);
+    return await InventoryUseCases.getInventoryMovements(startDate, endDate);
   }
 
   static async getDailyReport(dateString) {
     // Este método necesita implementación específica
     logger.debug(`Generando reporte diario para: ${dateString}`);
     try {
-      const stats = await this.getInventoryStats();
-      const lowStock = await this.getLowStockItems();
+      const stats = await InventoryUseCases.getInventoryStats();
+      const instance = InventoryUseCases.getInstance();
+      const lowStock = await instance.getLowStockItems();
       
       return {
         date: dateString,
@@ -377,11 +385,11 @@ class InventoryUseCases {
           $group: {
             _id: null,
             totalItems: { $sum: 1 },
-            totalValue: { $sum: { $multiply: ['$currentStock', '$cost'] } },
-            averageStock: { $avg: '$currentStock' },
+            totalValue: { $sum: { $multiply: ['$stock', '$price'] } },
+            averageStock: { $avg: '$stock' },
             lowStockCount: {
               $sum: {
-                $cond: [{ $lte: ['$currentStock', '$minStock'] }, 1, 0]
+                $cond: [{ $lte: ['$stock', '$minStock'] }, 1, 0]
               }
             }
           }

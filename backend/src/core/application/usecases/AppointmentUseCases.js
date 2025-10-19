@@ -1,6 +1,6 @@
 ﻿import mongoose from 'mongoose';
 import { Appointment, Barber, Service, User, AppError, logger } from '../../../barrel.js';
-import { now } from '../../../shared/utils/dateUtils.js';
+import { now, createColombiaDate, formatInColombiaTime } from '../../../shared/utils/dateUtils.js';
 import DIContainer from '../../../shared/container/index.js';
 
 /**
@@ -157,6 +157,8 @@ class AppointmentUseCases {
   // ========================================================================
 
   static async getAvailableTimes(barberId, date) {
+    logger.info(`🔥🔥🔥 getAvailableTimes CALLED - barberId: ${barberId}, date: ${date} 🔥🔥🔥`);
+    
     const barber = await Barber.findById(barberId).populate('user');
     if (!barber) {
       throw new AppError('Barbero no encontrado', 404);
@@ -204,28 +206,65 @@ class AppointmentUseCases {
     const [startHour, startMinute] = start.split(':').map(Number);
     const [endHour, endMinute] = end.split(':').map(Number);
     
-    const startTime = new Date(date);
-    startTime.setHours(startHour, startMinute, 0, 0);
+    // Parsear la fecha recibida (formato YYYY-MM-DD)
+    const [year, month, day] = date.split('-').map(Number);
     
-    const endTime = new Date(date);
-    endTime.setHours(endHour, endMinute, 0, 0);
+    // Crear fechas en UTC compensando la zona horaria de Colombia (UTC-5)
+    // Si en Colombia son las 09:00, en UTC son las 14:00 (09:00 + 5)
+    const startTime = new Date(Date.UTC(year, month - 1, day, startHour + 5, startMinute, 0));
+    const endTime = new Date(Date.UTC(year, month - 1, day, endHour + 5, endMinute, 0));
+    
+    logger.info(`📅 getAvailableTimes - Date param: ${date}, Year: ${year}, Month: ${month}, Day: ${day}`);
+    logger.info(`📅 getAvailableTimes - StartTime: ${startTime.toISOString()}, EndTime: ${endTime.toISOString()}`);
+    
+    // Obtener hora actual en Colombia para filtrar horarios pasados
+    const currentTime = now();
+    logger.info(`⏰ getAvailableTimes - Hora actual Colombia: ${currentTime.toISOString()}`);
+    logger.info(`⏰ getAvailableTimes - Filtrando horarios <= ${currentTime.toLocaleString('es-CO', { timeZone: 'America/Bogota' })}`);
+    
+    let slotsFiltered = 0;
+    let slotsOccupied = 0;
     
     const current = new Date(startTime);
     while (current < endTime) {
       const slotTime = new Date(current);
       
+      // Verificar si el slot está ocupado
       const isOccupied = appointments.some(appointment => {
         const appointmentStart = new Date(appointment.date);
         const appointmentEnd = new Date(appointmentStart.getTime() + (appointment.duration || 60) * 60000);
         return slotTime >= appointmentStart && slotTime < appointmentEnd;
       });
 
-      if (!isOccupied) {
-        timeSlots.push(slotTime.toTimeString().slice(0, 5));
+      // Verificar si el slot ya pasó (solo para el día actual)
+      const isPast = slotTime <= currentTime;
+      
+      if (isPast) {
+        slotsFiltered++;
+        logger.info(`🚫 Slot filtrado (pasado): ${slotTime.toISOString()}`);
+      }
+      if (isOccupied) slotsOccupied++;
+
+      if (!isOccupied && !isPast) {
+        // Formatear hora en zona horaria de Colombia (HH:mm formato 24h)
+        const timeDisplay = formatInColombiaTime(slotTime, {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+        
+        // Devolver objeto con time (formato display en Colombia) y datetime (ISO string completo)
+        timeSlots.push({
+          time: timeDisplay,                // "17:30" (hora de Colombia)
+          datetime: slotTime.toISOString()  // "2025-10-17T22:30:00.000Z" (UTC)
+        });
       }
       
       current.setMinutes(current.getMinutes() + 30);
     }
+    
+    logger.info(`📊 Resumen - Slots generados: ${timeSlots.length}, Filtrados por pasados: ${slotsFiltered}, Ocupados: ${slotsOccupied}`);
+    logger.info(`📅 getAvailableTimes - Generated ${timeSlots.length} slots, first: ${timeSlots[0]?.datetime}`);
 
     return timeSlots;
   }

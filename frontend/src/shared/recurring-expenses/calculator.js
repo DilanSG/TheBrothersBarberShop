@@ -450,6 +450,42 @@ export class RecurringExpenseCalculator {
   _formatDate(date) {
     return date.toISOString().split('T')[0];
   }
+
+  /**
+   * Calcula el monto mensual base sin ajustes diarios
+   * (Alias de calculateMonthlyAmount para compatibilidad)
+   * @param {Object} expense - Gasto recurrente
+   * @returns {number} - Monto mensual base
+   */
+  calculateBaseMonthlyAmount(expense) {
+    return this.calculateMonthlyAmount(expense);
+  }
+
+  /**
+   * Obtiene la descripción de frecuencia del gasto
+   * @param {Object} expense - Gasto recurrente
+   * @returns {string} - Descripción de la frecuencia
+   */
+  getFrequencyDescription(expense) {
+    const config = this.normalizeConfig(expense);
+    const { pattern, interval } = config;
+    
+    if (!pattern) return 'Sin configurar';
+    
+    switch (pattern) {
+      case 'daily':
+        return interval === 1 ? 'Diario' : `Cada ${interval} días`;
+      case 'weekly':
+        return interval === 1 ? 'Semanal' : `Cada ${interval} semanas`;
+      case 'monthly':
+        return interval === 1 ? 'Mensual' : `Cada ${interval} meses`;
+      case 'yearly':
+        return interval === 1 ? 'Anual' : `Cada ${interval} años`;
+      default:
+        const intervalText = interval > 1 ? ` cada ${interval}` : '';
+        return `${pattern}${intervalText}`;
+    }
+  }
 }
 
 // Instancia singleton para uso directo
@@ -463,5 +499,43 @@ export const getDailyAdjustedAmount = (expense, dateStr) => calculator.getDailyA
 export const calculateRangeAmount = (expense, startDate, endDate) => calculator.calculateRangeAmount(expense, startDate, endDate);
 export const calculateNextOccurrence = (expense, fromDate) => calculator.calculateNextOccurrence(expense, fromDate);
 export const shouldOccurOnDate = (expense, date) => calculator.shouldOccurOnDate(expense, date);
+
+/**
+ * Calcula el monto mensual base sin ajustes diarios
+ * (Alias de calculateMonthlyAmount para compatibilidad)
+ * @param {Object} expense - Gasto recurrente
+ * @returns {number} - Monto mensual base
+ */
+export const calculateBaseMonthlyAmount = (expense) => calculator.calculateMonthlyAmount(expense);
+
+/**
+ * Obtiene la descripción de frecuencia del gasto
+ * @param {Object} expense - Gasto recurrente
+ * @returns {string} - Descripción de la frecuencia
+ */
+export const getFrequencyDescription = (expense) => {
+  // Import dinámico no funciona en exports, usar importación estática en index.js
+  const config = calculator.normalizeConfig(expense);
+  
+  // Formatear manualmente basado en el patrón
+  const { pattern, interval, config: patternConfig } = config;
+  
+  if (!pattern) return 'Sin configurar';
+  
+  const intervalText = interval > 1 ? ` cada ${interval}` : '';
+  
+  switch (pattern) {
+    case 'daily':
+      return interval === 1 ? 'Diario' : `Cada ${interval} días`;
+    case 'weekly':
+      return interval === 1 ? 'Semanal' : `Cada ${interval} semanas`;
+    case 'monthly':
+      return interval === 1 ? 'Mensual' : `Cada ${interval} meses`;
+    case 'yearly':
+      return interval === 1 ? 'Anual' : `Cada ${interval} años`;
+    default:
+      return `${pattern}${intervalText}`;
+  }
+};
 
 export default calculator;

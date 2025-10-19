@@ -215,9 +215,14 @@ const BarberSales = () => {
       // Procesar productos
       let productsData = [];
       if (productsResp?.success && productsResp?.data) {
-        productsData = Array.isArray(productsResp.data) 
-          ? productsResp.data 
-          : [productsResp.data];
+        // La API devuelve { success: true, data: { products: [...], total, page, ... } }
+        if (productsResp.data.products && Array.isArray(productsResp.data.products)) {
+          productsData = productsResp.data.products;
+        } else if (Array.isArray(productsResp.data)) {
+          productsData = productsResp.data;
+        } else {
+          productsData = [productsResp.data];
+        }
       } else if (Array.isArray(productsResp)) {
         productsData = productsResp;
       }

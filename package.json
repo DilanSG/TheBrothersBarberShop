@@ -8,18 +8,18 @@
     "dev-launcher": "./dev-launcher.js"
   },
   "scripts": {
-  "dev": "node dev-launcher.js",
-  "dev:frontend": "cd frontend && npm run dev",
-  "dev:backend": "cd backend && npm run dev",
-  "build": "cd frontend && npm ci && npm run build",
-  "install:all": "node scripts/install-all.js",
-  "setup:dev": "node scripts/setup-env.js development",
-  "setup:prod": "node scripts/setup-env.js production",
-  "setup:network": "node scripts/setup-env.js network",
-  "fix:frontend": "node scripts/fix-frontend.js",
-  "diagnose": "node scripts/diagnose.js",
-  "validate:ci": "node scripts/validate-ci.js",
-  "pre-push": "node scripts/validate-ci.js"
+    "dev": "node dev-launcher.js",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "cd frontend && npm ci && npm run build",
+    "install:all": "node scripts/install-all.js",
+    "setup:dev": "node scripts/setup-env.js development",
+    "setup:prod": "node scripts/setup-env.js production",
+    "setup:network": "node scripts/setup-env.js network",
+    "fix:frontend": "node scripts/fix-frontend.js",
+    "diagnose": "node scripts/diagnose.js",
+    "validate:ci": "node scripts/validate-ci.js",
+    "pre-push": "node scripts/validate-ci.js"
   },
   "keywords": [
     "barberia",

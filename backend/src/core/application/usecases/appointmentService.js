@@ -3,6 +3,7 @@ import Appointment from '../../domain/entities/Appointment.js';
 import Barber from '../../domain/entities/Barber.js'; 
 import Service from '../../domain/entities/Service.js';
 import { AppError, logger } from '../../../barrel.js';
+import { now } from '../../../shared/utils/dateUtils.js';
 // import ReportsCacheService from './reportsCacheService.js';
 
 // const reportsCacheService = new ReportsCacheService();
@@ -65,26 +66,49 @@ class AppointmentUseCases {
     const start = new Date(`2000-01-01 ${startTime}`);
     const end = new Date(`2000-01-01 ${endTime}`);
     const slotDuration = 30; // minutos
+    
+    // Obtener la hora actual en Colombia
+    const currentTime = now();
+    logger.info(`⏰ generateTimeSlots - Hora actual Colombia: ${currentTime.toISOString()}`);
+    logger.info(`⏰ generateTimeSlots - Fecha solicitada: ${date}`);
+    
+    let slotsFiltered = 0;
 
     for (let time = start; time < end; time.setMinutes(time.getMinutes() + slotDuration)) {
       const timeString = time.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      
+      // Verificar si está ocupado
       const isAvailable = !appointments.some(apt => {
         const aptTime = new Date(apt.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
         return aptTime === timeString;
       });
 
       if (isAvailable) {
-        // Crear datetime completo para el frontend
-        const appointmentDate = new Date(date);
-        const [hours, minutes] = timeString.split(':');
-        appointmentDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        // Crear datetime completo para el frontend usando UTC para evitar problemas de zona horaria
+        const [year, month, day] = date.split('-').map(Number);
+        const [hours, minutes] = timeString.split(':').map(Number);
         
-        slots.push({
-          time: timeString,
-          datetime: appointmentDate.toISOString()
-        });
+        // Crear fecha en UTC compensando +5 horas de Colombia
+        const appointmentDate = new Date(Date.UTC(year, month - 1, day, hours + 5, minutes, 0));
+        
+        // Filtrar horarios que ya pasaron (solo si es el día actual)
+        const isPast = appointmentDate <= currentTime;
+        
+        if (isPast) {
+          slotsFiltered++;
+          logger.info(`🚫 Slot filtrado (pasado): ${timeString} - ${appointmentDate.toISOString()}`);
+        }
+        
+        if (!isPast) {
+          slots.push({
+            time: timeString,
+            datetime: appointmentDate.toISOString()
+          });
+        }
       }
     }
+    
+    logger.info(`📊 Resumen - Slots generados: ${slots.length}, Filtrados por pasados: ${slotsFiltered}`);
 
     return slots;
   }
@@ -184,9 +208,17 @@ class AppointmentUseCases {
           populate: { path: 'user', select: 'name email' }
         })
         .populate('service', 'name price duration')
+        .populate('review')
         .sort({ date: 1 });
 
-      return appointments;
+      // Agregar campo hasReview a cada cita
+      const appointmentsWithReview = appointments.map(apt => {
+        const aptObj = apt.toObject();
+        aptObj.hasReview = !!aptObj.review;
+        return aptObj;
+      });
+
+      return appointmentsWithReview;
     } catch (error) {
       logger.error('Error obteniendo citas:', error);
       throw new AppError('Error al obtener las citas', 500);
@@ -202,12 +234,16 @@ class AppointmentUseCases {
           select: 'user services',
           populate: { path: 'user', select: 'name email' }
         })
-        .populate('service', 'name price duration');
+        .populate('service', 'name price duration')
+        .populate('review');
 
       if (!appointment) {
         throw new AppError('Cita no encontrada', 404);
       }
 
+      // Agregar campo hasReview como propiedad temporal (no persiste en DB)
+      appointment.hasReview = !!appointment.review;
+      
       return appointment;
     } catch (error) {
       logger.error(`Error obteniendo cita ${id}:`, error);

@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: '/',
+  publicDir: 'public',  // Explícitamente especificar el directorio public
   
   // Configuración de construcción optimizada
   build: {

@@ -110,7 +110,9 @@ const appointmentSchema = new mongoose.Schema({
     default: null
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 // Índices compuestos para mejor performance
@@ -135,6 +137,14 @@ appointmentSchema.virtual('canBeCancelled').get(function() {
 // Virtual para verificar si todos los roles han marcado la cita para eliminar
 appointmentSchema.virtual('shouldBeDeleted').get(function() {
   return this.deletedBy.user && this.deletedBy.barber && this.deletedBy.admin;
+});
+
+// Virtual para verificar si la cita tiene una reseña
+appointmentSchema.virtual('review', {
+  ref: 'Review',
+  localField: '_id',
+  foreignField: 'appointment',
+  justOne: true
 });
 
 // Middleware para validar que la fecha sea futura (solo para citas nuevas en estado pending)

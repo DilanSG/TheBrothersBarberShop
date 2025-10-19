@@ -98,6 +98,11 @@ const saleSchema = new mongoose.Schema({
     type: String,
     enum: ["completed", "cancelled", "refunded"],
     default: "completed"
+  },
+  invoiceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Invoice",
+    index: true
   }
 }, {
   timestamps: true

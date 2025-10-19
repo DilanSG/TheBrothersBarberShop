@@ -16,10 +16,17 @@ class BarberRepositoryImpl extends IBarberRepository {
     try {
       logger.info(`Buscando barbero por ID: ${id}`);
       const barber = await Barber.findById(id)
-        .populate('user', 'name email phone profilePicture role');
+        .populate('user', 'name email phone profilePicture role')
+        .lean();
       
       if (barber) {
         logger.info(`Barbero encontrado: ${barber.user?.name || barber._id}`);
+        
+        // Mapear averageRating y totalReviews a formato rating para el frontend
+        barber.rating = {
+          average: barber.averageRating || 0,
+          count: barber.totalReviews || 0
+        };
       }
       
       return barber;
@@ -38,10 +45,17 @@ class BarberRepositoryImpl extends IBarberRepository {
     try {
       logger.info(`Buscando barbero por usuario ID: ${userId}`);
       const barber = await Barber.findOne({ user: userId })
-        .populate('user', 'name email phone profilePicture role');
+        .populate('user', 'name email phone profilePicture role')
+        .lean();
       
       if (barber) {
         logger.info(`Barbero encontrado por usuario: ${userId}`);
+        
+        // Mapear averageRating y totalReviews a formato rating para el frontend
+        barber.rating = {
+          average: barber.averageRating || 0,
+          count: barber.totalReviews || 0
+        };
       }
       
       return barber;
@@ -92,11 +106,19 @@ class BarberRepositoryImpl extends IBarberRepository {
           new: true, 
           runValidators: true 
         }
-      ).populate('user', 'name email phone profilePicture role');
+      )
+        .populate('user', 'name email phone profilePicture role')
+        .lean();
 
       if (!barber) {
         throw new AppError('Barbero no encontrado', 404);
       }
+
+      // Mapear averageRating y totalReviews a formato rating para el frontend
+      barber.rating = {
+        average: barber.averageRating || 0,
+        count: barber.totalReviews || 0
+      };
 
       logger.info(`Barbero actualizado exitosamente: ${id}`);
       return barber;
@@ -157,10 +179,20 @@ class BarberRepositoryImpl extends IBarberRepository {
         query = query.limit(limit);
       }
       
-      const barbers = await query;
+      const barbers = await query.lean();
+      
+      // Mapear averageRating y totalReviews a formato rating para el frontend
+      const barbersWithRating = barbers.map(barber => ({
+        ...barber,
+        rating: {
+          average: barber.averageRating || 0,
+          count: barber.totalReviews || 0
+        }
+      }));
+      
       logger.info(`Encontrados ${barbers.length} barberos activos`);
       
-      return barbers;
+      return barbersWithRating;
     } catch (error) {
       logger.error('Error buscando barberos activos:', error);
       throw new AppError(`Error al buscar barberos activos: ${error.message}`, 500);
@@ -191,10 +223,20 @@ class BarberRepositoryImpl extends IBarberRepository {
         [`workingHours.${dayOfWeek}.endTime`]: { $gte: timeString }
       })
         .populate('user', 'name email phone profilePicture role')
-        .sort(sort);
+        .sort(sort)
+        .lean();
+      
+      // Mapear averageRating y totalReviews a formato rating para el frontend
+      const barbersWithRating = barbers.map(barber => ({
+        ...barber,
+        rating: {
+          average: barber.averageRating || 0,
+          count: barber.totalReviews || 0
+        }
+      }));
       
       logger.info(`Encontrados ${barbers.length} barberos disponibles`);
-      return barbers;
+      return barbersWithRating;
     } catch (error) {
       logger.error('Error buscando barberos disponibles:', error);
       throw new AppError(`Error al buscar barberos disponibles: ${error.message}`, 500);
@@ -302,12 +344,21 @@ class BarberRepositoryImpl extends IBarberRepository {
         Barber.countDocuments(filters)
       ]);
 
+      // Mapear averageRating y totalReviews a formato rating para el frontend
+      const barbersWithRating = barbers.map(barber => ({
+        ...barber,
+        rating: {
+          average: barber.averageRating || 0,
+          count: barber.totalReviews || 0
+        }
+      }));
+
       const totalPages = Math.ceil(total / limit);
 
       logger.info(`Encontrados ${barbers.length} barberos de ${total} totales`);
 
       return {
-        barbers,
+        barbers: barbersWithRating,
         total,
         page: Number(page),
         totalPages,

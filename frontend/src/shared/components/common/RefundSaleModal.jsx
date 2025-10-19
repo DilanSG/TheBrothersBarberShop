@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Minus, Shield, AlertTriangle, Clock, DollarSign, Package, Scissors, Calendar, Filter, SendHorizontal, Trash2, CreditCard, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
+import { X, Minus, Shield, AlertTriangle, Clock, DollarSign, Package, Scissors, Calendar, Filter, SendHorizontal, Trash2, CreditCard, ChevronDown, ChevronUp, ArrowLeft, Printer } from 'lucide-react';
 import { refundService } from '../../services/refundService';
+import * as invoiceService from '../../services/invoiceService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import LoadingSpinner from '../ui/LoadingSpinner';
@@ -25,6 +26,7 @@ const RefundSaleModal = ({ isOpen, onClose, selectedBarberId = null }) => {
   const [selectedBarberInfo, setSelectedBarberInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [refunding, setRefunding] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [error, setError] = useState(null);
   const [selectedSale, setSelectedSale] = useState(null);
   const [refundReason, setRefundReason] = useState('');
@@ -183,6 +185,55 @@ const RefundSaleModal = ({ isOpen, onClose, selectedBarberId = null }) => {
       setError(error.message || 'Error al procesar el reembolso');
     } finally {
       setRefunding(false);
+    }
+  };
+
+  const handlePrintInvoice = async (sale) => {
+    try {
+      setPrinting(true);
+
+      // Paso 1: Verificar si ya existe factura para esta venta
+      let invoiceId;
+      try {
+        const invoicesResponse = await invoiceService.getInvoicesBySale(sale._id);
+        if (invoicesResponse.success && invoicesResponse.data && invoicesResponse.data.length > 0) {
+          // Ya existe factura
+          invoiceId = invoicesResponse.data[0]._id;
+        }
+      } catch (err) {
+        // No hay factura, necesitamos crearla
+      }
+
+      // Paso 2: Si no existe factura, generarla
+      if (!invoiceId) {
+        const generateResponse = await invoiceService.generateInvoice(sale._id, {
+          source: 'pos',
+          notes: 'Generada desde gestión de ventas'
+        });
+
+        if (!generateResponse.success) {
+          throw new Error(generateResponse.message || 'Error generando factura');
+        }
+
+        invoiceId = generateResponse.data._id;
+      }
+
+      // Paso 3: Imprimir la factura
+      const printResponse = await invoiceService.printInvoice(invoiceId, {
+        printerInterface: 'tcp' // o 'usb' según configuración
+      });
+
+      if (printResponse.success) {
+        showSuccess('Factura impresa exitosamente');
+      } else {
+        throw new Error(printResponse.message || 'Error al imprimir');
+      }
+
+    } catch (error) {
+      console.error('Error printing invoice:', error);
+      showError(error.message || 'Error al imprimir factura');
+    } finally {
+      setPrinting(false);
     }
   };
 
@@ -458,60 +509,81 @@ const RefundSaleModal = ({ isOpen, onClose, selectedBarberId = null }) => {
                     mySales.map((sale) => (
                       <div
                         key={sale._id}
-                        onClick={() => setSelectedSale(sale)}
-                        className={`cursor-pointer p-2 rounded-lg border transition-all ${
+                        className={`p-2 rounded-lg border transition-all ${
                           selectedSale?._id === sale._id
                             ? 'bg-red-500/20 border-red-500/40'
-                            : 'bg-gray-500/10 border-gray-500/30 hover:bg-red-500/10 hover:border-red-500/30'
+                            : 'bg-gray-500/10 border-gray-500/30'
                         }`}
                       >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1 mb-0.5">
-                              {sale.type === SALE_TYPES.PRODUCT ? (
-                                <Package className="w-3 h-3 text-blue-400 flex-shrink-0" />
-                              ) : (
-                                <Scissors className="w-3 h-3 text-green-400 flex-shrink-0" />
-                              )}
-                              <span className="text-xs font-medium text-gray-400">
-                                {sale.type === SALE_TYPES.PRODUCT ? 'Producto' : 'Servicio'}
-                              </span>
-                              {sale.type === SALE_TYPES.PRODUCT && sale.quantity && (
-                                <span className="text-xs text-blue-300 ml-1">
-                                  (x{sale.quantity})
+                        <div 
+                          onClick={() => setSelectedSale(sale)}
+                          className="cursor-pointer"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1 mb-0.5">
+                                {sale.type === SALE_TYPES.PRODUCT ? (
+                                  <Package className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                                ) : (
+                                  <Scissors className="w-3 h-3 text-green-400 flex-shrink-0" />
+                                )}
+                                <span className="text-xs font-medium text-gray-400">
+                                  {sale.type === SALE_TYPES.PRODUCT ? 'Producto' : 'Servicio'}
                                 </span>
-                              )}
-                            </div>
-                            
-                            <h4 className="text-white font-medium text-xs truncate mb-0.5">
-                              {sale.productName || sale.serviceName || 'Servicio'}
-                            </h4>
-                            
-                            <div className="flex items-center justify-between text-xs">
-                              <div className="flex items-center gap-2">
-                                <span className="text-gray-400">
-                                  {formatDate(sale.saleDate)}
-                                </span>
-                                <span className="text-gray-500">
-                                  {format(new Date(sale.saleDate), 'HH:mm', { locale: es })}
-                                </span>
+                                {sale.type === SALE_TYPES.PRODUCT && sale.quantity && (
+                                  <span className="text-xs text-blue-300 ml-1">
+                                    (x{sale.quantity})
+                                  </span>
+                                )}
                               </div>
-                              {sale.category && (
-                                <span className="text-xs text-blue-400 truncate max-w-[60px]">
-                                  {sale.category}
-                                </span>
-                              )}
+                              
+                              <h4 className="text-white font-medium text-xs truncate mb-0.5">
+                                {sale.productName || sale.serviceName || 'Servicio'}
+                              </h4>
+                              
+                              <div className="flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-gray-400">
+                                    {formatDate(sale.saleDate)}
+                                  </span>
+                                  <span className="text-gray-500">
+                                    {format(new Date(sale.saleDate), 'HH:mm', { locale: es })}
+                                  </span>
+                                </div>
+                                {sale.category && (
+                                  <span className="text-xs text-blue-400 truncate max-w-[60px]">
+                                    {sale.category}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="text-right ml-2 flex-shrink-0">
+                              <p className="text-white font-bold text-xs mb-0.5">
+                                {formatCurrency(sale.totalAmount)}
+                              </p>
+                              <span className={`text-xs px-1 py-0.5 rounded ${getPaymentMethodColor(sale.paymentMethod).bg} ${getPaymentMethodColor(sale.paymentMethod).border} ${getPaymentMethodColor(sale.paymentMethod).text}`}>
+                                {getPaymentMethodDisplayName(sale.paymentMethod)}
+                              </span>
                             </div>
                           </div>
-                          
-                          <div className="text-right ml-2 flex-shrink-0">
-                            <p className="text-white font-bold text-xs mb-0.5">
-                              {formatCurrency(sale.totalAmount)}
-                            </p>
-                            <span className={`text-xs px-1 py-0.5 rounded ${getPaymentMethodColor(sale.paymentMethod).bg} ${getPaymentMethodColor(sale.paymentMethod).border} ${getPaymentMethodColor(sale.paymentMethod).text}`}>
-                              {getPaymentMethodDisplayName(sale.paymentMethod)}
+                        </div>
+
+                        {/* Botón de Imprimir Factura */}
+                        <div className="mt-2 pt-2 border-t border-gray-600/30">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePrintInvoice(sale);
+                            }}
+                            disabled={printing}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-1.5 bg-blue-600/20 border border-blue-500/30 rounded-lg text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Printer className="w-3 h-3" />
+                            <span className="text-xs font-medium">
+                              {printing ? 'Imprimiendo...' : 'Imprimir Factura'}
                             </span>
-                          </div>
+                          </button>
                         </div>
                       </div>
                     ))

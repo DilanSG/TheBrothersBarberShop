@@ -114,10 +114,13 @@ const Inventory = () => {
       const response = await inventoryService.getInventory({ _t: timestamp });
       
       let inventoryData = [];
-      if (response && response.data && Array.isArray(response.data)) {
+      // La API devuelve { success: true, data: { products: [...], total, page, ... } }
+      if (response?.success && response?.data?.products && Array.isArray(response.data.products)) {
+        inventoryData = response.data.products;
+      } else if (response?.data && Array.isArray(response.data)) {
         inventoryData = response.data;
-      } else if (response && Array.isArray(response.success)) {
-        inventoryData = response.success;
+      } else if (Array.isArray(response)) {
+        inventoryData = response;
       }
       
       setInventory(inventoryData);

@@ -146,7 +146,8 @@ const RecurringExpensesListModal = ({
   // Componente para renderizar cada tarjeta de gasto
   const ExpenseCard = ({ expense, isActive }) => {
     const monthlyAmount = calculateMonthlyAmount(expense);
-    const originalAmount = RecurringExpenseCalculator.getOriginalAmount(expense);
+    // El monto original está directamente en expense.amount
+    const originalAmount = parseFloat(expense.amount) || 0;
     const baseMonthlyAmount = calculateBaseMonthlyAmount(expense);
     const hasAdjustments = Math.abs(monthlyAmount - baseMonthlyAmount) > 0.01;
     
