@@ -36,7 +36,7 @@
     "@sentry/profiling-node": "10.19.0",
     "bcryptjs": "^3.0.2",
     "browserslist": "4.26.3",
-    "caniuse-lite": "1.0.30001750",
+    "caniuse-lite": "1.0.30001751",
     "cloudinary": "^2.0.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
