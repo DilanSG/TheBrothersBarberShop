@@ -1,0 +1,77 @@
+name: Lighthouse CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/lighthouse.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v5
+      
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: 📦 Install dependencies
+        run: |
+          cd frontend
+          npm ci
+      
+      - name: 🏗️ Build frontend
+        run: |
+          cd frontend
+          npm run build
+        env:
+          VITE_API_URL: https://api-placeholder.onrender.com
+          VITE_SENTRY_DSN_FRONTEND: ${{ secrets.VITE_SENTRY_DSN_FRONTEND }}
+      
+      - name: 🚀 Serve build
+        run: |
+          cd frontend
+          npm install -g serve
+          serve -s dist -l 4173 &
+          sleep 5
+      
+      - name: 🔍 Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          urls: |
+            http://localhost:4173
+          budgetPath: ./lighthouse-budget.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+      
+      - name: 📊 Format lighthouse score
+        id: lighthouse
+        if: always()
+        run: |
+          echo "lighthouse_url=${{ steps.lighthouse.outputs.links }}" >> $GITHUB_OUTPUT
+      
+      - name: 💬 Comment PR with Lighthouse results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const lighthouseUrl = '${{ steps.lighthouse.outputs.links }}';
+            if (lighthouseUrl) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## 🔍 Lighthouse CI Results\n\n📊 [View detailed report](${lighthouseUrl})`
+              });
+            }

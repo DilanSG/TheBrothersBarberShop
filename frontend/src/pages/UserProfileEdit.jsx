@@ -1,0 +1,713 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@contexts/AuthContext';
+import { useSocioStatus } from '@hooks/useSocioStatus';
+import { useNotification } from '@contexts/NotificationContext';
+import { api } from '@services/api';
+import GradientButton from '@components/ui/GradientButton';
+import {PageContainer} from '@components/layout/PageContainer';
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  Calendar, 
+  MapPin, 
+  Camera, 
+  Save, 
+  ArrowLeft,
+  Upload,
+  X,
+  Eye,
+  EyeOff,
+  Settings,
+  Bell,
+  Lock,
+  Crown
+} from 'lucide-react';
+
+const UserProfileEdit = () => {
+  const { user, setUser } = useAuth();
+  const { isSocio, tipoSocio, isFounder } = useSocioStatus();
+  const { showSuccess, showError } = useNotification();
+  const navigate = useNavigate();
+  
+  const fileInputRef = useRef(null);
+  
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('personal');
+  const [previewImage, setPreviewImage] = useState(null);
+
+  // Función para formatear fecha sin desfase de zona horaria
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const offset = date.getTimezoneOffset();
+    const adjustedDate = new Date(date.getTime() + (offset * 60 * 1000));
+    return adjustedDate.toISOString().split('T')[0];
+  };
+
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    birthdate: formatDateForInput(user?.birthdate),
+    profilePicture: user?.profilePicture || ''
+  });
+
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  const [preferencesData, setPreferencesData] = useState({
+    emailNotifications: user?.preferences?.emailNotifications ?? true,
+    marketingEmails: user?.preferences?.marketingEmails ?? false
+  });
+
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+
+  // Sincronizar el estado del formulario cuando el usuario se actualice
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        birthdate: formatDateForInput(user.birthdate),
+        profilePicture: user.profilePicture || ''
+      });
+      
+      setPreferencesData({
+        emailNotifications: user.preferences?.emailNotifications ?? true,
+        marketingEmails: user.preferences?.marketingEmails ?? false
+      });
+    }
+  }, [user]);
+
+  // Manejar cambios en los campos del formulario
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handlePreferencesChange = (e) => {
+    const { name, checked } = e.target;
+    setPreferencesData(prev => ({
+      ...prev,
+      [name]: checked
+    }));
+  };
+
+  // Manejar selección de archivo para foto de perfil
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        showError('La imagen no puede ser mayor a 5MB');
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        showError('Solo se permiten archivos de imagen');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPreviewImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Remover foto de perfil
+  const handleRemoveProfilePicture = () => {
+    setPreviewImage(null);
+    setFormData(prev => ({ ...prev, profilePicture: '' }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Subir foto de perfil
+  const uploadProfilePicture = async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('profilePicture', file);
+
+      const response = await api.upload('/users/upload-profile-picture', formData);
+      return response.profilePictureUrl;
+    } catch (error) {
+      throw new Error(error.message || 'Error al subir la imagen');
+    }
+  };
+
+  // Guardar cambios del perfil
+  const handleProfileSave = async () => {
+    try {
+      setLoading(true);
+
+      let profilePictureUrl = formData.profilePicture;
+
+      if (fileInputRef.current?.files[0]) {
+        profilePictureUrl = await uploadProfilePicture(fileInputRef.current.files[0]);
+      }
+
+      const updatedData = {};
+      
+      if (formData.name && formData.name.trim()) {
+        updatedData.name = formData.name.trim();
+      }
+      
+      if (formData.email && formData.email.trim()) {
+        updatedData.email = formData.email.trim();
+      }
+      
+      if (formData.phone && formData.phone.trim()) {
+        updatedData.phone = formData.phone.trim();
+      }
+      
+      if (formData.birthdate && formData.birthdate.trim()) {
+        updatedData.birthdate = formData.birthdate.trim();
+      }
+      
+      if (profilePictureUrl) {
+        updatedData.profilePicture = profilePictureUrl;
+      }
+
+      const response = await api.put('/users/profile', updatedData);
+      const userData = response.data || response;
+      const updatedUser = {
+        ...user,
+        ...userData,
+        profilePicture: profilePictureUrl
+      };
+      
+      setUser(updatedUser);
+
+      setFormData({
+        name: updatedUser.name || '',
+        email: updatedUser.email || '',
+        phone: updatedUser.phone || '',
+        birthdate: formatDateForInput(updatedUser.birthdate),
+        profilePicture: updatedUser.profilePicture || ''
+      });
+
+      setPreviewImage(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
+      showSuccess('Perfil actualizado correctamente');
+    } catch (error) {
+      console.error('Error al actualizar perfil:', error);
+      
+      // Handle specific error types
+      if (error.message && error.message.includes('duplicate key error') && error.message.includes('email')) {
+        showError('Este email ya está siendo usado por otro usuario. Por favor, elige un email diferente.');
+      } else if (error.message && error.message.includes('E11000')) {
+        showError('Ya existe un usuario con esta información. Verifica los datos ingresados.');
+      } else {
+        showError(error.message || 'Error al actualizar el perfil');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cambiar contraseña
+  const handlePasswordSave = async () => {
+    try {
+      if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+        showError('Todos los campos de contraseña son obligatorios');
+        return;
+      }
+
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        showError('Las contraseñas nuevas no coinciden');
+        return;
+      }
+
+      if (passwordData.newPassword.length < 6) {
+        showError('La nueva contraseña debe tener al menos 6 caracteres');
+        return;
+      }
+
+      setLoading(true);
+
+      await api.put('/users/change-password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
+
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+
+      showSuccess('Contraseña actualizada correctamente');
+    } catch (error) {
+      console.error('Error al cambiar contraseña:', error);
+      showError(error.message || 'Error al cambiar la contraseña');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Guardar preferencias
+  const handlePreferencesSave = async () => {
+    try {
+      setLoading(true);
+
+      const response = await api.put('/users/preferences', preferencesData);
+      const userData = response.data || response;
+      
+      setUser(prev => ({
+        ...prev,
+        preferences: userData.preferences || preferencesData
+      }));
+
+      showSuccess('Preferencias actualizadas correctamente');
+    } catch (error) {
+      console.error('Error al actualizar preferencias:', error);
+      showError(error.message || 'Error al actualizar las preferencias');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <PageContainer>
+      <div className="relative py-6">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+          {/* Header compacto con estilo de barbería */}
+          <div className="text-center mb-12">
+            <button
+              onClick={() => navigate('/profile')}
+              className="group inline-flex items-center gap-2 mb-10 px-4 py-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg text-white hover:bg-white/10 hover:border-white/40 transition-all duration-300 shadow-xl shadow-blue-500/20 hover:scale-105"
+            >
+              <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform duration-300" />
+              <span className="font-medium text-sm">Volver al Perfil</span>
+            </button>
+            
+            <h1 className="text-2xl md:text-3xl font-bold mb-3 text-white leading-tight drop-shadow-lg">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400">
+                Editar Perfil de Usuario
+              </span>
+            </h1>
+            <p className="text-blue-200 text-sm max-w-2xl mx-auto leading-relaxed">
+              Gestiona tu información personal y preferencias de la cuenta con total seguridad
+            </p>
+          </div>
+
+            {/* Navegación por pestañas más compacta */}
+            <div className="flex justify-center mb-8">
+              <div className="bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm shadow-xl shadow-blue-500/20 p-1 flex flex-col sm:flex-row gap-1 w-full max-w-xs sm:max-w-md">
+                {[
+                  { id: 'personal', label: 'Personal', icon: User },
+                  { id: 'security', label: 'Seguridad', icon: Lock },
+                  { id: 'preferences', label: 'Preferencias', icon: Bell }
+                ].map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setActiveTab(id)}
+                    className={`group relative px-3 py-2.5 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 overflow-hidden backdrop-blur-sm flex-1 flex items-center justify-center gap-1.5 ${
+                      activeTab === id
+                        ? 'border-blue-500/50 bg-blue-500/10 shadow-xl shadow-blue-500/20'
+                        : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
+                    }`}
+                  >
+                    <Icon size={14} className={`transition-all duration-300 ${
+                      activeTab === id ? 'text-blue-300' : 'text-white'
+                    }`} />
+                    <span className={`font-medium text-xs sm:text-xs whitespace-nowrap ${
+                      activeTab === id ? 'text-blue-300' : 'text-white'
+                    }`}>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="bg-transparent border border-white/10 rounded-2xl backdrop-blur-sm shadow-2xl shadow-blue-500/20">
+              <div className="divide-y divide-white/10">
+                
+                {/* Tab: Información Personal */}
+                {activeTab === 'personal' && (
+                  <div className="group relative px-4 py-4 transition-colors backdrop-blur-sm border-b border-white/5 overflow-hidden rounded-lg">
+                    {/* Efecto de brillo en hover */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-lg"></div>
+                    <div className="relative p-2">
+                      {/* Foto de Perfil con estilo barbería */}
+                      <div className="mb-8">
+                        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                          <div className="p-2 bg-gradient-to-r from-red-600/20 to-blue-600/20 rounded-xl border border-red-500/20 hover:border-blue-500/40 transition-all duration-500">
+                            <Upload size={18} className="text-red-400 hover:text-blue-400 transition-colors duration-500" />
+                          </div>
+                          <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400 drop-shadow-sm">Foto de Perfil</span>
+                        </h3>
+                        
+                        <div className="flex flex-col items-center space-y-3">
+                          <div className="relative group">
+                            <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-blue-900 border-2 border-red-500/30 shadow-xl hover:border-red-500/60 transition-all duration-300">
+                              {(previewImage || formData.profilePicture) ? (
+                                <img
+                                  src={previewImage || formData.profilePicture}
+                                  alt="Foto de perfil"
+                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    const fallback = e.target.parentElement.querySelector('.profile-fallback');
+                                    if (fallback) fallback.style.display = 'flex';
+                                  }}
+                                />
+                              ) : null}
+                              
+                              {/* Fallback avatar */}
+                              <div 
+                                className="profile-fallback w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500/20 to-purple-600/20"
+                                style={{ display: (previewImage || formData.profilePicture) ? 'none' : 'flex' }}
+                              >
+                                <span className="text-lg font-bold text-white">
+                                  {user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
+                                </span>
+                              </div>
+                              
+                              {/* Overlay de hover con estilo barbería */}
+                              <div 
+                                className="absolute inset-0 bg-gradient-to-t from-black/60 via-red-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center cursor-pointer"
+                                onClick={() => fileInputRef.current?.click()}
+                              >
+                                <div className="p-2 bg-red-600/80 rounded-full backdrop-blur-sm border border-white/30">
+                                  <Camera size={16} className="text-white drop-shadow-lg" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => fileInputRef.current?.click()}
+                              disabled={loading}
+                              className="group relative p-2 bg-gradient-to-r from-blue-600/20 to-red-600/20 rounded-lg border border-blue-500/30 hover:border-red-500/40 transition-all duration-300 backdrop-blur-sm hover:bg-gradient-to-r hover:from-blue-600/30 hover:to-red-600/30 transform hover:scale-110 shadow-xl shadow-blue-500/20"
+                              title="Subir foto"
+                            >
+                              <Upload size={16} className="text-blue-400 group-hover:text-red-400 transition-colors duration-300" />
+                            </button>
+                            
+                            {(formData.profilePicture || previewImage) && (
+                              <button
+                                onClick={handleRemoveProfilePicture}
+                                disabled={loading}
+                                className="group relative p-2 bg-gradient-to-r from-red-600/20 to-blue-600/20 rounded-lg border border-red-500/30 hover:border-blue-500/40 transition-all duration-300 backdrop-blur-sm hover:bg-gradient-to-r hover:from-red-600/30 hover:to-blue-600/30 transform hover:scale-110 shadow-xl shadow-blue-500/20"
+                                title="Eliminar foto"
+                              >
+                                <X size={16} className="text-red-400 group-hover:text-blue-400 transition-colors duration-300" />
+                              </button>
+                            )}
+                          </div>
+                          
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileSelect}
+                            className="hidden"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Información Personal */}
+                      <div className="mt-8">
+                        <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+                          <div className="p-3 bg-gradient-to-r from-blue-600/20 to-red-600/20 rounded-xl border border-blue-500/20 hover:border-red-500/40 transition-all duration-500">
+                            <User size={20} className="text-blue-400 hover:text-red-400 transition-colors duration-500" />
+                          </div>
+                          <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-white to-red-400 drop-shadow-sm">Información Personal</span>
+                        </h3>
+                      
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                          <div className="space-y-3">
+                            <label className="block text-xs sm:text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400 flex items-center gap-2">
+                              <User size={14} sm:size={16} className="text-red-400" />
+                              Nombre Completo
+                            </label>
+                            <input
+                              type="text"
+                              name="name"
+                              value={formData.name}
+                              onChange={handleInputChange}
+                              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 shadow-xl shadow-blue-500/20"
+                              placeholder="Tu nombre completo"
+                            />
+                          </div>
+
+                          <div className="space-y-3">
+                            <label className="block text-xs sm:text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-white to-red-400 flex items-center gap-2">
+                              <Mail size={14} sm:size={16} className="text-blue-400" />
+                              Correo Electrónico
+                            </label>
+                            <input
+                              type="email"
+                              name="email"
+                              value={formData.email}
+                              onChange={handleInputChange}
+                              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 shadow-xl shadow-blue-500/20"
+                              placeholder="tu@email.com"
+                            />
+                          </div>
+
+                          <div className="space-y-3">
+                            <label className="block text-xs sm:text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400 flex items-center gap-2">
+                              <Phone size={14} sm:size={16} className="text-red-400" />
+                              Teléfono
+                            </label>
+                            <input
+                              type="tel"
+                              name="phone"
+                              value={formData.phone}
+                              onChange={handleInputChange}
+                              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 shadow-xl shadow-blue-500/20"
+                              placeholder="+57 300 123 4567"
+                            />
+                          </div>
+
+                          <div className="space-y-3 md:col-span-2">
+                            <label className="block text-xs sm:text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-white to-red-400 flex items-center gap-2">
+                              <Calendar size={14} sm:size={16} className="text-blue-400" />
+                              Fecha de Nacimiento
+                            </label>
+                            <input
+                              type="date"
+                              name="birthdate"
+                              value={formData.birthdate}
+                              onChange={handleInputChange}
+                              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 shadow-xl shadow-blue-500/20"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end mt-6">
+                          <GradientButton
+                            onClick={handleProfileSave}
+                            disabled={loading}
+                            loading={loading}
+                            loadingText="Guardando..."
+                            variant="primary"
+                            size="md"
+                            className="shadow-xl shadow-blue-500/20"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Save size={18} />
+                              <span>Guardar Cambios</span>
+                            </div>
+                          </GradientButton>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab: Seguridad */}
+                {activeTab === 'security' && (
+                  <div className="group relative px-4 py-4 transition-colors backdrop-blur-sm border-b border-white/5 overflow-hidden rounded-lg">
+                    {/* Efecto de brillo en hover */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-lg"></div>
+                    <div className="relative p-2">
+                      <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+                        <div className="p-3 bg-gradient-to-r from-red-600/20 to-blue-600/20 rounded-xl border border-red-500/20 hover:border-blue-500/40 transition-all duration-500">
+                          <Lock size={20} className="text-red-400 hover:text-blue-400 transition-colors duration-500" />
+                        </div>
+                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400 drop-shadow-sm">Cambiar Contraseña</span>
+                      </h3>
+                      
+                      <div className="space-y-6">
+                        <div className="space-y-3">
+                          <label className="block text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400 flex items-center gap-2">
+                            <Lock size={16} className="text-red-400" />
+                            Contraseña Actual
+                          </label>
+                          <div className="relative">
+                            <input
+                              type={showPasswords.current ? 'text' : 'password'}
+                              name="currentPassword"
+                              value={passwordData.currentPassword}
+                              onChange={handlePasswordChange}
+                              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 shadow-xl shadow-blue-500/20 pr-12"
+                              placeholder="Tu contraseña actual"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-red-300 hover:text-red-400 transition-colors duration-300"
+                            >
+                              {showPasswords.current ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <label className="block text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-white to-red-400 flex items-center gap-2">
+                            <Lock size={16} className="text-blue-400" />
+                            Nueva Contraseña
+                          </label>
+                          <div className="relative">
+                            <input
+                              type={showPasswords.new ? 'text' : 'password'}
+                              name="newPassword"
+                              value={passwordData.newPassword}
+                              onChange={handlePasswordChange}
+                              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 shadow-xl shadow-blue-500/20 pr-12"
+                              placeholder="Tu nueva contraseña"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-blue-300 hover:text-blue-400 transition-colors duration-300"
+                            >
+                              {showPasswords.new ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <label className="block text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-red-400 via-white to-blue-400 flex items-center gap-2">
+                            <Lock size={16} className="text-red-400" />
+                            Confirmar Nueva Contraseña
+                          </label>
+                          <div className="relative">
+                            <input
+                              type={showPasswords.confirm ? 'text' : 'password'}
+                              name="confirmPassword"
+                              value={passwordData.confirmPassword}
+                              onChange={handlePasswordChange}
+                              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm backdrop-blur-sm placeholder-gray-400 focus:border-blue-500/50 shadow-xl shadow-blue-500/20 pr-12"
+                              placeholder="Confirma tu nueva contraseña"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-red-300 hover:text-red-400 transition-colors duration-300"
+                            >
+                              {showPasswords.confirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end mt-6">
+                          <GradientButton
+                            onClick={handlePasswordSave}
+                            disabled={loading}
+                            loading={loading}
+                            loadingText="Actualizando..."
+                            variant="primary"
+                            size="md"
+                            className="shadow-xl shadow-blue-500/20"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Save size={18} />
+                              <span>Cambiar Contraseña</span>
+                            </div>
+                          </GradientButton>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab: Preferencias */}
+                {activeTab === 'preferences' && (
+                  <div className="group relative px-4 py-4 transition-colors backdrop-blur-sm border-b border-white/5 overflow-hidden rounded-lg">
+                    {/* Efecto de brillo en hover */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-lg"></div>
+                    <div className="relative p-2">
+                      <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+                        <div className="p-3 bg-gradient-to-r from-blue-600/20 to-red-600/20 rounded-xl border border-blue-500/20 hover:border-red-500/40 transition-all duration-500">
+                          <Bell size={20} className="text-blue-400 hover:text-red-400 transition-colors duration-500" />
+                        </div>
+                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-white to-red-400 drop-shadow-sm">Preferencias de Notificaciones</span>
+                      </h3>
+                      
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-lg backdrop-blur-sm shadow-xl shadow-blue-500/20 transition-all duration-300 hover:border-white/40">
+                          <div>
+                            <h4 className="text-white font-semibold text-sm">Notificaciones por Email</h4>
+                            <p className="text-gray-300 text-xs mt-1">Recibe notificaciones importantes por correo electrónico</p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              name="emailNotifications"
+                              checked={preferencesData.emailNotifications}
+                              onChange={handlePreferencesChange}
+                              className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-600/80 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-blue-600 shadow-xl shadow-blue-500/20 backdrop-blur-sm"></div>
+                          </label>
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-lg backdrop-blur-sm shadow-xl shadow-blue-500/20 transition-all duration-300 hover:border-white/40">
+                          <div>
+                            <h4 className="text-white font-semibold text-sm">Emails de Marketing</h4>
+                            <p className="text-gray-300 text-xs mt-1">Recibe información sobre promociones y novedades</p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              name="marketingEmails"
+                              checked={preferencesData.marketingEmails}
+                              onChange={handlePreferencesChange}
+                              className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-600/80 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-blue-600 shadow-xl shadow-blue-500/20 backdrop-blur-sm"></div>
+                          </label>
+                        </div>
+
+                        <div className="flex justify-end mt-6">
+                          <GradientButton
+                            onClick={handlePreferencesSave}
+                            disabled={loading}
+                            loading={loading}
+                            loadingText="Guardando..."
+                            variant="primary"
+                            size="md"
+                            className="shadow-xl shadow-blue-500/20"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Save size={18} />
+                              <span>Guardar Preferencias</span>
+                            </div>
+                          </GradientButton>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+        </div>
+      </div>
+    </PageContainer>
+  );
+};
+
+export default UserProfileEdit;
