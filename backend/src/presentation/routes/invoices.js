@@ -1,10 +1,12 @@
 import express from 'express';
 import { protect, barberAuth } from '../middleware/auth.js';
+import { protectFlexible } from '../middleware/flexibleAuth.js';
 import * as invoiceController from '../controllers/invoiceController.js';
 
 const router = express.Router();
 
 // ========== RUTAS DE FACTURAS ==========
+// IMPORTANTE: Las rutas específicas (con palabras fijas) deben ir ANTES de las rutas con parámetros dinámicos
 
 // Generar factura desde venta (Barber, Admin)
 router.post(
@@ -22,21 +24,7 @@ router.post(
   invoiceController.printInvoice
 );
 
-// Obtener factura por ID (Barber, Admin)
-router.get(
-  '/:invoiceId',
-  protect,
-  barberAuth,
-  invoiceController.getInvoice
-);
-
-// Obtener facturas por venta (Barber, Admin)
-router.get(
-  '/sale/:saleId',
-  protect,
-  barberAuth,
-  invoiceController.getInvoicesBySale
-);
+// ===== RUTAS GET CON PATHS ESPECÍFICOS (ANTES DE PARÁMETROS DINÁMICOS) =====
 
 // Listar facturas con filtros (Barber: propias, Admin: todas)
 router.get(
@@ -52,6 +40,38 @@ router.get(
   protect,
   barberAuth,
   invoiceController.getInvoiceStats
+);
+
+// Ver factura desde venta (genera si no existe) - /sale/:saleId/view
+router.get(
+  '/sale/:saleId/view',
+  protectFlexible,
+  invoiceController.viewInvoiceFromSale
+);
+
+// Obtener facturas por venta - /sale/:saleId
+router.get(
+  '/sale/:saleId',
+  protect,
+  barberAuth,
+  invoiceController.getInvoicesBySale
+);
+
+// ===== RUTAS CON PARÁMETROS DINÁMICOS (AL FINAL) =====
+
+// Ver factura en HTML (navegador) - /:invoiceId/view
+router.get(
+  '/:invoiceId/view',
+  protectFlexible,
+  invoiceController.viewInvoiceHTML
+);
+
+// Obtener factura por ID - /:invoiceId
+router.get(
+  '/:invoiceId',
+  protect,
+  barberAuth,
+  invoiceController.getInvoice
 );
 
 // Cancelar factura (Solo Admin)
