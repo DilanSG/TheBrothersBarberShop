@@ -3,7 +3,7 @@ import logger from '@utils/logger';
 import useBodyScrollLock from '@hooks/useBodyScrollLock';
 import {
   ShoppingCart, Package, Calendar, AlertTriangle, X,
-  Scissors, Clock, User, FileText
+  Scissors, Clock, User, FileText, Receipt, ExternalLink
 } from 'lucide-react';
 import { 
   SALE_TYPES, 
@@ -159,7 +159,25 @@ export const DetailedSalesModal = ({ isOpen, onClose, salesData, barberName, dat
                               </span>
                             )}
                           </div>
-                          <p className="text-sm font-bold text-green-400">{formatCurrency(sale.total)}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-bold text-green-400">{formatCurrency(sale.total)}</p>
+                            {/* Botón de factura */}
+                            {sale._id && (
+                              <button
+                                onClick={() => {
+                                  const token = localStorage.getItem('token');
+                                  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+                                  const invoiceUrl = `${apiUrl}/invoices/sale/${sale._id}/view?token=${token}`;
+                                  console.log('🔍 Abriendo URL de factura:', invoiceUrl);
+                                  window.open(invoiceUrl, '_blank');
+                                }}
+                                className="group p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40 transition-all duration-300"
+                                title="Ver factura"
+                              >
+                                <Receipt size={14} className="text-blue-400 group-hover:scale-110 transition-transform" />
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         {/* Producto o servicio de la venta */}
@@ -546,14 +564,30 @@ export const DetailedCutsModal = ({ isOpen, onClose, cutsData, barberName, dateR
                               )}
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-bold text-purple-400">
-                              {formatCurrency(cut.total)}
-                            </p>
-                            {cut.paymentMethod && (
-                              <p className="text-xs text-gray-400 capitalize">
-                                {cut.paymentMethod}
+                          <div className="flex items-center gap-2">
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-purple-400">
+                                {formatCurrency(cut.total)}
                               </p>
+                              {cut.paymentMethod && (
+                                <p className="text-xs text-gray-400 capitalize">
+                                  {cut.paymentMethod}
+                                </p>
+                              )}
+                            </div>
+                            {/* Botón de factura */}
+                            {cut._id && (
+                              <button
+                                onClick={() => {
+                                  const token = localStorage.getItem('token');
+                                  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+                                  window.open(`${apiUrl}/invoices/sale/${cut._id}/view?token=${token}`, '_blank');
+                                }}
+                                className="group p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40 transition-all duration-300"
+                                title="Ver factura"
+                              >
+                                <Receipt size={14} className="text-blue-400 group-hover:scale-110 transition-transform" />
+                              </button>
                             )}
                           </div>
                         </div>

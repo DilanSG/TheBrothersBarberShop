@@ -1,5 +1,6 @@
 import InvoiceUseCases from '../../core/application/usecases/InvoiceUseCases.js';
 import printerService from '../../services/printerService.js';
+import invoiceService from '../../services/invoiceService.js';
 import { asyncHandler } from '../middleware/index.js';
 import { logger } from '../../shared/utils/logger.js';
 import { AppError } from '../../shared/utils/errors.js';
@@ -96,6 +97,151 @@ export const getInvoice = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     data: invoice
+  });
+});
+
+/**
+ * @desc    Ver factura en HTML (navegador)
+ * @route   GET /api/invoices/:invoiceId/view
+ * @access  Private (Barber/Admin) o Public con token
+ */
+export const viewInvoiceHTML = asyncHandler(async (req, res) => {
+  const { invoiceId } = req.params;
+
+  logger.info('🔵 EJECUTANDO viewInvoiceHTML (endpoint incorrecto)', { 
+    invoiceId,
+    url: req.url,
+    params: req.params 
+  });
+
+  // Obtener datos completos de la factura
+  const invoiceData = await InvoiceUseCases.formatForPrint(invoiceId);
+  
+  // Formatear datos para el template
+  const formattedData = invoiceService.formatInvoiceData(
+    invoiceData.invoice,
+    invoiceData.sale
+  );
+
+  // Generar HTML
+  const html = invoiceService.generateInvoiceHTML(formattedData);
+
+  // Enviar como HTML
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.status(200).send(html);
+
+  logger.info('Factura visualizada en HTML', {
+    invoiceId,
+    invoiceNumber: invoiceData.invoice.invoiceNumber,
+    userId: req.user?.id
+  });
+});
+
+/**
+ * @desc    Ver factura desde venta (genera si no existe)
+ * @route   GET /api/invoices/sale/:saleId/view
+ * @access  Private (Barber/Admin) o Public con token
+ */
+export const viewInvoiceFromSale = asyncHandler(async (req, res) => {
+  const { saleId } = req.params;
+
+  logger.info('🟢 EJECUTANDO viewInvoiceFromSale (endpoint correcto)', { 
+    saleId,
+    url: req.originalUrl,
+    method: req.method
+  });
+
+  // Buscar si ya existe una factura para esta venta
+  let invoices = await InvoiceUseCases.getInvoicesBySale(saleId);
+  
+  let invoiceId;
+  if (invoices.length === 0) {
+    // No existe factura, generarla
+    logger.info('Generando factura automáticamente para venta', { saleId });
+    const newInvoice = await InvoiceUseCases.generateInvoiceFromSale(saleId, {
+      source: 'admin',
+      notes: 'Factura generada automáticamente al visualizar'
+    });
+    invoiceId = newInvoice._id.toString();
+    logger.info('Factura generada con ID', { invoiceId });
+  } else {
+    // Usar la primera factura encontrada
+    invoiceId = invoices[0]._id.toString();
+    logger.info('Factura existente encontrada', { invoiceId });
+  }
+
+  logger.info('Formateando factura para print', { invoiceId });
+  
+  // Obtener datos completos de la factura
+  const invoiceData = await InvoiceUseCases.formatForPrint(invoiceId);
+  
+  logger.info('📦 invoiceData recibido:', {
+    hasInvoice: !!invoiceData.invoice,
+    hasClient: !!invoiceData.client,
+    hasBarber: !!invoiceData.barber,
+    itemsCount: invoiceData.items?.length,
+    invoiceNumber: invoiceData.invoice?.number
+  });
+  
+  // Crear HTML simplificado directamente sin usar el servicio complejo
+  const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Factura ${invoiceData.invoice.number}</title>
+  <style>
+    body { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; }
+    h1 { color: #333; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: #f4f4f4; }
+    .total { font-weight: bold; font-size: 1.2em; }
+  </style>
+</head>
+<body>
+  <h1>Factura #${invoiceData.invoice.number}</h1>
+  <p><strong>Fecha:</strong> ${invoiceData.invoice.date}</p>
+  <p><strong>Cliente:</strong> ${invoiceData.client.name}</p>
+  <p><strong>Barbero:</strong> ${invoiceData.barber.name}</p>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Descripción</th>
+        <th>Cantidad</th>
+        <th>Precio</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${invoiceData.items.map(item => `
+        <tr>
+          <td>${item.description}</td>
+          <td>${item.quantity}</td>
+          <td>$${item.unitPrice.toLocaleString()}</td>
+          <td>$${item.subtotal.toLocaleString()}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+  
+  <p class="total">Total: $${invoiceData.totals.total.toLocaleString()}</p>
+  <p><strong>Método de pago:</strong> ${invoiceData.payment.methodLabel}</p>
+  
+  <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+    Imprimir
+  </button>
+</body>
+</html>
+  `;
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.status(200).send(html);
+
+  logger.info('Factura HTML enviada exitosamente', {
+    saleId,
+    invoiceNumber: invoiceData.invoice.number
   });
 });
 
