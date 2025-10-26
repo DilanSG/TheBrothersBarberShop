@@ -20,14 +20,7 @@ class InvoiceUseCases {
 
       // Validar que la venta exista
       const sale = await Sale.findById(saleId)
-        .populate('barberId', 'name phone')
-        .populate({
-          path: 'appointmentId',
-          populate: {
-            path: 'clientId',
-            select: 'name phone email'
-          }
-        });
+        .populate('barberId', 'name phone');
 
       if (!sale) {
         throw new AppError('Venta no encontrada', 404);
@@ -45,27 +38,19 @@ class InvoiceUseCases {
 
       // Preparar datos del barbero
       const barberData = {
-        id: sale.barberId._id,
-        name: sale.barberId.name,
-        phone: sale.barberId.phone
+        id: sale.barberId?._id || sale.barberId,
+        name: sale.barberId?.name || sale.barberName || 'Barbero',
+        phone: sale.barberId?.phone || null
       };
 
+      logger.info('Datos del barbero preparados', { barberData });
+
       // Preparar datos del cliente
-      let clientData = {
-        name: 'Cliente General',
+      const clientData = {
+        name: sale.customerName || 'Cliente General',
         phone: null,
         email: null
       };
-
-      // Sale puede tener customerName (String) o appointmentId con clientId (ref)
-      if (sale.customerName) {
-        clientData.name = sale.customerName;
-      } else if (sale.appointmentId?.clientId) {
-        const appointment = sale.appointmentId;
-        clientData.name = appointment.clientId.name || 'Cliente General';
-        clientData.phone = appointment.clientId.phone;
-        clientData.email = appointment.clientId.email;
-      }
 
       // Preparar items de la factura
       const items = [];
@@ -123,7 +108,12 @@ class InvoiceUseCases {
       sale.invoiceId = invoice._id;
       await sale.save();
 
-      logger.info(`Factura generada exitosamente: ${invoiceNumber}`);
+      logger.info(`Factura generada exitosamente: ${invoiceNumber}`, {
+        invoiceId: invoice._id.toString(),
+        saleId: saleId
+      });
+      
+      // Retornar la factura recién guardada
       return invoice;
 
     } catch (error) {
@@ -142,15 +132,23 @@ class InvoiceUseCases {
    */
   static async getInvoiceById(invoiceId) {
     try {
+      logger.info('Buscando factura por ID', { invoiceId, type: typeof invoiceId });
+      
       const invoice = await Invoice.findById(invoiceId)
         .populate('saleId')
         .populate('barber.id', 'name phone email')
         .populate('printInfo.printedBy', 'name email');
 
       if (!invoice) {
+        logger.warn('Factura no encontrada en BD', { invoiceId });
         throw new AppError('Factura no encontrada', 404);
       }
 
+      logger.info('Factura encontrada exitosamente', { 
+        invoiceId, 
+        invoiceNumber: invoice.invoiceNumber 
+      });
+      
       return invoice;
     } catch (error) {
       logger.error('Error obteniendo factura:', {

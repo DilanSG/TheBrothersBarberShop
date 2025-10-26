@@ -110,6 +110,19 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 const swaggerDocument = YAML.load(path.join(__dirname, '../docs/swagger.yaml'));
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
+// TEMPORARY: Log ALL invoice requests to debug routing
+app.use('/api/v1/invoices*', (req, res, next) => {
+  logger.info('📨 INVOICE REQUEST RECEIVED', {
+    method: req.method,
+    originalUrl: req.originalUrl,
+    path: req.path,
+    baseUrl: req.baseUrl,
+    params: req.params,
+    query: req.query
+  });
+  next();
+});
+
 // Rutas de la API
 app.use(`/api/${config.app.apiVersion}`, routes);
 
