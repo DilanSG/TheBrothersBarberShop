@@ -16,15 +16,93 @@ class InvoiceUseCases {
    */
   static async generateInvoiceFromSale(saleId, options = {}) {
     try {
-      logger.info(`Generando factura para venta: ${saleId}`);
+      logger.info(`🔍 Generando factura para ID: ${saleId}`);
+      logger.info(`🔍 Tipo de saleId: ${typeof saleId}, Longitud: ${saleId.length}`);
 
-      // Validar que la venta exista
-      const sale = await Sale.findById(saleId)
-        .populate('barberId', 'name phone');
+      // Validar ObjectId
+      const mongoose = await import('mongoose');
+      if (!mongoose.default.Types.ObjectId.isValid(saleId)) {
+        logger.error(`❌ ObjectId inválido: ${saleId}`);
+        throw new AppError('ID inválido', 400);
+      }
+
+      // Importar modelos necesarios
+      const { Appointment } = await import('../../domain/entities/index.js');
+
+      // Intentar buscar primero como Sale
+      let sale = await Sale.findById(saleId);
+      let isAppointment = false;
+
+      // Si no se encuentra en Sales, buscar en Appointments
+      if (!sale) {
+        logger.info(`⚠️ No encontrado en Sales, buscando en Appointments...`);
+        const appointment = await Appointment.findById(saleId)
+          .populate({
+            path: 'barber',
+            populate: {
+              path: 'user',
+              select: 'name phone'
+            }
+          })
+          .populate('service', 'name price');
+
+        if (appointment && appointment.status === 'completed' && appointment.paymentMethod) {
+          logger.info(`✅ Encontrado en Appointments - Convirtiendo a formato de venta`);
+          isAppointment = true;
+          
+          // Convertir Appointment a formato compatible con Sale
+          sale = {
+            _id: appointment._id,
+            type: 'service',
+            serviceName: appointment.service?.name || 'Servicio',
+            serviceId: appointment.service?._id,
+            quantity: 1,
+            unitPrice: appointment.price || appointment.service?.price || 0,
+            totalAmount: appointment.price || appointment.service?.price || 0,
+            barberId: {
+              _id: appointment.barber?._id,
+              name: appointment.barber?.user?.name || 'Barbero',
+              phone: appointment.barber?.user?.phone || null
+            },
+            barberName: appointment.barber?.user?.name || 'Barbero',
+            customerName: 'Cliente',
+            paymentMethod: appointment.paymentMethod || 'efectivo',
+            saleDate: appointment.date || appointment.createdAt,
+            status: 'completed',
+            notes: appointment.notes || '',
+            createdAt: appointment.createdAt,
+            _isAppointment: true, // Flag para identificar que viene de appointment
+            save: async function() {
+              // No hacer nada, las appointments no se actualizan como sales
+              return this;
+            },
+            toObject: function() { return this; }
+          };
+          
+          logger.info(`✅ Barbero de la cita:`, {
+            barberId: sale.barberId._id,
+            barberName: sale.barberId.name,
+            appointmentBarberId: appointment.barber?._id,
+            appointmentBarberName: appointment.barber?.name
+          });
+        }
+      } else {
+        // Populate si es una Sale real
+        sale = await Sale.findById(saleId).populate('barberId', 'name phone');
+      }
 
       if (!sale) {
-        throw new AppError('Venta no encontrada', 404);
+        logger.warn(`❌ No encontrado ni en Sales ni en Appointments: ${saleId}`);
+        throw new AppError('Venta o cita no encontrada en la base de datos', 404);
       }
+
+      logger.info(`✅ Registro encontrado:`, {
+        id: sale._id,
+        type: isAppointment ? 'appointment' : sale.type,
+        status: sale.status,
+        totalAmount: sale.totalAmount,
+        barberName: sale.barberId?.name || sale.barberName
+      });
 
       // Verificar si ya existe factura para esta venta
       const existingInvoice = await Invoice.findOne({ saleId });
@@ -94,23 +172,31 @@ class InvoiceUseCases {
         paymentMethod: sale.paymentMethod || 'efectivo',
         status: 'pending',
         notes: options.notes || sale.notes,
+        issueDate: sale.saleDate || sale.createdAt, // Fecha de emisión = fecha de la venta/cita original
         metadata: {
           source: options.source || 'pos',
           device: options.device,
           ipAddress: options.ipAddress,
-          location: options.location
+          location: options.location,
+          originalSaleDate: sale.saleDate || sale.createdAt // Guardar fecha original
         }
       });
 
       await invoice.save();
 
-      // Actualizar la venta con el ID de la factura
-      sale.invoiceId = invoice._id;
-      await sale.save();
+      // Actualizar el registro con el ID de la factura (solo si NO es appointment)
+      if (!sale._isAppointment) {
+        sale.invoiceId = invoice._id;
+        await sale.save();
+        logger.info(`✅ Sale actualizada con invoiceId`);
+      } else {
+        logger.info(`ℹ️  No se actualiza Appointment con invoiceId (no tiene ese campo)`);
+      }
 
-      logger.info(`Factura generada exitosamente: ${invoiceNumber}`, {
+      logger.info(`✅ Factura generada exitosamente: ${invoiceNumber}`, {
         invoiceId: invoice._id.toString(),
-        saleId: saleId
+        recordId: saleId,
+        isAppointment: !!sale._isAppointment
       });
       
       // Retornar la factura recién guardada
@@ -263,7 +349,7 @@ class InvoiceUseCases {
       };
 
       // Formatear fecha
-      const formattedDate = formatInColombiaTime(invoice.createdAt, {
+      const formattedDate = formatInColombiaTime(invoice.issueDate || invoice.createdAt, {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
@@ -277,7 +363,7 @@ class InvoiceUseCases {
         invoice: {
           number: invoice.invoiceNumber,
           date: formattedDate,
-          dateISO: invoice.createdAt
+          dateISO: invoice.issueDate || invoice.createdAt
         },
         barber: {
           name: invoice.barber.name,

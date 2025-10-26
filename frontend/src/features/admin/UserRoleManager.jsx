@@ -13,7 +13,9 @@ function UserRoleManager() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userToDelete, setUserToDelete] = useState(null);
+  const [userToDeactivate, setUserToDeactivate] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false);
   const [socios, setSocios] = useState([]);
 
   const fetchUsers = async () => {
@@ -157,6 +159,12 @@ function UserRoleManager() {
     setShowDeleteModal(true);
   };
 
+  const handleDeactivateUser = async (userId) => {
+    const userToDeactivate = users.find(u => u._id === userId);
+    setUserToDeactivate(userToDeactivate);
+    setShowDeactivateModal(true);
+  };
+
   const confirmDelete = async () => {
     if (!userToDelete) return;
 
@@ -166,13 +174,31 @@ function UserRoleManager() {
       // Refrescar la lista completa de usuarios desde el servidor
       // esto asegura que no aparezcan usuarios desactivados
       await fetchUsers();
-      showSuccess('Usuario eliminado correctamente');
+      showSuccess('Usuario eliminado permanentemente');
     } catch (err) {
       console.error('Error al eliminar usuario:', err);
       showError(err.message || 'Error al eliminar el usuario');
     } finally {
       setShowDeleteModal(false);
       setUserToDelete(null);
+    }
+  };
+
+  const confirmDeactivate = async () => {
+    if (!userToDeactivate) return;
+
+    try {
+      await api.patch(`/users/${userToDeactivate._id}/deactivate`);
+      
+      // Refrescar la lista completa de usuarios desde el servidor
+      await fetchUsers();
+      showSuccess('Usuario desactivado correctamente. Ya no puede acceder al sistema.');
+    } catch (err) {
+      console.error('Error al desactivar usuario:', err);
+      showError(err.message || 'Error al desactivar el usuario');
+    } finally {
+      setShowDeactivateModal(false);
+      setUserToDeactivate(null);
     }
   };
 
@@ -356,16 +382,28 @@ function UserRoleManager() {
                           </select>
                           
                           {u._id !== (user._id || user.id) && !u.isFounder && u.role !== 'admin' && (
-                            <button
-                              onClick={() => handleDeleteUser(u._id)}
-                              className="inline-flex items-center p-2 border border-red-500/30 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-all duration-200 shadow-xl shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30"
-                              title="Eliminar usuario"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
+                            <>
+                              <button
+                                onClick={() => handleDeactivateUser(u._id)}
+                                className="inline-flex items-center p-2 border border-orange-500/30 rounded-lg bg-orange-600/20 text-orange-400 hover:bg-orange-600/30 transition-all duration-200 shadow-xl shadow-orange-500/20 hover:shadow-xl hover:shadow-orange-500/30"
+                                title="Desactivar usuario (soft delete - conserva datos)"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                    d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(u._id)}
+                                className="inline-flex items-center p-2 border border-red-500/30 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-all duration-200 shadow-xl shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30"
+                                title="Eliminar permanentemente (hard delete - elimina todos los datos)"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>
@@ -432,16 +470,28 @@ function UserRoleManager() {
                     </div>
                     
                     {u._id !== (user._id || user.id) && !u.isFounder && u.role !== 'admin' && (
-                      <button
-                        onClick={() => handleDeleteUser(u._id)}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-red-500/30 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-all duration-200 shadow-xl shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        <span className="font-medium">Eliminar Usuario</span>
-                      </button>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          onClick={() => handleDeactivateUser(u._id)}
+                          className="flex items-center justify-center gap-2 px-4 py-3 border border-orange-500/30 rounded-lg bg-orange-600/20 text-orange-400 hover:bg-orange-600/30 transition-all duration-200 shadow-xl shadow-orange-500/20 hover:shadow-xl hover:shadow-orange-500/30"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          </svg>
+                          <span className="font-medium text-sm">Desactivar</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(u._id)}
+                          className="flex items-center justify-center gap-2 px-4 py-3 border border-red-500/30 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-all duration-200 shadow-xl shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          <span className="font-medium text-sm">Eliminar</span>
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -479,21 +529,32 @@ function UserRoleManager() {
                       </div>
                       <div className="flex-1">
                         <div className="bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">
-                          <h3 className="text-xl font-bold">Confirmar eliminación</h3>
+                          <h3 className="text-xl font-bold">Eliminar Permanentemente</h3>
                         </div>
-                        <p className="mt-2 text-gray-400">Esta acción no se puede deshacer</p>
+                        <p className="mt-2 text-gray-400">⚠️ Esta acción NO se puede deshacer</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Content */}
                   <div className="px-6 py-6">
-                    <p className="text-gray-300 text-lg leading-relaxed">
-                      ¿Estás seguro que deseas eliminar al usuario{' '}
+                    <p className="text-gray-300 text-lg leading-relaxed mb-4">
+                      ¿Estás seguro que deseas <span className="font-bold text-red-400">eliminar permanentemente</span> al usuario{' '}
                       <span className="font-semibold bg-gradient-to-r from-blue-400 to-blue-400 bg-clip-text text-transparent">
                         {userToDelete?.name || userToDelete?.email}
                       </span>?
                     </p>
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                      <p className="text-sm text-red-300">
+                        <strong>Hard Delete:</strong> Se eliminarán TODOS los datos del usuario:
+                      </p>
+                      <ul className="mt-2 text-xs text-red-200 space-y-1 list-disc list-inside">
+                        <li>Cuenta de usuario</li>
+                        <li>Perfil de barbero (si aplica)</li>
+                        <li>Ventas marcadas como canceladas</li>
+                        <li>Citas marcadas como canceladas</li>
+                      </ul>
+                    </div>
                   </div>
 
                   {/* Footer */}
@@ -516,7 +577,94 @@ function UserRoleManager() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                        Eliminar usuario
+                        Eliminar permanentemente
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de confirmación de desactivación */}
+        {showDeactivateModal && (
+          <div className="fixed inset-0 z-50">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm" 
+              onClick={() => {
+                setShowDeactivateModal(false);
+                setUserToDeactivate(null);
+              }}
+            />
+            
+            {/* Modal */}
+            <div className="absolute inset-0 overflow-y-auto">
+              <div className="flex min-h-full items-end sm:items-center justify-center p-4">
+                <div className="relative bg-white/10 border border-white/20 rounded-2xl backdrop-blur-md shadow-2xl shadow-blue-500/20 w-full max-w-md transform transition-all animate-modal">
+                  {/* Header */}
+                  <div className="border-b border-white/10 px-6 py-6">
+                    <div className="flex items-center">
+                      <div className="mr-4 flex-shrink-0">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-600/20 border border-orange-500/30 shadow-xl shadow-orange-500/20">
+                          <svg className="h-8 w-8 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">
+                          <h3 className="text-xl font-bold">Desactivar Usuario</h3>
+                        </div>
+                        <p className="mt-2 text-gray-400">✅ Se pueden reactivar después</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="px-6 py-6">
+                    <p className="text-gray-300 text-lg leading-relaxed mb-4">
+                      ¿Deseas <span className="font-bold text-orange-400">desactivar</span> al usuario{' '}
+                      <span className="font-semibold bg-gradient-to-r from-blue-400 to-blue-400 bg-clip-text text-transparent">
+                        {userToDeactivate?.name || userToDeactivate?.email}
+                      </span>?
+                    </p>
+                    <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+                      <p className="text-sm text-orange-300">
+                        <strong>Soft Delete:</strong> Desactivación reversible:
+                      </p>
+                      <ul className="mt-2 text-xs text-orange-200 space-y-1 list-disc list-inside">
+                        <li>El usuario NO podrá iniciar sesión</li>
+                        <li>Se conservan TODOS sus datos</li>
+                        <li>Puede ser reactivado en cualquier momento</li>
+                        <li>Ideal para suspensiones temporales</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="border-t border-white/10 px-6 py-6">
+                    <div className="flex flex-col-reverse sm:flex-row justify-end gap-4">
+                      <button
+                        onClick={() => {
+                          setShowDeactivateModal(false);
+                          setUserToDeactivate(null);
+                        }}
+                        className="w-full sm:w-auto px-6 py-3 rounded-lg bg-white/10 border border-white/20 text-gray-300 hover:bg-white/20 transition-all duration-200 backdrop-blur-sm shadow-xl shadow-blue-500/20"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={confirmDeactivate}
+                        className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-lg bg-orange-600/80 border border-orange-500/50 text-white hover:bg-orange-600 transition-all duration-200 shadow-xl shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/50"
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                            d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                        Desactivar usuario
                       </button>
                     </div>
                   </div>

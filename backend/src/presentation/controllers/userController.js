@@ -122,11 +122,35 @@ export const updateUser = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Eliminar usuario
+// @desc    Desactivar usuario (soft delete)
+// @route   PATCH /api/users/:id/deactivate
+// @access  Private/Admin
+export const deactivateUser = asyncHandler(async (req, res) => {
+  // Solo los administradores pueden desactivar usuarios
+  if (req.user.role !== 'admin') {
+    throw new AppError('Acceso denegado. Se requieren privilegios de administrador', 403);
+  }
+
+  // Prevenir que un admin se desactive a sí mismo
+  if (req.user.id === req.params.id) {
+    throw new AppError('No puedes desactivar tu propia cuenta', 403);
+  }
+
+  // Usar desactivación (soft delete)
+  const result = await userService.deleteUser(req.params.id);
+  
+  res.json({
+    success: true,
+    message: 'Usuario desactivado correctamente. Sus datos se conservan pero no puede acceder al sistema.',
+    data: result
+  });
+});
+
+// @desc    Eliminar usuario permanentemente (hard delete)
 // @route   DELETE /api/users/:id
 // @access  Private/Admin
 export const deleteUser = asyncHandler(async (req, res) => {
-  // Solo los administradores pueden eliminar usuarios
+  // Solo los administradores pueden eliminar usuarios permanentemente
   if (req.user.role !== 'admin') {
     throw new AppError('Acceso denegado. Se requieren privilegios de administrador', 403);
   }
@@ -136,11 +160,13 @@ export const deleteUser = asyncHandler(async (req, res) => {
     throw new AppError('No puedes eliminar tu propia cuenta', 403);
   }
 
-  const result = await userService.deleteUser(req.params.id);
+  // Usar eliminación permanente (hard delete)
+  const result = await userService.hardDeleteUser(req.params.id);
   
   res.json({
     success: true,
-    message: result.message
+    message: result.message,
+    data: result.deletedUser
   });
 });
 

@@ -13,9 +13,9 @@ import { api } from './api';
 export const generateInvoice = async (saleId, data = {}) => {
   try {
     const response = await api.post(`/invoices/generate/${saleId}`, data);
-    return response.data;
+    return response; // Ya viene con { success, data, message }
   } catch (error) {
-    throw error.response?.data || error;
+    throw error;
   }
 };
 
@@ -28,9 +28,9 @@ export const generateInvoice = async (saleId, data = {}) => {
 export const printInvoice = async (invoiceId, options = {}) => {
   try {
     const response = await api.post(`/invoices/print/${invoiceId}`, options);
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || error;
+    throw error;
   }
 };
 
@@ -42,9 +42,9 @@ export const printInvoice = async (invoiceId, options = {}) => {
 export const getInvoiceById = async (invoiceId) => {
   try {
     const response = await api.get(`/invoices/${invoiceId}`);
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || error;
+    throw error;
   }
 };
 
@@ -56,9 +56,9 @@ export const getInvoiceById = async (invoiceId) => {
 export const getInvoicesBySale = async (saleId) => {
   try {
     const response = await api.get(`/invoices/sale/${saleId}`);
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || error;
+    throw error;
   }
 };
 

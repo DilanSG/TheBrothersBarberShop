@@ -134,12 +134,12 @@ class UserUseCases {
   }
 
   /**
-   * Eliminar usuario (✅ MIGRADO)
+   * Eliminar usuario (soft delete - desactivación)
    * Usa Repository Pattern para desactivación
    */
   async deleteUser(userId) {
     try {
-      logger.debug(`UserUseCases: Desactivando usuario ${userId}`);
+      logger.debug(`UserUseCases: Desactivando usuario ${userId} (soft delete)`);
       
       // Verificar que el usuario existe
       const existingUser = await this.userRepository.findById(userId);
@@ -153,17 +153,67 @@ class UserUseCases {
         deactivatedAt: new Date()
       });
 
-      // Si es barbero, desactivar su perfil usando barber repository
+      // Si es barbero, desactivar su perfil
       if (existingUser.role === 'barber') {
         await this.deactivateBarberProfile(userId);
       }
 
-      logger.info(`UserUseCases: Usuario desactivado: ${userId}`);
-      return deactivatedUser;
+      logger.info(`UserUseCases: Usuario desactivado (soft delete): ${userId}`);
+      return {
+        message: 'Usuario desactivado correctamente',
+        user: deactivatedUser
+      };
     } catch (error) {
       if (error instanceof AppError) throw error;
       logger.error(`UserUseCases: Error desactivando usuario ${userId}:`, error);
       throw new AppError('Error al desactivar usuario', 500);
+    }
+  }
+
+  /**
+   * Eliminar usuario permanentemente (hard delete)
+   * Elimina el usuario, su perfil de barbero y todos los datos relacionados
+   * ⚠️ ADVERTENCIA: Esta acción es irreversible
+   */
+  async hardDeleteUser(userId) {
+    const session = await User.startSession();
+    session.startTransaction();
+
+    try {
+      logger.warn(`UserUseCases: ELIMINACIÓN PERMANENTE de usuario ${userId}`);
+      
+      // Verificar que el usuario existe
+      const existingUser = await this.userRepository.findById(userId);
+      if (!existingUser) {
+        throw new AppError('Usuario no encontrado', 404);
+      }
+
+      // Si es barbero, eliminar completamente su perfil y datos relacionados
+      if (existingUser.role === 'barber') {
+        await this.hardDeleteBarberProfile(userId, session);
+      }
+
+      // Eliminar el usuario permanentemente
+      await User.findByIdAndDelete(userId).session(session);
+
+      await session.commitTransaction();
+      logger.warn(`UserUseCases: Usuario ELIMINADO PERMANENTEMENTE: ${userId} (${existingUser.email})`);
+      
+      return {
+        message: 'Usuario eliminado permanentemente',
+        deletedUser: {
+          id: userId,
+          email: existingUser.email,
+          name: existingUser.name
+        }
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      if (error instanceof AppError) throw error;
+      logger.error(`UserUseCases: Error eliminando permanentemente usuario ${userId}:`, error);
+      throw new AppError('Error al eliminar usuario permanentemente', 500);
+    } finally {
+      session.endSession();
     }
   }
 
@@ -271,6 +321,11 @@ class UserUseCases {
     return await instance.deleteUser(userId);
   }
 
+  static async hardDeleteUser(userId) {
+    const instance = UserUseCases.getInstance();
+    return await instance.hardDeleteUser(userId);
+  }
+
   static async changePassword(userId, currentPassword, newPassword) {
     const instance = UserUseCases.getInstance();
     return await instance.changePassword(userId, currentPassword, newPassword);
@@ -286,7 +341,7 @@ class UserUseCases {
   // ========================================================================
 
   /**
-   * Desactivar perfil de barbero (✅ MIGRADO)
+   * Desactivar perfil de barbero (soft delete)
    * Usa BarberRepository para desactivación
    */
   async deactivateBarberProfile(userId) {
@@ -295,7 +350,7 @@ class UserUseCases {
       
       // Buscar barbero por userId usando repository
       const barbers = await this.barberRepository.findAll({ 
-        filter: { userId },
+        filter: { user: userId }, // Cambio: usar 'user' en lugar de 'userId'
         limit: 1
       });
       
@@ -314,10 +369,171 @@ class UserUseCases {
     }
   }
 
+  /**
+   * Eliminar permanentemente perfil de barbero (hard delete)
+   * Elimina el perfil de barbero y actualiza/elimina datos relacionados
+   * ⚠️ ADVERTENCIA: Esta acción es irreversible
+   */
+  async hardDeleteBarberProfile(userId, session = null) {
+    try {
+      logger.warn(`UserUseCases: ELIMINACIÓN PERMANENTE de perfil de barbero para usuario ${userId}`);
+      
+      // Buscar barbero por userId
+      const barbers = await this.barberRepository.findAll({ 
+        filter: { user: userId },
+        limit: 1
+      });
+      
+      if (barbers.data && barbers.data.length > 0) {
+        const barber = barbers.data[0];
+        const barberId = barber._id;
+        
+        logger.info(`UserUseCases: Eliminando datos relacionados del barbero ${barberId}...`);
+        
+        // Importar modelos necesarios
+        const Sale = (await import('../../domain/entities/Sale.js')).default;
+        const Appointment = (await import('../../domain/entities/Appointment.js')).default;
+        const Review = (await import('../../domain/entities/Review.js')).default;
+        
+        // Contar registros antes de eliminar
+        const salesCount = await Sale.countDocuments({ barberId });
+        const appointmentsCount = await Appointment.countDocuments({ barber: barberId });
+        const reviewsCount = await Review.countDocuments({ barber: barberId });
+        
+        logger.warn(`UserUseCases: Barbero ${barberId} tiene:`);
+        logger.warn(`  - ${salesCount} ventas`);
+        logger.warn(`  - ${appointmentsCount} citas`);
+        logger.warn(`  - ${reviewsCount} reseñas`);
+        
+        // OPCIÓN 1: Eliminar completamente (más agresivo)
+        // await Sale.deleteMany({ barberId }).session(session);
+        // await Appointment.deleteMany({ barber: barberId }).session(session);
+        // await Review.deleteMany({ barber: barberId }).session(session);
+        
+        // OPCIÓN 2: Marcar como huérfanos o desactivar (más seguro para auditoría)
+        // Las ventas se mantienen para registros contables
+        await Sale.updateMany(
+          { barberId },
+          { 
+            $set: { 
+              notes: `[BARBERO ELIMINADO] ${barber.user?.name || 'Barbero'}`,
+              status: 'cancelled' // Marcar como canceladas
+            } 
+          }
+        ).session(session);
+        
+        // Las citas se cancelan
+        await Appointment.updateMany(
+          { barber: barberId },
+          { 
+            $set: { 
+              status: 'cancelled',
+              cancellationReason: 'Barbero eliminado del sistema',
+              cancelledBy: 'admin',
+              cancelledAt: new Date()
+            } 
+          }
+        ).session(session);
+        
+        // Las reseñas se mantienen pero se marca el barbero como eliminado
+        await Review.updateMany(
+          { barber: barberId },
+          { 
+            $set: { 
+              'barber': null // Desvincular del barbero
+            } 
+          }
+        ).session(session);
+        
+        // Finalmente eliminar el perfil de barbero
+        await Barber.findByIdAndDelete(barberId).session(session);
+        
+        logger.warn(`UserUseCases: Perfil de barbero ${barberId} ELIMINADO PERMANENTEMENTE`);
+        logger.info(`  - ${salesCount} ventas marcadas como canceladas`);
+        logger.info(`  - ${appointmentsCount} citas canceladas`);
+        logger.info(`  - ${reviewsCount} reseñas desvinculadas`);
+      } else {
+        logger.debug(`UserUseCases: No se encontró perfil de barbero para usuario ${userId}`);
+      }
+    } catch (error) {
+      logger.error(`UserUseCases: Error eliminando permanentemente perfil de barbero para usuario ${userId}:`, error);
+      throw error; // Lanzar error para hacer rollback de la transacción
+    }
+  }
+
+  /**
+   * Crear perfil de barbero (✅ NUEVO)
+   * Crea un perfil de barbero para un usuario
+   */
+  async createBarberProfile(user) {
+    try {
+      logger.info(`UserUseCases: Creando perfil de barbero para usuario ${user._id}`);
+      
+      // Verificar que el usuario existe
+      const existingUser = await this.userRepository.findById(user._id);
+      if (!existingUser) {
+        throw new AppError('Usuario no encontrado', 404);
+      }
+
+      // Verificar si ya existe un perfil de barbero
+      const existingBarbers = await this.barberRepository.findAll({ 
+        filter: { user: user._id },
+        limit: 1
+      });
+
+      if (existingBarbers.data && existingBarbers.data.length > 0) {
+        // Ya existe, solo reactivarlo
+        const existingBarber = existingBarbers.data[0];
+        const reactivatedBarber = await this.barberRepository.update(existingBarber._id, {
+          isActive: true,
+          deactivatedAt: null
+        });
+        logger.info(`UserUseCases: Perfil de barbero reactivado para usuario ${user._id}`);
+        return reactivatedBarber;
+      }
+
+      // Crear nuevo perfil de barbero
+      const newBarber = await Barber.create({
+        user: user._id,
+        specialty: 'Barbero General',
+        description: `Perfil de barbero para ${user.name}`,
+        experience: 0,
+        schedule: {
+          monday: { start: '09:00', end: '18:00', available: true },
+          tuesday: { start: '09:00', end: '18:00', available: true },
+          wednesday: { start: '09:00', end: '18:00', available: true },
+          thursday: { start: '09:00', end: '18:00', available: true },
+          friday: { start: '09:00', end: '19:00', available: true },
+          saturday: { start: '10:00', end: '16:00', available: true },
+          sunday: { start: '10:00', end: '14:00', available: false }
+        },
+        rating: {
+          average: 0,
+          count: 0
+        },
+        isActive: true,
+        isMainBarber: false,
+        totalSales: 0,
+        totalRevenue: 0
+      });
+
+      logger.info(`UserUseCases: Perfil de barbero creado exitosamente - Barber ID: ${newBarber._id}, User ID: ${user._id}`);
+      return newBarber;
+    } catch (error) {
+      logger.error(`UserUseCases: Error creando perfil de barbero para usuario ${user._id}:`, error);
+      throw error;
+    }
+  }
+
   // Mantener versión estática por compatibilidad
   static async deactivateBarberProfile(userId) {
     const instance = UserUseCases.getInstance();
     return await instance.deactivateBarberProfile(userId);
+  }
+
+  static async createBarberProfile(user) {
+    const instance = UserUseCases.getInstance();
+    return await instance.createBarberProfile(user);
   }
 }
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Minus, Shield, AlertTriangle, Clock, DollarSign, Package, Scissors, Calendar, Filter, SendHorizontal, Trash2, CreditCard, ChevronDown, ChevronUp, ArrowLeft, Printer } from 'lucide-react';
 import { refundService } from '../../services/refundService';
 import * as invoiceService from '../../services/invoiceService';
+import logger from '@utils/logger';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import LoadingSpinner from '../ui/LoadingSpinner';
@@ -191,6 +192,13 @@ const RefundSaleModal = ({ isOpen, onClose, selectedBarberId = null }) => {
   const handlePrintInvoice = async (sale) => {
     try {
       setPrinting(true);
+      
+      logger.info('🖨️ Iniciando impresión de factura:', {
+        saleId: sale._id,
+        productName: sale.productName || sale.serviceName,
+        totalAmount: sale.totalAmount,
+        status: sale.status
+      });
 
       // Paso 1: Verificar si ya existe factura para esta venta
       let invoiceId;
@@ -199,39 +207,71 @@ const RefundSaleModal = ({ isOpen, onClose, selectedBarberId = null }) => {
         if (invoicesResponse.success && invoicesResponse.data && invoicesResponse.data.length > 0) {
           // Ya existe factura
           invoiceId = invoicesResponse.data[0]._id;
+          logger.info('✅ Factura existente encontrada:', invoiceId);
         }
       } catch (err) {
-        // No hay factura, necesitamos crearla
+        logger.warn('⚠️ No hay factura existente, se generará una nueva:', err.message);
       }
 
       // Paso 2: Si no existe factura, generarla
       if (!invoiceId) {
-        const generateResponse = await invoiceService.generateInvoice(sale._id, {
-          source: 'pos',
-          notes: 'Generada desde gestión de ventas'
-        });
+        logger.info('🔄 Generando nueva factura para venta:', sale._id);
+        
+        try {
+          const generateResponse = await invoiceService.generateInvoice(sale._id, {
+            source: 'admin',
+            notes: 'Generada desde modal de gestión de ventas'
+          });
 
-        if (!generateResponse.success) {
-          throw new Error(generateResponse.message || 'Error generando factura');
+          if (!generateResponse.success) {
+            throw new Error(generateResponse.message || 'Error generando factura');
+          }
+
+          invoiceId = generateResponse.data._id;
+          logger.info('✅ Factura generada exitosamente:', invoiceId);
+        } catch (generateError) {
+          logger.error('❌ Error generando factura:', {
+            error: generateError.message,
+            saleId: sale._id,
+            response: generateError.response
+          });
+          
+          // Mensaje más específico según el error
+          if (generateError.message?.includes('no encontrada') || generateError.message?.includes('not found')) {
+            showError(`No se pudo encontrar la venta en la base de datos. ID: ${sale._id.substring(0, 8)}...`);
+          } else {
+            showError(`Error al generar factura: ${generateError.message}`);
+          }
+          return;
         }
-
-        invoiceId = generateResponse.data._id;
       }
 
-      // Paso 3: Imprimir la factura
-      const printResponse = await invoiceService.printInvoice(invoiceId, {
-        printerInterface: 'tcp' // o 'usb' según configuración
-      });
-
-      if (printResponse.success) {
-        showSuccess('Factura impresa exitosamente');
+      // Paso 3: Abrir factura en nueva pestaña para visualización e impresión
+      const token = localStorage.getItem('token');
+      // Obtener la URL base sin /api/v1 ya que el endpoint completo ya lo incluye
+      const baseUrl = import.meta.env.VITE_API_URL 
+        ? import.meta.env.VITE_API_URL.replace('/api/v1', '') 
+        : 'http://localhost:5000';
+      const invoiceUrl = `${baseUrl}/api/v1/invoices/sale/${sale._id}/view?token=${token}`;
+      
+      logger.info('🔍 Abriendo URL de factura:', invoiceUrl);
+      
+      // Abrir en nueva pestaña
+      const printWindow = window.open(invoiceUrl, '_blank');
+      
+      if (printWindow) {
+        showSuccess('Factura abierta. Usa Ctrl+P para imprimir.');
       } else {
-        throw new Error(printResponse.message || 'Error al imprimir');
+        showError('Por favor, permite ventanas emergentes para imprimir facturas');
       }
 
     } catch (error) {
-      console.error('Error printing invoice:', error);
-      showError(error.message || 'Error al imprimir factura');
+      logger.error('❌ Error printing invoice:', {
+        error: error.message,
+        stack: error.stack,
+        saleId: sale?._id
+      });
+      showError(error.message || 'Error al abrir factura para impresión');
     } finally {
       setPrinting(false);
     }
@@ -581,7 +621,7 @@ const RefundSaleModal = ({ isOpen, onClose, selectedBarberId = null }) => {
                           >
                             <Printer className="w-3 h-3" />
                             <span className="text-xs font-medium">
-                              {printing ? 'Imprimiendo...' : 'Imprimir Factura'}
+                              {printing ? 'Abriendo...' : 'Ver e Imprimir Factura'}
                             </span>
                           </button>
                         </div>

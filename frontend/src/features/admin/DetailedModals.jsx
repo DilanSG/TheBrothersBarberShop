@@ -1,4 +1,4 @@
-﻿import React from 'react';
+﻿import React, { useEffect } from 'react';
 import logger from '@utils/logger';
 import useBodyScrollLock from '@hooks/useBodyScrollLock';
 import {
@@ -17,7 +17,7 @@ export const DetailedSalesModal = ({ isOpen, onClose, salesData, barberName, dat
   if (!isOpen) return null;
 
   // Debug: Agregar logs para entender la estructura de datos
-  React.useEffect(() => {
+  useEffect(() => {
     if (salesData) {
       logger.debug('🔍 MODAL DEBUG - salesData recibida:', salesData);
       logger.debug('🔍 MODAL DEBUG - primer día:', salesData[0]);
@@ -239,7 +239,7 @@ export const DetailedAppointmentsModal = ({ isOpen, onClose, appointmentsData, b
   if (!isOpen) return null;
 
   // Debug: Agregar logs para entender la estructura de datos de citas
-  React.useEffect(() => {
+  useEffect(() => {
     if (appointmentsData) {
       logger.debug('🔍 MODAL CITAS DEBUG - appointmentsData recibida:', appointmentsData);
       logger.debug('🔍 MODAL CITAS DEBUG - primer día:', appointmentsData[0]);

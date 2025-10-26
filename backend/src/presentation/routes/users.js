@@ -8,6 +8,7 @@ import {
   getUserById,
   updateUser,
   deleteUser,
+  deactivateUser,
   changeUserRole,
   getUserStats,
   updateUserPreferences,
@@ -31,7 +32,8 @@ const CACHE_PATTERNS = [
 router.get('/', adminAuth, getUsers);
 router.get('/stats', adminAuth, getUserStats);
 router.put('/:id/role', adminAuth, validateId, invalidateCacheMiddleware(CACHE_PATTERNS), changeUserRole);
-router.delete('/:id', adminAuth, validateId, invalidateCacheMiddleware(CACHE_PATTERNS), deleteUser);
+router.patch('/:id/deactivate', adminAuth, validateId, invalidateCacheMiddleware(CACHE_PATTERNS), deactivateUser); // Soft delete
+router.delete('/:id', adminAuth, validateId, invalidateCacheMiddleware(CACHE_PATTERNS), deleteUser); // Hard delete
 
 // Rutas para usuarios autenticados
 router.get('/profile', getUserById); // Para obtener el perfil del usuario actual

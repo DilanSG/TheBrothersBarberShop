@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Users, AlertTriangle, Crown, Shield, Calendar,
   TrendingUp, Scissors, Package, Download, X, CalendarDays, FileText,
-  ShoppingCart, DollarSign, Clock, Eye, Filter, RefreshCw
+  ShoppingCart, DollarSign, Clock, Eye, Filter, RefreshCw, Receipt
 } from 'lucide-react';
 import { useAuth } from '@contexts/AuthContext';
 import { useNotification } from '@contexts/NotificationContext';
@@ -11,6 +11,7 @@ import { getCurrentDateColombia } from '@/shared/utils/dateUtils';
 import { PageContainer } from '@components/layout/PageContainer';
 import GradientText from '@components/ui/GradientText';
 import GradientButton from '@components/ui/GradientButton';
+import { SimpleDateFilter } from '@components/common/SimpleDateFilter';
 import { useBarberStats } from '@hooks/useBarberStats';
 import { useBarberUI } from '@hooks/useBarberUI';
 import { useDetailedReports } from '@hooks/useDetailedReports';
@@ -22,112 +23,7 @@ import {
   DetailedAppointmentsModal 
 } from './DetailedModals';
 
-/**
- * Componente de filtro de días mejorado con modal de calendario
- */
-const DayRangeFilter = ({ selectedDays, onDaysChange, selectedEndDate, onDateChange, availableDates, loading }) => {
-  const [showCalendarModal, setShowCalendarModal] = useState(false);
-  
-  // Resetear modal cuando cambie selectedDays desde el componente padre
-  useEffect(() => {
-    setShowCalendarModal(false);
-  }, [selectedDays]);
-  
-  const dayOptions = [
-    { value: 'general', label: 'General', color: 'blue', description: 'Todos los registros' },
-    { value: 1, label: '1 día', color: 'green', description: 'Hoy' },
-    { value: 7, label: '7 días', color: 'purple', description: 'Última semana' },
-    { value: 15, label: '15 días', color: 'yellow', description: 'Últimas 2 semanas' },
-    { value: 30, label: '30 días', color: 'orange', description: 'Último mes' }
-  ];
-
-  const handleDayOptionClick = (value) => {
-    onDaysChange(value);
-    // Solo mostrar modal de calendario para filtros numéricos, no para "General"
-    if (typeof value === 'number') {
-      setShowCalendarModal(true);
-    }
-  };
-
-  const handleDateSelect = (date) => {
-    if (date && onDateChange) {
-      // Convertir Date a string YYYY-MM-DD para consistency
-      const dateString = date.toISOString().split('T')[0];
-      onDateChange(dateString);
-    }
-    setShowCalendarModal(false);
-  };
-
-  const formatDateRange = () => {
-    if (selectedDays === 'general') return 'Mostrando todos los registros disponibles';
-    if (!selectedEndDate) return `Últimos ${selectedDays} días`;
-    
-    const endDate = new Date(selectedEndDate + 'T12:00:00');
-    const startDate = new Date(endDate);
-    startDate.setDate(endDate.getDate() - selectedDays + 1);
-    
-    return `${startDate.toLocaleDateString('es-ES')} - ${endDate.toLocaleDateString('es-ES')}`;
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* Filtros de días */}
-      <div className="flex flex-wrap gap-2 sm:gap-3 justify-center">
-        {dayOptions.map(({ value, label, color }) => (
-          <button
-            key={value}
-            onClick={() => handleDayOptionClick(value)}
-            disabled={loading}
-            className={`group relative px-3 py-2 rounded-xl border transition-all duration-300 hover:scale-105 text-sm font-medium shadow-lg ${
-              selectedDays === value
-                ? `border-${color}-500/50 bg-${color}-500/10 shadow-${color}-500/20 text-${color}-300`
-                : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10 text-white shadow-blue-500/10'
-            } ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-          >
-            <div className="flex items-center gap-2">
-              <Calendar size={14} />
-              <span className="whitespace-nowrap">{label}</span>
-            </div>
-            {loading && selectedDays === value && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <RefreshCw size={14} className="animate-spin text-white/60" />
-              </div>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Información del rango actual */}
-      <div className="text-center">
-        <p className="text-sm text-gray-400">Rango actual:</p>
-        <p className="text-sm font-medium text-white">{formatDateRange()}</p>
-        
-        {/* Botón para abrir selector de fecha - solo para filtros numéricos */}
-        {typeof selectedDays === 'number' && (
-          <button
-            onClick={() => setShowCalendarModal(true)}
-            className="mt-2 text-xs text-blue-400 hover:text-blue-300 transition-colors duration-200 underline"
-          >
-            Seleccionar fecha
-          </button>
-        )}
-      </div>
-      
-      {/* Modal de calendario */}
-      <CalendarModal
-        isOpen={showCalendarModal}
-        onClose={() => setShowCalendarModal(false)}
-        selectedDate={selectedEndDate}
-        onDateSelect={handleDateSelect}
-        availableDates={availableDates}
-        title="Seleccionar Fecha Final"
-        description={`Selecciona la fecha final para el período de ${selectedDays} días`}
-      />
-      {/* Debug temporal para fechas disponibles */}
-      {showCalendarModal && logger.debug('📅 DEBUG CALENDARIO - availableDates:', availableDates)}
-    </div>
-  );
-};
+// DayRangeFilter component removed - using SimpleDateFilter from Reports for consistency
 
 /**
  * Modal para detalles de ventas
@@ -567,12 +463,23 @@ const BarberStatsCard = ({
   onAppointmentsClick, 
   onServicesClick, 
   formatCurrency,
-  navigate // ✅ Agregamos navigate como prop
+  navigate, // ✅ Agregamos navigate como prop
+  dateRange, // ✅ Nuevo sistema de filtros (objeto con preset, startDate, endDate)
+  onGenerateInvoice // Función para generar factura consolidada
 }) => {
   return (
     <div className="group relative bg-transparent border border-white/10 rounded-2xl backdrop-blur-sm shadow-2xl shadow-blue-500/20 overflow-hidden min-h-[400px] flex flex-col">
       {/* Efecto de brillo */}
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-2xl"></div>
+      
+      {/* Botón de Factura Consolidada - Esquina superior derecha */}
+      <button
+        onClick={() => onGenerateInvoice(barber._id)}
+        className="absolute top-4 right-4 z-30 p-2.5 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg hover:from-blue-600/30 hover:to-purple-600/30 hover:border-blue-500/50 transition-all duration-300 hover:scale-110 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 group/invoice"
+        title="Generar factura consolidada del período"
+      >
+        <Receipt className="w-5 h-5 text-blue-400 group-hover/invoice:text-blue-300" />
+      </button>
       
       <div className="relative p-6 lg:p-8 flex-1 flex flex-col">
         {/* Overlay de loading granular */}
@@ -792,7 +699,7 @@ const AdminBarbers = () => {
   logger.debug('🟢 Window location:', window.location.pathname);
   
   const { user } = useAuth();
-  const { showError } = useNotification();
+  const { showError, showInfo } = useNotification();
   const navigate = useNavigate();
 
   // Helper para obtener fecha local en formato YYYY-MM-DD
@@ -845,9 +752,12 @@ const AdminBarbers = () => {
     fetchAllReports
   } = useDetailedReports();
 
-  // Estados para los nuevos modales detallados y filtros
-  const [selectedDayRange, setSelectedDayRange] = useState('general'); // Iniciar con "General" para mostrar todos los datos
-  const [selectedEndDate, setSelectedEndDate] = useState(null); // null significa "hasta hoy"
+  // Estados para filtros de fecha - Simplificados para usar SimpleDateFilter (igual que Reports)
+  const [dateRange, setDateRange] = useState({
+    preset: 'all',
+    startDate: null,
+    endDate: null
+  });
   const [modalData, setModalData] = useState({
     sales: { isOpen: false, data: null, barber: null, dateRange: null },
     appointments: { isOpen: false, data: null, barber: null, dateRange: null },
@@ -859,7 +769,7 @@ const AdminBarbers = () => {
     logger.debug('🎯 USEEFFECT FILTRO INICIAL:', {
       barbersLength: barbers.length,
       loading,
-      selectedDayRange,
+      dateRangePreset: dateRange.preset,
       hasApplyFilter: typeof applyFilter === 'function',
       statisticsKeysCount: Object.keys(statistics).length,
       filteredStatsKeysCount: Object.keys(filteredStats).length,
@@ -869,26 +779,25 @@ const AdminBarbers = () => {
     // Aplicar filtro general si:
     // 1. Hay barberos cargados
     // 2. No está cargando barberos
-    // 3. Está en modo "general"
+    // 3. Está en modo "all" (General)
     // 4. Y NO tiene estadísticas cargadas (es el problema principal)
-    if (barbers.length > 0 && !loading && selectedDayRange === 'general' && typeof applyFilter === 'function' && Object.keys(statistics).length === 0) {
+    if (barbers.length > 0 && !loading && dateRange.preset === 'all' && typeof applyFilter === 'function' && Object.keys(statistics).length === 0) {
       logger.debug('✅ APLICANDO FILTRO GENERAL INICIAL...', { 
         barbersLength: barbers.length,
         barbersData: barbers.map(b => ({ id: b._id, name: b.user?.name || b.name }))
       });
       applyFilter('General', '', barbers); // Pasar los barberos como tercer parámetro
-      setSelectedEndDate(null);
     } else {
       logger.debug('❌ NO SE APLICA FILTRO - Condiciones no cumplidas:', {
         hasBarberos: barbers.length > 0,
         notLoading: !loading,
-        isGeneral: selectedDayRange === 'general',
+        isAll: dateRange.preset === 'all',
         hasApplyFilter: typeof applyFilter === 'function',
         noStatistics: Object.keys(statistics).length === 0
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [barbers.length, loading, selectedDayRange, Object.keys(statistics).length]); // Agregada dependencia de statistics
+  }, [barbers.length, loading, dateRange.preset, Object.keys(statistics).length]); // Agregada dependencia de statistics
 
   // Efecto adicional para forzar carga cuando se monta el componente sin datos
   useEffect(() => {
@@ -923,6 +832,88 @@ const AdminBarbers = () => {
     availableDates: availableDates?.length || 0,
     allAvailableDates: typeof sortedAvailableDates
   });
+
+  // ========== NUEVOS HANDLERS PARA SIMPLEDATEFILTER ==========
+  
+  // Helper para calcular fechas basado en preset
+  const calculateDatesFromPreset = (preset) => {
+    const today = getTodayLocalDate();
+    
+    switch(preset) {
+      case 'all':
+        return { startDate: null, endDate: null };
+      case 'today':
+        return { startDate: today, endDate: today };
+      case 'yesterday': {
+        const yesterday = new Date(today + 'T12:00:00');
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        return { startDate: yesterdayStr, endDate: yesterdayStr };
+      }
+      default:
+        return { startDate: null, endDate: null };
+    }
+  };
+
+  // Handler para cambio de preset (all, today, yesterday, custom)
+  const handlePresetChange = async (preset) => {
+    logger.debug('📅 [AdminBarbers] Cambio de preset:', { preset });
+    
+    const { startDate, endDate } = calculateDatesFromPreset(preset);
+    
+    setDateRange({
+      preset,
+      startDate,
+      endDate
+    });
+
+    // Usar barbersData del hook como fallback
+    const activeBarbersData = (barbers?.length > 0) ? barbers : (barbersData || []);
+    
+    if (!activeBarbersData || activeBarbersData.length === 0) {
+      logger.debug('⚠️ [AdminBarbers] No hay barberos disponibles');
+      return;
+    }
+
+    // Mapear preset a filterType para el hook
+    let filterType = 'General';
+    let filterDate = '';
+    
+    if (preset === 'today') {
+      filterType = 'Hoy';
+      filterDate = startDate;
+    } else if (preset === 'yesterday') {
+      filterType = 'Ayer';
+      filterDate = startDate;
+    }
+    
+    await applyFilter(filterType, filterDate, activeBarbersData);
+  };
+
+  // Handler para cambio de fechas personalizadas
+  const handleCustomDateChange = async (startDate, endDate) => {
+    logger.debug('📅 [AdminBarbers] Rango personalizado:', { startDate, endDate });
+    
+    setDateRange({
+      preset: 'custom',
+      startDate,
+      endDate
+    });
+
+    // Usar barbersData del hook como fallback
+    const activeBarbersData = (barbers?.length > 0) ? barbers : (barbersData || []);
+    
+    if (!activeBarbersData || activeBarbersData.length === 0) {
+      logger.debug('⚠️ [AdminBarbers] No hay barberos disponibles');
+      return;
+    }
+
+    // Para rango personalizado, usar endDate como filterDate
+    await applyFilter('Personalizado', endDate, activeBarbersData);
+  };
+  
+  // ========== FIN NUEVOS HANDLERS ==========
+
 
   // Filtrar datos según los días seleccionados y fecha final
   const getFilteredDataByDays = (barberStats, days, endDate = null) => {
@@ -1083,7 +1074,8 @@ const AdminBarbers = () => {
     }
   };
 
-  // Obtener estadísticas filtradas por días para todos los barberos
+  // LEGACY: getFilteredStatsByDays - No longer needed with SimpleDateFilter
+  // Keeping for backward compatibility, but using dateRange instead
   const getFilteredStatsByDays = useMemo(() => {
     if (!statistics || !barbers.length) return {};
 
@@ -1091,14 +1083,15 @@ const AdminBarbers = () => {
     barbers.forEach(barber => {
       const barberStats = statistics[barber._id];
       if (barberStats) {
-        filtered[barber._id] = getFilteredDataByDays(barberStats, selectedDayRange, selectedEndDate);
+        // Using filteredStats from hook instead of local filtering
+        filtered[barber._id] = filteredStats[barber._id] || { sales: [], appointments: [], walkIns: [] };
       } else {
         // Asegurar que siempre haya un objeto con arrays vacíos
         filtered[barber._id] = { sales: [], appointments: [], walkIns: [] };
       }
     });
     return filtered;
-  }, [statistics, filteredStats, barbers, selectedDayRange, selectedEndDate, filterType]);
+  }, [statistics, filteredStats, barbers, dateRange.preset]);
 
   // Effect para asegurar que siempre haya scroll disponible
   useEffect(() => {
@@ -1122,7 +1115,7 @@ const AdminBarbers = () => {
     return () => {
       clearTimeout(timer);
     };
-  }, [selectedDayRange, selectedEndDate, barbers]);
+  }, [dateRange.preset, dateRange.startDate, dateRange.endDate, barbers]);
 
   // Helper para formatear fecha YYYY-MM-DD a DD/MM/YYYY de forma segura
   const formatDateSafe = (dateStr) => {
@@ -1133,35 +1126,26 @@ const AdminBarbers = () => {
     return `${day}/${month}/${year}`;
   };
 
-  // Función para formatear el rango de fechas
+  // Función para formatear el rango de fechas (simplificada para nuevo sistema)
   const formatDateRange = () => {
-    if (selectedDayRange === 'general') return 'Todos los registros disponibles';
+    if (dateRange.preset === 'all') return 'Todos los registros disponibles';
     
-    // Para todos los filtros numéricos, calcular rango real
-    if (typeof selectedDayRange === 'number') {
-      const todayStr = getTodayLocalDate();
-      const endDateStr = selectedEndDate || todayStr;
-      
-      if (selectedDayRange === 1) {
-        // Para "1 día", mostrar solo la fecha actual usando formateo seguro
-        return formatDateSafe(endDateStr);
-      } else {
-        // Para rangos (7, 30 días), calcular fecha de inicio
-        const endDate = new Date(endDateStr + 'T12:00:00');
-        const startDate = new Date(endDate);
-        startDate.setDate(endDate.getDate() - (selectedDayRange - 1));
-        
-        // Formatear ambas fechas de forma segura
-        const startDateStr = startDate.toISOString().split('T')[0];
-        const formattedStart = formatDateSafe(startDateStr);
-        const formattedEnd = formatDateSafe(endDateStr);
-        
-        return `${formattedStart} - ${formattedEnd}`;
-      }
+    if (dateRange.preset === 'today') {
+      return formatDateSafe(dateRange.startDate || getTodayLocalDate());
     }
     
-    // Fallback para casos especiales
-    return `Últimos ${selectedDayRange} días`;
+    if (dateRange.preset === 'yesterday') {
+      return formatDateSafe(dateRange.startDate);
+    }
+    
+    if (dateRange.preset === 'custom' && dateRange.startDate && dateRange.endDate) {
+      const formattedStart = formatDateSafe(dateRange.startDate);
+      const formattedEnd = formatDateSafe(dateRange.endDate);
+      return `${formattedStart} - ${formattedEnd}`;
+    }
+    
+    // Fallback
+    return 'Rango personalizado';
   };
 
   // Funciones para abrir modales con reportes detallados
@@ -1171,12 +1155,11 @@ const AdminBarbers = () => {
     
     const barber = barbers.find(b => b._id === barberId);
     const barberName = barber?.user?.name || barber?.name || 'Barbero';
-    const dateRange = formatDateRange();
+    const dateRangeStr = formatDateRange();
     
-    logger.debug('🛒 Abriendo modal de ventas detalladas:', { barberId, dateRange, selectedDayRange });
+    logger.debug('🛒 Abriendo modal de ventas detalladas:', { barberId, dateRangeStr, dateRange });
     logger.debug('🔍 Fechas calculadas para el modal:', { 
-      selectedDayRange, 
-      selectedEndDate, 
+      dateRange, 
       todayStr: getTodayLocalDate(),
       filterType: filterType || 'ninguno'
     });
@@ -1184,7 +1167,7 @@ const AdminBarbers = () => {
     // DEBUG: Comparar datos de card vs modal
     const barberStats = statistics[barberId] || filteredStats[barberId];
     logger.debug('📊 COMPARACIÓN CARD vs MODAL para', barberName, ':', {
-      selectedFilter: selectedDayRange,
+      dateRange: dateRange.preset,
       filterType: filterType,
       cardStats: barberStats,
       salesFromCard: barberStats?.sales,
@@ -1193,19 +1176,14 @@ const AdminBarbers = () => {
     
     let startDateStr, endDateStr;
     
-    if (selectedDayRange === 'general') {
+    if (dateRange.preset === 'all') {
       // Para filtro General, NO pasar fechas (igual que useBarberStats)
       startDateStr = undefined;
       endDateStr = undefined;
     } else {
-      // Calcular fechas de inicio y fin para filtros específicos
-      const todayStr = getTodayLocalDate();
-      const endDate = selectedEndDate ? new Date(selectedEndDate + 'T12:00:00') : new Date(todayStr + 'T12:00:00');
-      const startDate = new Date(endDate);
-      startDate.setDate(endDate.getDate() - (selectedDayRange - 1));
-      
-      startDateStr = startDate.toISOString().split('T')[0];
-      endDateStr = endDate.toISOString().split('T')[0];
+      // Usar fechas directamente del estado dateRange
+      startDateStr = dateRange.startDate;
+      endDateStr = dateRange.endDate;
     }
     
     logger.debug('📅 Fechas finales para el backend:', { 
@@ -1213,7 +1191,7 @@ const AdminBarbers = () => {
       endDateStr, 
       barberId,
       modalDateRange: `${startDateStr} a ${endDateStr}`,
-      shouldMatchCardFilter: selectedDayRange
+      currentPreset: dateRange.preset
     });
     
     // Abrir modal inmediatamente con loading state
@@ -1223,7 +1201,7 @@ const AdminBarbers = () => {
         isOpen: true,
         data: null,
         barber: barberName,
-        dateRange: dateRange,
+        dateRange: dateRangeStr,
         loading: true,
         error: null
       }
@@ -1414,6 +1392,46 @@ const AdminBarbers = () => {
     services: { isOpen: false, data: null, barber: null, dateRange: null, loading: false, error: null }
   }));
 
+  // Función para generar factura consolidada del período filtrado
+  const handleGenerateConsolidatedInvoice = async (barberId) => {
+    // ⚠️ VALIDACIÓN: No permitir factura con filtro "General"
+    if (dateRange.preset === 'all') {
+      showError('No se puede generar factura consolidada con el filtro General. Por favor selecciona un período específico (Hoy, Ayer o Personalizado).');
+      return;
+    }
+    
+    const barber = barbers.find(b => b._id === barberId);
+    const barberName = barber?.user?.name || barber?.name || 'Barbero';
+    
+    logger.debug('🧾 Generando factura consolidada:', { 
+      barberId, 
+      barberName,
+      dateRange,
+      filterType
+    });
+    
+    try {
+      const { startDate, endDate } = dateRange;
+      
+      // Validar que haya fechas definidas
+      if (!startDate || !endDate) {
+        showError('Por favor selecciona un rango de fechas válido antes de generar la factura.');
+        return;
+      }
+      
+      logger.debug('📅 Rango de fechas para factura:', { startDate, endDate });
+      
+      // Abrir factura consolidada en nueva ventana
+      const invoiceUrl = `/api/v1/invoices/consolidated/${barberId}?startDate=${startDate}&endDate=${endDate}`;
+      showInfo(`Generando factura de ${barberName} desde ${startDate} hasta ${endDate}...`);
+      window.open(invoiceUrl, '_blank');
+      
+    } catch (error) {
+      console.error('❌ Error generando factura consolidada:', error);
+      showError('Error al generar la factura consolidada');
+    }
+  };
+
   // Función simplificada para calcular totales
   const calculateTotals = (barberId) => {
     // Usar filteredStats si hay un filtro aplicado, sino usar statistics
@@ -1512,12 +1530,10 @@ const AdminBarbers = () => {
             </div>
             <h3 className="text-lg font-semibold text-white">Filtrar por Período</h3>
           </div>
-          <DayRangeFilter 
-            selectedDays={selectedDayRange} 
-            onDaysChange={handleDayRangeChange}
-            selectedEndDate={selectedEndDate}
-            onDateChange={handleEndDateChange}
-            availableDates={availableDates}
+          <SimpleDateFilter
+            dateRange={dateRange}
+            onPresetChange={handlePresetChange}
+            onCustomDateChange={handleCustomDateChange}
             loading={loading || filterLoading}
           />
         </div>
@@ -1611,6 +1627,8 @@ const AdminBarbers = () => {
                   onServicesClick={openServicesModal}
                   formatCurrency={formatCurrency}
                   navigate={navigate} // ✅ Pasamos navigate como prop
+                  dateRange={dateRange} // ✅ Nuevo sistema de filtros (dateRange object)
+                  onGenerateInvoice={handleGenerateConsolidatedInvoice} // ✅ Función para factura
                 />
               );
             })}
