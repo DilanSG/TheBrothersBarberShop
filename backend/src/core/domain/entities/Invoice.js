@@ -107,8 +107,14 @@ const invoiceSchema = new mongoose.Schema({
   // Método de pago
   paymentMethod: {
     type: String,
-    enum: ['efectivo', 'tarjeta', 'transferencia', 'mixto'],
+    enum: ['efectivo', 'tarjeta', 'transferencia', 'nequi', 'daviplata', 'bancolombia', 'nu', 'digital', 'mixto'],
     default: 'efectivo'
+  },
+
+  // Fecha de emisión (puede diferir de createdAt si se genera desde venta/cita antigua)
+  issueDate: {
+    type: Date,
+    default: () => new Date()
   },
 
   // Estado de la factura

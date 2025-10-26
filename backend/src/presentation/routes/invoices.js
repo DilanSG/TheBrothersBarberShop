@@ -42,6 +42,14 @@ router.get(
   invoiceController.getInvoiceStats
 );
 
+// Factura consolidada por barbero y período (Solo Admin)
+router.get(
+  '/consolidated/:barberId',
+  protect,
+  barberAuth,
+  invoiceController.generateConsolidatedInvoice
+);
+
 // Ver factura desde venta (genera si no existe) - /sale/:saleId/view
 router.get(
   '/sale/:saleId/view',

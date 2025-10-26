@@ -106,11 +106,19 @@ export const authService = {
       return data;
     } catch (error) {
       console.error('Error en el login:', error);
-      throw new Error(
-        error.message.includes('429')
-          ? 'Demasiados intentos de inicio de sesión. Por favor, espera un momento.'
-          : error.message
-      );
+      
+      // Mensajes de error específicos según el código de estado
+      let errorMessage = error.message;
+      
+      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        errorMessage = 'Credenciales inválidas. Verifica tu email y contraseña.';
+      } else if (error.message?.includes('429')) {
+        errorMessage = 'Demasiados intentos de inicio de sesión. Por favor, espera un momento.';
+      } else if (error.message?.includes('network') || error.message?.includes('fetch failed')) {
+        errorMessage = 'Error de conexión. Verifica que el servidor esté activo.';
+      }
+      
+      throw new Error(errorMessage);
     }
   },
 
