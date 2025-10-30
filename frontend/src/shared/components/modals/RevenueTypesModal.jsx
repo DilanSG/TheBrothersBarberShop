@@ -19,6 +19,13 @@ const RevenueTypesModal = ({ isOpen, onClose, revenueData, dateRange, formatCurr
   
   if (!isOpen || !revenueData) return null;
 
+  // Debug temporal para verificar estructura de datos
+  console.log('🔍 [RevenueTypesModal] revenueData:', revenueData);
+  console.log('🔍 [RevenueTypesModal] revenueData.byType:', revenueData.byType);
+
+  // Usar la función de formateo externa si se proporciona, sino usar la local
+  const formatCurrencyToUse = externalFormatCurrency || formatCurrency;
+
   // Tipos de ingresos con sus iconos y colores
   const revenueTypes = [
     { 
@@ -28,7 +35,6 @@ const RevenueTypesModal = ({ isOpen, onClose, revenueData, dateRange, formatCurr
       color: 'emerald',
       amount: revenueData.byType?.products || 0,
       description: 'Ingresos por venta de productos',
-      details: 'Shampoos, pomadas, accesorios, etc.'
     },
     { 
       id: 'services', 
@@ -37,7 +43,6 @@ const RevenueTypesModal = ({ isOpen, onClose, revenueData, dateRange, formatCurr
       color: 'blue',
       amount: revenueData.byType?.services || 0,
       description: 'Cortes y servicios directos',
-      details: 'Cortes de cabello, afeitado, peinado, etc.'
     },
     { 
       id: 'appointments', 
@@ -46,7 +51,6 @@ const RevenueTypesModal = ({ isOpen, onClose, revenueData, dateRange, formatCurr
       color: 'purple',
       amount: revenueData.byType?.appointments || 0,
       description: 'Servicios con cita previa',
-      details: 'Servicios reservados con anticipación'
     }
   ];
 
@@ -91,7 +95,7 @@ const RevenueTypesModal = ({ isOpen, onClose, revenueData, dateRange, formatCurr
                 <p className="text-xs text-purple-300">Total de ingresos</p>
                 <DollarSign className="w-4 h-4 text-purple-400" />
               </div>
-              <p className="text-lg sm:text-xl font-bold text-purple-400">{formatCurrency(totalRevenue)}</p>
+              <p className="text-lg sm:text-xl font-bold text-purple-400">{formatCurrencyToUse(totalRevenue)}</p>
             </div>
           </div>
 
@@ -152,7 +156,7 @@ const RevenueTypesModal = ({ isOpen, onClose, revenueData, dateRange, formatCurr
                       </div>
                       <div className="text-right">
                         <p className={`text-lg font-bold ${getTextColor(type.color)}`}>
-                          {formatCurrency(type.amount)}
+                          {formatCurrencyToUse(type.amount)}
                         </p>
                         <p className="text-xs text-gray-400">
                           {percentage.toFixed(1)}% del total

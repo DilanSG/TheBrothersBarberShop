@@ -50,7 +50,7 @@ const SociosModal = ({
   const { user: authUser } = useAuth();
 
   // Bloquear scroll del body
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
       return () => { document.body.style.overflow = 'unset'; };
@@ -933,7 +933,7 @@ const IndividualSocioModal = ({
   const [loading, setLoading] = useState(false);
 
   // Bloquear scroll del body
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
       return () => { document.body.style.overflow = 'unset'; };

@@ -14,16 +14,13 @@ class DIContainer {
   
   _ensureInitialized() {
     if (!this._initialized) {
-      logger.info('Inicializando Contenedor de Inyección de Dependencias');
       this._registerRepositories();
       this._initialized = true;
-      logger.info('Contenedor DI inicializado exitosamente');
+      logger.info('DI Container inicializado (6 repositorios)');
     }
   }
 
   _registerRepositories() {
-    logger.info('Registrando implementaciones de repositorios');
-    
     try {
       this.dependencies.set('UserRepository', new UserRepositoryImpl());
       this.dependencies.set('AppointmentRepository', new AppointmentRepositoryImpl());
@@ -31,8 +28,6 @@ class DIContainer {
       this.dependencies.set('SaleRepository', new SaleRepositoryImpl());
       this.dependencies.set('InventoryRepository', new InventoryRepositoryImpl());
       this.dependencies.set('BarberRepository', new BarberRepositoryImpl());
-      
-      logger.info('Implementaciones de repositorios registradas exitosamente');
     } catch (error) {
       logger.error('Error registrando repositorios:', error);
       throw error;
@@ -48,13 +43,11 @@ class DIContainer {
     }
     
     const dependency = this.dependencies.get(name);
-    logger.debug(`Obteniendo dependencia: ${name}`);
     return dependency;
   }
 
   register(name, useCase) {
     this.dependencies.set(name, useCase);
-    logger.debug(`Dependencia registrada manualmente: ${name}`);
   }
 
   list() {

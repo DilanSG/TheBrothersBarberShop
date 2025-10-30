@@ -4,22 +4,12 @@ import DIContainer from '../../../shared/container/index.js';
 
 /**
  * UserUseCases - Casos de uso para gestión de usuarios
- * ✅ MIGRACIÓN COMPLETA A REPOSITORY PATTERN
- * 
- * ESTADO DE MIGRACIÓN:
- * ✅ getUserById - Migrado a Repository Pattern
- * ✅ getAllUsers - Migrado a Repository Pattern 
- * ✅ updateUser - Migrado a Repository Pattern
- * ✅ deleteUser - Migrado a Repository Pattern  
- * ✅ changePassword - Migrado a Repository Pattern (híbrido)
- * ✅ getUserStats - Migrado a Repository Pattern (híbrido)
  */
 class UserUseCases {
   constructor() {
     // Obtener repositorios del contenedor DI
     this.userRepository = DIContainer.get('UserRepository');
     this.barberRepository = DIContainer.get('BarberRepository');
-    logger.debug('UserUseCases: Repositorios inyectados correctamente');
   }
 
   // Método estático para obtener instancia con DI
@@ -27,14 +17,11 @@ class UserUseCases {
     return new UserUseCases();
   }
 
-  // ========================================================================
-  // MÉTODOS COMPLETAMENTE MIGRADOS A REPOSITORY PATTERN (✅)
-  // ========================================================================
-
   /**
-   * Obtener todos los usuarios (✅ MIGRADO)
+   * Obtener todos los usuarios
    * Usa Repository Pattern con filtros y paginación
    */
+  
   async getAllUsers(filters = {}, select = '-password') {
     try {
       // Por defecto, solo mostrar usuarios activos (no desactivados)
@@ -62,7 +49,7 @@ class UserUseCases {
   }
 
   /**
-   * Obtener usuario por ID (✅ MIGRADO)
+   * Obtener usuario por ID
    * Usa Repository Pattern con validación mejorada
    */
   async getUserById(userId, select = '-password') {
@@ -84,7 +71,7 @@ class UserUseCases {
   }
 
   /**
-   * Actualizar usuario (✅ MIGRADO)
+   * Actualizar usuario
    * Usa Repository Pattern con validación mejorada
    */
   async updateUser(userId, updateData, adminAction = false) {
@@ -173,7 +160,7 @@ class UserUseCases {
   /**
    * Eliminar usuario permanentemente (hard delete)
    * Elimina el usuario, su perfil de barbero y todos los datos relacionados
-   * ⚠️ ADVERTENCIA: Esta acción es irreversible
+   * Esta acción es irreversible
    */
   async hardDeleteUser(userId) {
     const session = await User.startSession();
@@ -218,7 +205,7 @@ class UserUseCases {
   }
 
   /**
-   * Cambiar contraseña (✅ MIGRADO HÍBRIDO)
+   * Cambiar contraseña
    * Usa Repository Pattern para actualización, modelo para validación
    */
   async changePassword(userId, currentPassword, newPassword) {
@@ -250,7 +237,7 @@ class UserUseCases {
   }
 
   /**
-   * Obtener estadísticas de usuarios (✅ MIGRADO HÍBRIDO)
+   * Obtener estadísticas de usuarios
    * Usa Repository Pattern donde es posible, agregaciones directas donde es necesario
    */
   async getUserStats() {
@@ -336,10 +323,6 @@ class UserUseCases {
     return await instance.getUserStats();
   }
 
-  // ========================================================================
-  // MÉTODOS AUXILIARES
-  // ========================================================================
-
   /**
    * Desactivar perfil de barbero (soft delete)
    * Usa BarberRepository para desactivación
@@ -372,7 +355,7 @@ class UserUseCases {
   /**
    * Eliminar permanentemente perfil de barbero (hard delete)
    * Elimina el perfil de barbero y actualiza/elimina datos relacionados
-   * ⚠️ ADVERTENCIA: Esta acción es irreversible
+   * ADVERTENCIA: Esta acción es irreversible
    */
   async hardDeleteBarberProfile(userId, session = null) {
     try {
@@ -462,7 +445,7 @@ class UserUseCases {
   }
 
   /**
-   * Crear perfil de barbero (✅ NUEVO)
+   * Crear perfil de barbero
    * Crea un perfil de barbero para un usuario
    */
   async createBarberProfile(user) {

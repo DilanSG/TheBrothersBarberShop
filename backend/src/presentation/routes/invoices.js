@@ -16,6 +16,14 @@ router.post(
   invoiceController.generateInvoice
 );
 
+// Generar y enviar factura de carrito
+router.post(
+  '/cart',
+  protect,
+  barberAuth,
+  invoiceController.generateCartInvoice
+);
+
 // Imprimir factura (Barber, Admin)
 router.post(
   '/print/:invoiceId',
@@ -34,6 +42,22 @@ router.get(
   invoiceController.listInvoices
 );
 
+// Obtener facturas de carrito con datos de cliente
+router.get(
+  '/cart',
+  protect,
+  barberAuth,
+  invoiceController.getCartInvoices
+);
+
+// Obtener información de reembolsos de un carrito
+router.get(
+  '/cart/:cartId/refunds',
+  protect,
+  barberAuth,
+  invoiceController.getCartRefundInfo
+);
+
 // Estadísticas de facturas (Barber: propias, Admin: todas)
 router.get(
   '/stats',
@@ -42,19 +66,12 @@ router.get(
   invoiceController.getInvoiceStats
 );
 
-// Factura consolidada por barbero y período (Solo Admin)
+// reporte consolidado por barbero y período (Solo Admin)
 router.get(
   '/consolidated/:barberId',
   protect,
   barberAuth,
   invoiceController.generateConsolidatedInvoice
-);
-
-// Ver factura desde venta (genera si no existe) - /sale/:saleId/view
-router.get(
-  '/sale/:saleId/view',
-  protectFlexible,
-  invoiceController.viewInvoiceFromSale
 );
 
 // Obtener facturas por venta - /sale/:saleId

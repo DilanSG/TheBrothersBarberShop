@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useUI } from '../../utils/UIContext';
 
 export function Alert({
@@ -55,7 +55,7 @@ export function Toast({
 }) {
   const { removeToast } = useUI();
   
-  React.useEffect(() => {
+  useEffect(() => {
     if (duration && duration > 0) {
       const timer = setTimeout(() => {
         onClose?.();

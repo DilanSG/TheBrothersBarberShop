@@ -1,217 +1,104 @@
 # 💈 The Brothers Barber Shop
 
-<div align="center">
+> **Sistema de gestión integral para barbería con arquitectura empresarial moderna**
 
-**Sistema Integral de Gestión para Barbería Profesional**
+Un sistema completo de gestión diseñado específicamente para barberías que combina un backend robusto con Clean Architecture y un frontend React moderno. Incluye gestión de citas, inventario, ventas, reportes financieros, sistema de socios y facturación térmica.
 
-<!-- Status Badges -->
-![Status](https://img.shields.io/badge/Status-Producción-success)
-![Version](https://img.shields.io/badge/Version-2.0.0-blue)
-![License](https://img.shields.io/badge/License-Proprietary-red)
+[![License](https://img.shields.io/badge/License-PROPRIETARY-red.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18+-blue.svg)](https://reactjs.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-6+-green.svg)](https://mongodb.com/)
+[![Security](https://img.shields.io/badge/Security-0%20vulnerabilities-brightgreen.svg)](#seguridad)
 
-<!-- CI/CD Badges -->
-[![CI/CD Pipeline](https://github.com/DilanSG/TheBrothersBarberShop/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/DilanSG/TheBrothersBarberShop/actions/workflows/ci-cd.yml)
-[![Tests](https://github.com/DilanSG/TheBrothersBarberShop/actions/workflows/test.yml/badge.svg)](https://github.com/DilanSG/TheBrothersBarberShop/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/DilanSG/TheBrothersBarberShop/branch/main/graph/badge.svg)](https://codecov.io/gh/DilanSG/TheBrothersBarberShop)
+## 🧩 Características Principales
 
-<!-- Tech Stack Badges -->
-![Node](https://img.shields.io/badge/Node.js-20%2B-green)
-![React](https://img.shields.io/badge/React-18%2B-blue)
-![MongoDB](https://img.shields.io/badge/MongoDB-6%2B-green)
+### 🏢 **Gestión Empresarial**
+- **Sistema de Usuarios Multi-Rol**: Admin, Barbero, Cliente, Socio con permisos granulares
+- **Panel de Socios**: Gestión de participaciones, porcentajes y análisis financiero
+- **Autenticación JWT**: Tokens diferenciados por rol con refresh automático
+- **Monitoreo en Tiempo Real**: Métricas de recursos y performance del sistema
 
-<!-- Security Badge -->
-![Security](https://img.shields.io/badge/Security-100%25-brightgreen)
-[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-blue)](https://github.com/DilanSG/TheBrothersBarberShop/network/updates)
+### 💼 **Operaciones de Barbería**
+- **Sistema de Citas**: Reservas online con confirmación automática por email
+- **Gestión de Barberos**: Perfiles, estadísticas de ventas y performance
+- **Catálogo de Servicios**: Precios dinámicos y configuración de duraciones
+- **Sistema de Reseñas**: Calificaciones y comentarios de clientes
 
-*Plataforma empresarial completa para gestión moderna de establecimientos de barbería*
+### 📊 **Gestión Financiera Avanzada**
+- **Reportes Ejecutivos**: Dashboard con métricas de ingresos, gastos y rentabilidad
+- **Gastos Recurrentes**: Cálculo automático de gastos fijos mensuales
+- **Control de Inventario**: Gestión de stock con alertas y snapshots automáticos
+- **Facturación Térmica**: Integración con impresoras térmicas 80mm
+- **Análisis de Ventas**: Reportes por barbero, período y método de pago
 
-[🚀 Demo](#demo) • [📖 Docs](#documentación) • [💼 Features](#características-principales) • [🛠️ Setup](#instalación)
+### 🛠️ **Características Técnicas**
+- **PWA Ready**: Service Workers y offline capabilities
+- **Responsive Design**: Mobile-first con Tailwind CSS
+- **Cache Inteligente**: Sistema de cache con TTL dinámico
+- **Exports Excel**: Generación automática de reportes en Excel
+- **Backup Automático**: Respaldos diarios de MongoDB
+- **Logging Avanzado**: Winston con rotación de archivos (30 días)
 
-</div>
+## ⚙️ Arquitectura General
 
----
-
-## 📋 Tabla de Contenidos
-
-- [Visión General](#-visión-general)
-- [Características Principales](#-características-principales)
-- [Stack Tecnológico](#-stack-tecnológico)
-- [Arquitectura](#-arquitectura)
-- [Instalación](#-instalación-y-desarrollo)
-- [Estructura del Proyecto](#-estructura-del-proyecto)
-- [Scripts Disponibles](#-scripts-disponibles)
-- [Estado del Proyecto](#-estado-del-proyecto)
-- [Contribución](#-contribución)
-- [Licencia](#-licencia)
-
----
-
-## 🎯 Visión General
-
-**The Brothers Barber Shop** es una solución empresarial integral desarrollada con arquitectura **Clean Architecture** y tecnologías modernas para gestionar todos los aspectos de un establecimiento de barbería profesional.
-
-### ✨ Propuesta de Valor
-
-- 💰 **ROI Comprobado** - Optimización de ingresos con control detallado de gastos
-- ⚡ **Eficiencia Operativa** - Automatización de procesos y flujos de trabajo
-- 📊 **Inteligencia de Negocio** - Reportes avanzados y métricas clave
-- 🔒 **Seguridad Empresarial** - 100% seguro, 0 vulnerabilidades críticas
-- 📱 **Experiencia Omnicanal** - Interfaces optimizadas por rol de usuario
-
----
-
-## 🌟 Características Principales
-
-### 💼 Sistema de Roles Jerárquico
-
-| Rol | Permisos | Características |
-|-----|----------|----------------|
-| **Socio Fundador** | Control total | Dashboard ejecutivo, distribución de ganancias automática |
-| **Administrador** | Gestión completa | Reportes financieros, control de personal, configuración |
-| **Barbero** | Operacional | Agenda personal, ventas, comisiones |
-| **Cliente** | Autoservicio | Reservas, historial, pagos |
-
-### 📈 Analítica Financiera Avanzada
-
-- ✅ **Dashboard Ejecutivo** - Métricas en tiempo real con visualizaciones
-- ✅ **Gastos Inteligentes** - Sistema de gastos únicos y recurrentes con proyecciones
-- ✅ **Distribución de Ganancias** - Cálculo automático para múltiples socios
-- ✅ **Reportes Predictivos** - Proyecciones basadas en patrones históricos
-- ✅ **Control de ROI** - Análisis de retorno de inversión por categoría
-
-### 🛒 Punto de Venta (POS) Profesional
-
-#### 💳 Sistema de Pagos Múltiples
-- Efectivo, Transferencias, Nequi, Daviplata, Tarjetas
-- Conciliación automática en tiempo real
-- Reportes de caja y cierre diario
-- Trazabilidad completa de transacciones
-
-#### 📦 Inventario Inteligente
-- Control de stock en tiempo real con alertas
-- Gestión completa de proveedores
-- Movimientos automáticos por ventas
-- Snapshots diarios con exportación Excel
-- Valorización automática de inventario
-
-### 📅 Sistema de Citas Avanzado
-
-- 🗓️ **Programación Inteligente** - Disponibilidad dinámica por barbero
-- 📧 **Recordatorios Automáticos** - Emails programados con templates profesionales
-- 🔄 **Reagendamiento Flexible** - Cambios sin restricciones
-- ⏰ **Lista de Espera** - Optimización de ocupación
-- 📊 **Métricas de Servicio** - Puntualidad y satisfacción
-
----
-
-## 🚀 Stack Tecnológico
-
-### Backend - API REST Empresarial
-
-```javascript
-// Stack Principal
-Node.js 20+              → Runtime moderno con ES Modules
-Express.js 4.x           → Framework web robusto
-MongoDB 6+               → Base de datos NoSQL
-Mongoose 8.x             → ODM con validaciones avanzadas
-
-// Arquitectura
-Clean Architecture       → Separación de responsabilidades
-Repository Pattern       → Abstracción de persistencia
-Dependency Injection     → Inversión de dependencias
-
-// Seguridad (100% - 0 vulnerabilidades)
-JWT + Refresh Tokens     → Autenticación diferenciada por rol
-Helmet                   → Headers de seguridad
-CORS Configurado         → Orígenes permitidos
-Rate Limiting            → Protección DDoS
-MongoDB Sanitize         → Prevención NoSQL injection
-XSS Clean                → Protección XSS
-
-// Performance
-node-cache               → Cache en memoria (Smart TTL)
-Winston                  → Logging con rotación (30 días)
-Compression              → Respuestas comprimidas
-
-// Utilities
-ExcelJS 4.x              → Exports profesionales
-Nodemailer               → Emails transaccionales
-Node-cron                → Tareas programadas
-Cloudinary               → Gestión de imágenes
-```
-
-### Frontend - Aplicación React Moderna
-
-```javascript
-// Framework
-React 18+                → UI con Hooks y Context API
-Vite 5.x                 → Build tool ultra-rápido
-React Router DOM v6      → Enrutamiento SPA
-
-// Styling
-Tailwind CSS 3.x         → Utility-first CSS
-Lucide React             → Iconografía consistente
-Tema Oscuro Customizado  → Diseño profesional
-
-// Libraries
-Date-fns                 → Manejo de fechas
-React Day Picker         → Selector de fechas
-React Toastify           → Sistema de notificaciones
-@vercel/speed-insights   → Monitoreo de performance
-
-// Optimizations
-Lazy Loading             → Carga diferida de componentes
-Code Splitting           → División automática del bundle
-Tree Shaking             → Eliminación de código no usado
-```
-
----
-
-## 🏗️ Arquitectura
-
-### Backend - Clean Architecture
+### 🏗️ **Backend - Clean Architecture**
 
 ```
 backend/src/
-├── core/                          # CORE DEL SISTEMA
+├── core/                          # NÚCLEO DEL SISTEMA
 │   ├── domain/                    # Capa de Dominio
-│   │   ├── entities/              # Modelos de Mongoose (12 entities)
-│   │   └── repositories/          # Interfaces Repository
+│   │   ├── entities/              # 14 Modelos Mongoose
+│   │   │   ├── User.js            # Usuarios del sistema
+│   │   │   ├── Barber.js          # Perfiles de barberos
+│   │   │   ├── Appointment.js     # Sistema de citas
+│   │   │   ├── Sale.js            # Ventas y transacciones
+│   │   │   ├── Inventory.js       # Control de inventario
+│   │   │   ├── Expense.js         # Gastos operacionales
+│   │   │   ├── Socio.js           # Sistema de socios
+│   │   │   └── ...                # Servicios, Reviews, Facturas
+│   │   └── repositories/          # Interfaces Repository Pattern
 │   └── application/               # Capa de Aplicación
-│       ├── usecases/              # Lógica de negocio (15 UseCases)
+│       ├── usecases/              # 15 Casos de Uso
+│       │   ├── AuthUseCases.js    # Autenticación y autorización
+│       │   ├── SaleUseCases.js    # Lógica de ventas
+│       │   ├── InventoryUseCases.js # Control de inventario
+│       │   └── ...                # Otros casos de uso
 │       └── services/              # Servicios de dominio
 │
 ├── infrastructure/                # INFRAESTRUCTURA
-│   ├── database/                  # Implementaciones Repository
+│   ├── database/                  # Configuración MongoDB
 │   ├── external/                  # APIs externas (Cloudinary)
 │   └── cache/                     # Adaptadores de cache
 │
 ├── presentation/                  # PRESENTACIÓN
-│   ├── controllers/               # Controladores HTTP (12)
-│   ├── middleware/                # Middleware personalizado (9)
-│   └── routes/                    # Definición de rutas
+│   ├── controllers/               # 15 Controladores HTTP
+│   ├── middleware/                # 9 Middlewares personalizados
+│   └── routes/                    # Definición de rutas API
 │
 ├── services/                      # SERVICIOS DE INFRAESTRUCTURA
-│   ├── emailService.js            # Templates y envío de emails
+│   ├── emailService.js            # Templates y envío SMTP
 │   ├── cronJobService.js          # Tareas programadas
 │   └── refundService.js           # Lógica de reembolsos
 │
 └── shared/                        # COMPARTIDO
     ├── config/                    # Configuraciones centralizadas
-    ├── utils/                     # Utilidades comunes (logger, errors)
+    ├── utils/                     # Logger, errores, validaciones
     ├── constants/                 # Constantes del sistema
-    ├── container/                 # DI Container
-    └── recurring-expenses/        # Módulo unificado de gastos recurrentes
+    └── recurring-expenses/        # Módulo unificado de gastos
 ```
 
-### Frontend - Feature-based Architecture
+### 🎨 **Frontend - Feature-based Architecture**
 
 ```
 frontend/src/
 ├── features/                      # CARACTERÍSTICAS POR DOMINIO
 │   ├── admin/                     # Panel administrativo
+│   │   ├── AdminBarbers.jsx       # Estadísticas de barberos
+│   │   ├── Reports.jsx            # Reportes ejecutivos
+│   │   ├── Inventory.jsx          # Gestión de inventario
+│   │   └── UserRoleManager.jsx    # Gestión de usuarios
 │   ├── appointments/              # Sistema de citas
-│   ├── auth/                      # Autenticación
+│   ├── auth/                      # Autenticación y autorización
 │   ├── barbers/                   # Panel de barberos
 │   └── expenses/                  # Gestión de gastos
 │
@@ -219,114 +106,225 @@ frontend/src/
 ├── layouts/                       # LAYOUTS COMPARTIDOS
 │
 └── shared/                        # COMPARTIDO
-    ├── components/                # Componentes reutilizables
-    ├── contexts/                  # Context providers (AuthContext)
+    ├── components/                # Componentes UI reutilizables
+    ├── contexts/                  # Context providers (Auth, Inventory)
     ├── hooks/                     # Custom hooks (useAuth, useLocalStorage)
-    ├── services/                  # APIs y servicios
-    └── utils/                     # Utilidades
+    ├── services/                  # APIs y servicios HTTP
+    └── utils/                     # Utilidades y helpers
 ```
 
-### Patrón de Barrel Exports
+## 🛠️ Tecnologías Utilizadas
 
-```javascript
-// backend/src/barrel.js - Exports centralizados
-export { logger, AppError, asyncHandler } from './shared/utils/...'
-export { User, Barber, Sale, ... } from './core/domain/entities/...'
-export { config } from './shared/config/...'
+### **Backend - Stack Empresarial**
 
-// Uso optimizado
-import { logger, User, AppError } from '../../../barrel.js'  // Clean!
-// vs
-import { logger } from '../../../shared/utils/logger.js'     // Profundo
-import User from '../../../core/domain/entities/User.js'     // Verboso
+| Categoría | Tecnología | Versión | Propósito |
+|-----------|------------|---------|-----------|
+| **Runtime** | Node.js | 20+ | Plataforma JavaScript del servidor |
+| **Framework** | Express.js | 4.x | Framework web robusto y minimalista |
+| **Base de Datos** | MongoDB | 6+ | Base de datos NoSQL escalable |
+| **ODM** | Mongoose | 8.x | Modelado de objetos MongoDB |
+| **Autenticación** | JWT | 9.x | Tokens seguros con refresh |
+| **Validación** | Express-validator | 7.x | Validación robusta de datos |
+| **Logging** | Winston | 3.x | Sistema de logs empresarial |
+| **Cache** | node-cache | 5.x | Cache en memoria inteligente |
+| **Seguridad** | Helmet + CORS | Latest | Headers seguros y CORS |
+| **Rate Limiting** | express-rate-limit | 7.x | Protección DDoS |
+| **Sanitización** | express-mongo-sanitize | 2.x | Prevención NoSQL injection |
+| **File Upload** | Cloudinary | 2.x | Gestión de archivos en la nube |
+| **Email** | Nodemailer | 7.x | Envío de emails SMTP |
+| **Documentación** | Swagger | Latest | Documentación API automática |
+| **Testing** | Jest + Supertest | 29.x | Testing unitario e integración |
+
+### **Frontend - Stack Moderno**
+
+| Categoría | Tecnología | Versión | Propósito |
+|-----------|------------|---------|-----------|
+| **Framework** | React | 18+ | Librería UI declarativa |
+| **Build Tool** | Vite | 4.x | Build tool ultra-rápido |
+| **Routing** | React Router | 6+ | Enrutamiento SPA |
+| **Styling** | Tailwind CSS | 3.x | Framework CSS utility-first |
+| **Iconos** | Lucide React | Latest | Iconografía consistente SVG |
+| **Fechas** | date-fns | 3.x | Manipulación de fechas |
+| **Notificaciones** | React Toastify | 11.x | Sistema de notificaciones |
+| **Calendar** | React Day Picker | 8.x | Selector de fechas |
+| **Excel Export** | ExcelJS | 4.x | Generación de archivos Excel |
+| **Estado Global** | React Context | - | Gestión de estado nativa |
+| **Monitoreo** | Sentry | 10.x | Error tracking y performance |
+| **Analytics** | Vercel Analytics | Latest | Métricas de usuario |
+
+### **DevOps & Deployment**
+
+| Servicio | Propósito | Configuración |
+|----------|-----------|---------------|
+| **Vercel** | Frontend hosting | Deploy automático desde GitHub |
+| **Render** | Backend hosting | Web Service con health checks |
+| **MongoDB Atlas** | Base de datos | Cluster cloud con backups |
+| **Cloudinary** | File storage | CDN para imágenes y archivos |
+| **GitHub Actions** | CI/CD | Lint → Test → Build → Deploy |
+| **Dependabot** | Dependencias | Updates automáticos de seguridad |
+
+## 🔄 Flujo General del Sistema
+
+### 1. **Autenticación y Autorización**
+```
+Cliente/Admin → Login → JWT Token → Verificación de Rol → Acceso a Features
 ```
 
----
-## 📁 Estructura del Proyecto
-
+### 2. **Gestión de Citas**
 ```
-TheBrothersBarberShop/
-├── 📂 backend/                    # API REST
-│   ├── 📂 src/
-│   │   ├── 📂 core/              # Domain + Application (Clean Architecture)
-│   │   ├── 📂 infrastructure/    # Database + External services
-│   │   ├── 📂 presentation/      # Controllers + Routes + Middleware
-│   │   ├── 📂 services/          # Infrastructure services (email, cron)
-│   │   ├── 📂 shared/            # Config + Utils + Constants
-│   │   ├── 📂 logs/              # Winston logs (rotación 30 días)
-│   │   └── 📄 barrel.js          # Barrel exports centralizados
-│   ├── 📂 scripts/               # Scripts de datos y mantenimiento
-│   ├── 📂 docs/                  # Swagger + guías
-│   ├── 📂 backups/               # Backups automáticos MongoDB
-│   ├── 📄 package.json
-│   └── 📄 .env.example
-│
-├── 📂 frontend/                   # Aplicación React
-│   ├── 📂 src/
-│   │   ├── 📂 features/          # Características por dominio
-│   │   ├── 📂 pages/             # Páginas principales
-│   │   ├── 📂 layouts/           # Layouts compartidos
-│   │   ├── 📂 shared/            # Componentes + Hooks + Services
-│   │   ├── 📄 barrel.js          # Barrel exports frontend
-│   │   ├── 📄 main.jsx
-│   │   └── 📄 app.jsx
-│   ├── 📂 public/                # Assets estáticos
-│   ├── 📄 package.json
-│   ├── 📄 vite.config.js
-│   ├── 📄 tailwind.config.js
-│   └── 📄 .env.example
-│
-├── 📂 scripts/                    # Scripts de raíz
-│   ├── 📄 install-all.js         # Instalar backend + frontend
-│   └── 📄 setup-env.js           # Setup de .env
-│
-├── 📄 README.md                  # Este archivo
-├── 📄 dev-launcher.js            # Launcher de desarrollo
-├── 📄 package.json               # Scripts de raíz
-└── 📄 .gitignore
+Cliente → Selecciona Barbero → Elige Fecha/Hora → Confirma Cita → Email Automático
 ```
-### API Documentation
 
-Swagger disponible en: `https://thebrothersbarbershop.onrender.com/api/docs`
+### 3. **Operaciones de Venta**
+```
+Barbero → Registra Servicio/Producto → Selecciona Método de Pago → Genera Factura → Actualiza Inventario
+```
 
----
+### 4. **Reportes Financieros**
+```
+Admin → Selecciona Período → Sistema Calcula Métricas → Genera Dashboard → Export Excel
+```
 
-## 📞 Soporte y Contacto
+### 5. **Gestión de Inventario**
+```
+Sistema → Monitor Stock → Alerta Bajo Stock → Admin Restock → Snapshot Automático
+```
+### **Configuración de Seguridad**
+
+- **Rate Limiting**: 100 requests/15min general, 5 attempts/15min para auth
+- **CORS**: Configurado para dominios permitidos
+- **Headers de Seguridad**: Helmet configurado para producción
+- **Sanitización**: Protección contra NoSQL injection y XSS
+- **Validación**: Express-validator en todos los endpoints críticos
+
+## 📦 Dependencias Principales
+
+### **Backend Core**
+
+| Dependencia | Propósito |
+|-------------|-----------|
+| `express` | Framework web principal |
+| `mongoose` | ODM para MongoDB con validaciones |
+| `jsonwebtoken` | Autenticación JWT |
+| `bcryptjs` | Hash de contraseñas |
+| `helmet` | Headers de seguridad HTTP |
+| `cors` | Cross-Origin Resource Sharing |
+| `express-validator` | Validación robusta de inputs |
+| `winston` | Sistema de logging profesional |
+| `node-cache` | Cache en memoria |
+| `cloudinary` | Gestión de archivos en la nube |
+| `nodemailer` | Envío de emails SMTP |
+| `express-rate-limit` | Rate limiting y protección DDoS |
+
+### **Frontend Core**
+
+| Dependencia | Propósito |
+|-------------|-----------|
+| `react` | Librería UI principal |
+| `react-dom` | Renderizado DOM |
+| `react-router-dom` | Enrutamiento SPA |
+| `tailwindcss` | Framework CSS utility-first |
+| `lucide-react` | Iconos SVG optimizados |
+| `date-fns` | Manipulación de fechas |
+| `react-toastify` | Sistema de notificaciones |
+| `exceljs` | Generación de archivos Excel |
+| `react-day-picker` | Selector de fechas |
+| `@sentry/react` | Error tracking |
+
+## 💡 Decisiones Técnicas y Buenas Prácticas
+
+### **Arquitectura Backend**
+
+- **Clean Architecture**: Separación clara de responsabilidades en capas
+- **Domain-Driven Design**: Modelado basado en el dominio de negocio
+- **Repository Pattern**: Abstracción de la persistencia de datos
+- **Dependency Injection**: Inversión de dependencias para testing
+- **Error Handling Centralizado**: Middleware global de manejo de errores
+- **Barrel Exports**: Imports centralizados para mejor organización
+
+### **Arquitectura Frontend**
+
+- **Feature-based**: Organización por características de negocio
+- **Context API**: Gestión de estado global reactiva
+- **Custom Hooks**: Reutilización de lógica entre componentes
+- **Path Aliases**: Imports limpios con rutas absolutas
+- **Component Composition**: Componentes pequeños y reutilizables
+- **Mobile-first**: Diseño responsivo desde mobile
+
+### **Performance y Optimización**
+
+- **Code Splitting**: Chunks inteligentes en el build de Vite
+- **Cache Strategy**: TTL dinámico basado en antigüedad de datos
+- **Image Optimization**: Cloudinary para transformaciones automáticas
+- **Bundle Analysis**: Optimización del tamaño del bundle
+- **Lazy Loading**: Carga diferida de componentes pesados
+
+### **Seguridad**
+
+- **JWT Refresh Tokens**: Renovación automática de tokens
+- **Rate Limiting**: Protección contra ataques de fuerza bruta
+- **Input Sanitization**: Limpieza de datos de entrada
+- **SQL Injection Prevention**: Mongoose sanitization
+- **XSS Protection**: Headers y limpieza de contenido
+- **HTTPS Only**: Cookies seguros en producción
 
 
-### 👨‍💻 Desarrollador
+### **Estándares de Código**
 
-- **GitHub**: [@DilanSG](https://github.com/DilanSG)
-- **Proyecto**: [The Brothers Barber Shop](https://github.com/DilanSG/TheBrothersBarberShop)
-
----
+- **ESLint**: Configurado para Node.js y React
+- **Prettier**: Formateo automático de código
+- **Conventional Commits**: Standard para mensajes de commit
+- **Clean Code**: Principios SOLID y DRY
+- **Documentation**: JSDoc para funciones complejas
 
 ## 📄 Licencia
 
-**© 2024-2025 The Brothers Barber Shop - Todos los derechos reservados**
+Este proyecto es **PROPRIETARY** - Todos los derechos reservados.
 
-Este proyecto es **software propietario** desarrollado para uso empresarial. La distribución, modificación o uso comercial sin autorización expresa está prohibida.
+- ✅ **Uso permitido**: Desarrollo y operación de The Brothers Barber Shop
+- ❌ **Uso prohibido**: Redistribución, modificación para terceros, uso comercial externo
+- 📧 **Contacto**: Para licencias comerciales contactar al equipo de desarrollo
 
-### Términos de Uso
+## 👤 Autor y Equipo
 
-- ✅ **Uso Autorizado**: Clientes y socios autorizados
-- ❌ **Redistribución**: Prohibida sin permiso expreso
-- ❌ **Modificación Comercial**: Solo mediante canales oficiales
-- ✅ **Soporte**: Incluido para usuarios autorizados
+### **Desarrollador Principal**
+- **Dilan Acuña** - *Arquitectura Full-Stack y Lead Developer*
+  - GitHub: [@DilanSG](https://github.com/DilanSG)
+  - Especialidad: Clean Architecture, React, Node.js
+
+### **Equipo de Desarrollo**
+- **Karl Bustos** - *Product Owner*
+
+### **Reconocimientos**
+
+Agradecimiento especial a:
+- Comunidad de **Clean Architecture** por los patrones de diseño
+- Equipo de **Vercel** por la plataforma de deployment
+- Comunidad **React** y **Express.js** por las herramientas
+- Contribuidores de **Open Source** por las dependencias utilizadas
+
+---
+
+## Soporte y Contacto
+
+### **Soporte Técnico**
+- **Email**: garaydilan2002@gmail.com
+- **Issues**: [GitHub Issues](https://github.com/DilanSG/TheBrothersBarberShop/issues)
+- **Documentación**: [Wiki del Proyecto](https://github.com/DilanSG/TheBrothersBarberShop/wiki)
+
+### **Enlaces Importantes**
+- **Aplicación**: [The Brothers Barber Shop](https://thebrothers-barbershop.vercel.app)
+- **API Docs**: [Swagger Documentation](https://thebrothersbarbershop.onrender.com/api/docs)
+- **Status**: [System Status](https://thebrothersbarbershop.onrender.com/api/health)
 
 ---
 
 <div align="center">
 
-**🚀 The Brothers Barber Shop**  
-*Transformando la gestión de barberías profesionales*
+**Desarrollado por DilanSG**
 
-Desarrollado por [DilanSG](https://github.com/DilanSG)
+*Transformando la gestión de barberías con tecnología moderna*
 
-[![GitHub](https://img.shields.io/badge/GitHub-DilanSG-black?logo=github)](https://github.com/DilanSG)
-[![Status](https://img.shields.io/badge/Status-Producción-success)](https://github.com/DilanSG/TheBrothersBarberShop)
-[![Security](https://img.shields.io/badge/Security-100%25-brightgreen)](https://github.com/DilanSG/TheBrothersBarberShop)
-
-**[⬆ Volver arriba](#-the-brothers-barber-shop)**
+[🏠 Inicio](https://thebrothers-barbershop.vercel.app) • [Documentación](https://github.com/DilanSG/TheBrothersBarberShop/wiki) • [Reportar Bug](https://github.com/DilanSG/TheBrothersBarberShop/issues)
 
 </div>

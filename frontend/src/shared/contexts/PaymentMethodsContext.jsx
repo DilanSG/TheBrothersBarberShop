@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { CreditCard } from 'lucide-react';
 import { PAYMENT_METHODS } from '../config/paymentMethods';
 

@@ -13,22 +13,22 @@ import { logger } from '../utils/logger.js';
 // Validar variables de entorno requeridas
 export const validateEnv = () => {
   logger.debug('=== DEBUGGING VARIABLES DE ENTORNO ===');
-  logger.debug('NODE_ENV:', process.env.NODE_ENV);
-  logger.debug('PORT:', process.env.PORT);
-  logger.debug('JWT_SECRET presente:', !!process.env.JWT_SECRET);
-  logger.debug('MONGODB_URI presente:', !!process.env.MONGODB_URI);
-  logger.debug('EMAIL_USER presente:', !!process.env.EMAIL_USER);
-  logger.debug('EMAIL_PASSWORD presente:', !!process.env.EMAIL_PASSWORD);
-  logger.debug('EMAIL_SERVICE presente:', !!process.env.EMAIL_SERVICE);
-  logger.debug('EMAIL_HOST presente:', !!process.env.EMAIL_HOST);
-  logger.debug('EMAIL_PORT presente:', !!process.env.EMAIL_PORT);
-  logger.debug('EMAIL_FROM_NAME presente:', !!process.env.EMAIL_FROM_NAME);
-  logger.debug('EMAIL_FROM_ADDRESS presente:', !!process.env.EMAIL_FROM_ADDRESS);
-  logger.debug('CLOUDINARY_CLOUD_NAME presente:', !!process.env.CLOUDINARY_CLOUD_NAME);
-  logger.debug('CLOUDINARY_API_KEY presente:', !!process.env.CLOUDINARY_API_KEY);
-  logger.debug('CLOUDINARY_API_SECRET presente:', !!process.env.CLOUDINARY_API_SECRET);
-  logger.debug('FRONTEND_URL:', process.env.FRONTEND_URL);
-  logger.debug('ALLOWED_ORIGINS:', process.env.ALLOWED_ORIGINS);
+  logger.debug(`NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+  logger.debug(`PORT: ${process.env.PORT || 'not set'}`);
+  logger.debug(`JWT_SECRET presente: ${!!process.env.JWT_SECRET ? 'Si' : 'No'}`);
+  logger.debug(`MONGODB_URI presente: ${!!process.env.MONGODB_URI ? 'Si' : 'No'}`);
+  logger.debug(`EMAIL_USER presente: ${!!process.env.EMAIL_USER ? 'Si' : 'No'}`);
+  logger.debug(`EMAIL_PASSWORD presente: ${!!process.env.EMAIL_PASSWORD ? 'Si' : 'No'}`);
+  logger.debug(`EMAIL_SERVICE presente: ${!!process.env.EMAIL_SERVICE ? 'Si' : 'No'}`);
+  logger.debug(`EMAIL_HOST presente: ${!!process.env.EMAIL_HOST ? 'Si' : 'No'}`);
+  logger.debug(`EMAIL_PORT presente: ${!!process.env.EMAIL_PORT ? 'Si' : 'No'}`);
+  logger.debug(`EMAIL_FROM_NAME presente: ${!!process.env.EMAIL_FROM_NAME ? 'Si' : 'No'}`);
+  logger.debug(`EMAIL_FROM_ADDRESS presente: ${!!process.env.EMAIL_FROM_ADDRESS ? 'Si' : 'No'}`);
+  logger.debug(`CLOUDINARY_CLOUD_NAME presente: ${!!process.env.CLOUDINARY_CLOUD_NAME ? 'Si' : 'No'}`);
+  logger.debug(`CLOUDINARY_API_KEY presente: ${!!process.env.CLOUDINARY_API_KEY ? 'Si' : 'No'}`);
+  logger.debug(`CLOUDINARY_API_SECRET presente: ${!!process.env.CLOUDINARY_API_SECRET ? 'Si' : 'No'}`);
+  logger.debug(`FRONTEND_URL: ${process.env.FRONTEND_URL || 'not set'}`);
+  logger.debug(`ALLOWED_ORIGINS: ${process.env.ALLOWED_ORIGINS || 'not set'}`);
   logger.debug('=== FIN DEBUGGING VARIABLES ===');
 
   const requiredEnvVars = [
@@ -52,11 +52,7 @@ export const validateEnv = () => {
   const hasSMTP = !!(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD);
   
   if (!hasSendGrid && !hasSMTP) {
-    logger.warn('Variables de email no configuradas. Sistema funcionará sin capacidades de email.');
-  } else if (hasSendGrid) {
-    logger.info('✅ Sistema de email configurado con SendGrid');
-  } else if (hasSMTP) {
-    logger.info('✅ Sistema de email configurado con SMTP');
+    logger.warn('Email no configurado - Sistema funcionará sin notificaciones por email');
   }
 };
 

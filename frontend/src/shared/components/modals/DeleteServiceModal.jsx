@@ -1,6 +1,16 @@
 import React from 'react';
 import { AlertTriangle, X, Trash2 } from 'lucide-react';
 
+// Formatear precio
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(price || 0);
+};
+
 const DeleteServiceModal = ({ 
   isOpen, 
   onClose, 
@@ -68,7 +78,7 @@ const DeleteServiceModal = ({
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Precio:</span>
-                <span className="text-white">${service.price}</span>
+                <span className="text-white">{formatPrice(service.price)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Duración:</span>

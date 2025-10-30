@@ -24,7 +24,7 @@ class CronJobService {
     try {
       // Solo inicializar si el servicio de email está configurado
       if (!emailService.isConfigured && !emailService.getIsConfigured()) {
-        logger.warn('📧 Email no configurado - Cron jobs deshabilitados');
+        logger.warn('Email no configurado - Cron jobs deshabilitados');
         return;
       }
 
@@ -33,9 +33,9 @@ class CronJobService {
       this.setupWeeklyReports();
 
       this.isInitialized = true;
-      logger.info('📅 Todos los cron jobs inicializados correctamente');
+      logger.info('Cron jobs inicializados (recordatorios, reportes diarios/semanales)');
     } catch (error) {
-      logger.error('❌ Error inicializando cron jobs:', error);
+      logger.error('Error inicializando cron jobs:', error);
     }
   }
 
@@ -52,7 +52,6 @@ class CronJobService {
 
     this.jobs.set('appointmentReminders', reminderJob);
     reminderJob.start();
-    logger.info('📅 Job de recordatorios de citas configurado (cada hora)');
   }
 
   /**
@@ -81,7 +80,7 @@ class CronJobService {
       .populate('barber', 'name')
       .populate('services.service', 'name price duration');
 
-      logger.info(`📅 Procesando ${appointments.length} recordatorios para ${tomorrow.toDateString()}`);
+      logger.info(`Procesando ${appointments.length} recordatorios para ${tomorrow.toDateString()}`);
 
       let sentCount = 0;
       for (const appointment of appointments) {
@@ -93,13 +92,13 @@ class CronJobService {
             await this.sleep(500);
           }
         } catch (error) {
-          logger.error(`❌ Error enviando recordatorio para cita ${appointment._id}:`, error.message);
+          logger.error(`Error enviando recordatorio para cita ${appointment._id}:`, error.message);
         }
       }
 
-      logger.info(`✅ Recordatorios enviados: ${sentCount}/${appointments.length}`);
+      logger.info(`Recordatorios enviados: ${sentCount}/${appointments.length}`);
     } catch (error) {
-      logger.error('❌ Error en sendAppointmentReminders:', error);
+      logger.error('Error en sendAppointmentReminders:', error);
     }
   }
 
@@ -116,7 +115,6 @@ class CronJobService {
 
     this.jobs.set('dailyReports', dailyReportJob);
     dailyReportJob.start();
-    logger.info('📊 Job de resúmenes diarios configurado (8 PM)');
   }
 
   /**
@@ -136,7 +134,7 @@ class CronJobService {
         'user.email': { $exists: true, $ne: null }
       }).populate('user', 'name email');
 
-      logger.info(`📊 Enviando resúmenes diarios a ${barbers.length} barberos`);
+      logger.info(`Enviando resúmenes diarios a ${barbers.length} barberos`);
 
       for (const barber of barbers) {
         try {
@@ -157,13 +155,13 @@ class CronJobService {
             await this.sleep(300);
           }
         } catch (error) {
-          logger.error(`❌ Error enviando resumen a barbero ${barber.user?.name}:`, error.message);
+          logger.error(`Error enviando resumen a barbero ${barber.user?.name}:`, error.message);
         }
       }
 
-      logger.info('✅ Resúmenes diarios enviados completamente');
+      logger.info('Resúmenes diarios enviados completamente');
     } catch (error) {
-      logger.error('❌ Error en sendDailyReports:', error);
+      logger.error('Error en sendDailyReports:', error);
     }
   }
 
@@ -180,7 +178,6 @@ class CronJobService {
 
     this.jobs.set('weeklyReports', weeklyReportJob);
     weeklyReportJob.start();
-    logger.info('📈 Job de resúmenes semanales configurado (Lunes 9 AM)');
   }
 
   /**
@@ -205,7 +202,7 @@ class CronJobService {
         email: { $exists: true, $ne: null }
       }).select('name email');
 
-      logger.info(`📈 Enviando resúmenes semanales a ${admins.length} administradores`);
+      logger.info(`Enviando resúmenes semanales a ${admins.length} administradores`);
 
       // Calcular estadísticas de la semana
       const stats = await this.getWeeklyStats(lastMonday, lastSunday);
@@ -217,13 +214,13 @@ class CronJobService {
             await this.sleep(300);
           }
         } catch (error) {
-          logger.error(`❌ Error enviando resumen a admin ${admin.name}:`, error.message);
+          logger.error(`Error enviando resumen a admin ${admin.name}:`, error.message);
         }
       }
 
-      logger.info('✅ Resúmenes semanales enviados completamente');
+      logger.info('Resúmenes semanales enviados completamente');
     } catch (error) {
-      logger.error('❌ Error en sendWeeklyReports:', error);
+      logger.error('Error en sendWeeklyReports:', error);
     }
   }
 
@@ -330,12 +327,12 @@ class CronJobService {
       for (const [name, job] of this.jobs) {
         if (job && job.running) {
           job.stop();
-          logger.info(`🛑 Job ${name} detenido`);
+          logger.info(`Job ${name} detenido`);
         }
       }
-      logger.info('✅ Todos los cron jobs han sido detenidos correctamente');
+      logger.info('Todos los cron jobs han sido detenidos correctamente');
     } catch (error) {
-      logger.error('❌ Error deteniendo cron jobs:', error);
+      logger.error('Error deteniendo cron jobs:', error);
     }
   }
 

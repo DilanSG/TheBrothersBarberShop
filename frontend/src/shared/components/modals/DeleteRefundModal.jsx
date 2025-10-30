@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Trash2, RotateCcw, AlertTriangle, X, Package, Scissors } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';

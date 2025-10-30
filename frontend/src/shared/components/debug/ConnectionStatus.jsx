@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Wifi, WifiOff, Info, CheckCircle, XCircle } from 'lucide-react';
 import config from '../config/api.js';
 

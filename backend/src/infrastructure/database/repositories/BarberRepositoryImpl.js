@@ -337,6 +337,7 @@ class BarberRepositoryImpl extends IBarberRepository {
       const [barbers, total] = await Promise.all([
         Barber.find(filters)
           .populate('user', 'name email phone profilePicture role')
+          .populate('services', 'name price duration description category isActive')
           .sort(sort)
           .skip(skip)
           .limit(limit)

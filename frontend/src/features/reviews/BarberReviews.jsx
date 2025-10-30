@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Star, TrendingUp } from 'lucide-react';
 import ReviewCard from './ReviewCard';
 import { reviewService } from '@services/api';

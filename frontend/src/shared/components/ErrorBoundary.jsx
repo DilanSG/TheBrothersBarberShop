@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import errorLogger from '../utils/errorLogger';
 
 /**

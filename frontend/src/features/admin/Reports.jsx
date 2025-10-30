@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Plus, 
   DollarSign, 
@@ -48,37 +48,34 @@ const frequencies = [
 
 /**
  * Calcula los gastos diarios correctos considerando gastos recurrentes y únicos
- * @param {Array} expenses - Array de gastos (recurrentes y únicos)
+ * @param {Array} expenses - Array de gastos únicos del backend
+ * @param {Array} recurringExpenses - Array de gastos recurrentes locales  
  * @param {string} startDate - Fecha de inicio
  * @param {string} endDate - Fecha de fin
  * @returns {Object} - { dailyRate, monthlyProjection }
  */
-const calculateCorrectDailyExpenses = (expenses, startDate, endDate) => {
-  if (!expenses || expenses.length === 0) {
-    return { dailyRate: 0, monthlyProjection: 0 };
-  }
-
-  // Separar gastos recurrentes y únicos
-  const recurringExpenses = expenses.filter(exp => 
-    exp.type === 'recurring' || exp.recurrence || exp.recurringConfig
-  );
-  const oneTimeExpenses = expenses.filter(exp => 
-    exp.type !== 'recurring' && !exp.recurrence && !exp.recurringConfig
-  );
-
-  // Calcular total de gastos únicos
+const calculateCorrectDailyExpenses = (expenses, recurringExpenses, startDate, endDate) => {
+  // Calcular total de gastos únicos del período
+  const oneTimeExpenses = expenses || [];
   const oneTimeTotal = oneTimeExpenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
 
-  // Calcular total de gastos recurrentes usando el calculador
-  const recurringMonthlyTotal = recurringExpenses.reduce((sum, exp) => {
-    try {
-      const monthlyAmount = RecurringExpenseCalculator.calculateMonthlyAmount(exp);
-      return sum + monthlyAmount;
-    } catch (error) {
-      console.warn('Error calculando gasto recurrente:', exp.description, error);
-      return sum;
-    }
-  }, 0);
+  // ✅ USAR GASTOS RECURRENTES LOCALES SIEMPRE
+  let recurringMonthlyTotal = 0;
+  if (recurringExpenses && recurringExpenses.length > 0) {
+    const activeRecurringExpenses = recurringExpenses.filter(exp => (exp._isActive !== undefined
+      ? exp._isActive
+      : (exp.recurrence?.isActive ?? exp.recurringConfig?.isActive ?? exp.isActive ?? true)));
+    
+    recurringMonthlyTotal = activeRecurringExpenses.reduce((sum, exp) => {
+      try {
+        const monthlyAmount = RecurringExpenseCalculator.calculateMonthlyAmount(exp);
+        return sum + monthlyAmount;
+      } catch (error) {
+        console.warn('Error calculando gasto recurrente:', exp.description, error);
+        return sum;
+      }
+    }, 0);
+  }
 
   // Calcular días en el periodo
   const start = new Date(startDate);
@@ -169,7 +166,7 @@ const Reports = () => {
   };
 
   // Adaptar preset a claves legacy para el componente visual del filtro
-  const uiDateRange = React.useMemo(() => ({
+  const uiDateRange = useMemo(() => ({
     ...dateRange,
     preset: dateRange?.preset === 'allData' ? 'all' : dateRange?.preset
   }), [dateRange]);
@@ -196,7 +193,7 @@ const Reports = () => {
   } = useRecurringExpenses();
 
   // 🚨 Sanitization: Crear una versión saneada de los gastos recurrentes para evitar crashes.
-  const sanitizedRecurringExpenses = React.useMemo(() => {
+  const sanitizedRecurringExpenses = useMemo(() => {
     if (!Array.isArray(recurringExpenses)) return [];
     
     const originalCount = recurringExpenses.length;
@@ -217,7 +214,7 @@ const Reports = () => {
   }, [recurringExpenses]);
 
   // Fallback: si el hook no pudo inferir (porque /expenses/summary devolvió 400) usar summary ya cargado en financialData
-  const effectiveInferredRecurringTotal = React.useMemo(() => {
+  const effectiveInferredRecurringTotal = useMemo(() => {
     return (
       inferredRecurringTotal
       || financialData?.summary?.recurringExpensesTotal
@@ -234,7 +231,7 @@ const Reports = () => {
   // Las categorías y métodos de pago se obtienen del hook useFinancialReports (ya desestructurados arriba)
   // Si por alguna razón vienen undefined, garantizamos arrays vacíos para evitar errores aguas abajo
   // Derivar categorías de gastos de los datos ya cargados (financialData.expenseBreakdown) para evitar dependencia a variable eliminada
-  const safeExpenseCategories = React.useMemo(() => {
+  const safeExpenseCategories = useMemo(() => {
     const breakdown = financialData?.expenseBreakdown || financialData?.expenseCategories || [];
     if (!Array.isArray(breakdown)) return [];
     // Normalizar estructura: { value, label, total } con traducciones
@@ -249,7 +246,7 @@ const Reports = () => {
   }, [financialData]);
   
   // Normalizar métodos de pago a partir del summary (fuente primaria) o lista previa
-  const safePaymentMethods = React.useMemo(() => {
+  const safePaymentMethods = useMemo(() => {
     const pmObj = financialData?.summary?.paymentMethods || {};
     // Si tenemos un objeto con montos, convertirlo a array con value/label traducidos
     const fromSummary = Object.keys(pmObj).map(k => ({ 
@@ -261,7 +258,7 @@ const Reports = () => {
   }, [financialData]);
 
   // Función para refrescar todos los datos
-  const refreshAllData = React.useCallback(() => {
+  const refreshAllData = useCallback(() => {
     refreshData();
   }, [refreshData]);
 
@@ -319,19 +316,9 @@ const Reports = () => {
   };
 
   const getRecurringExpensesStats = () => {
-    // ✅ LÓGICA IMPORTANTE: Los gastos recurrentes solo se contabilizan si hay ventas
-    const hasRevenue = (financialData?.summary?.totalRevenue || 0) > 0;
+    // ✅ GASTOS RECURRENTES EXISTEN INDEPENDIENTEMENTE DE LAS VENTAS
+    // Solo verificamos si hay gastos recurrentes definidos
     
-    if (!hasRevenue) {
-      // Si no hay ventas en el período, los gastos recurrentes son $0
-      return { 
-        count: 0, 
-        total: 0, 
-        inferred: false,
-        message: 'Sin ventas = sin gastos recurrentes'
-      };
-    }
-
     // ✅ FORZAR CÁLCULO LOCAL SIEMPRE - No usar backend porque envía valores diarios
     if (!sanitizedRecurringExpenses || sanitizedRecurringExpenses.length === 0) {
       // Sin gastos recurrentes, el total es 0
@@ -348,7 +335,7 @@ const Reports = () => {
       : (exp.recurrence?.isActive ?? exp.recurringConfig?.isActive ?? exp.isActive ?? true)));
 
     // ✅ USAR LA MISMA LÓGICA QUE EL MODAL: siempre cálculo mensual
-    const total = activeRecurringExpenses.reduce((sum, exp) => {
+    const monthlyTotal = activeRecurringExpenses.reduce((sum, exp) => {
       try {
         // Usar SIEMPRE el cálculo mensual como en el modal
         return sum + RecurringExpenseCalculator.calculateMonthlyAmount(exp);
@@ -362,10 +349,34 @@ const Reports = () => {
     const isGeneralFilter = dateRange?.preset === 'all' || dateRange?.preset === 'allData' || !dateRange?.preset;
     let daysWithData = financialData?.summary?.daysWithData || 0;
     
+    // Para filtros específicos (día, semana), calcular la porción correspondiente
+    if (!isGeneralFilter) {
+      // ✅ FILTRO ESPECÍFICO: Calcular porción del período filtrado
+      const start = new Date(dateRange.startDate);
+      const end = new Date(dateRange.endDate);
+      const daysInPeriod = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+      
+      // Calcular porción diaria y multiplicar por días del período
+      const dailyPortion = monthlyTotal / 30; // 30 días promedio por mes
+      const periodTotal = dailyPortion * daysInPeriod;
+      
+      return {
+        count: activeRecurringExpenses.length,
+        total: periodTotal,
+        inferred: false,
+        calculation: `period-${daysInPeriod}days`,
+        breakdown: {
+          monthlyAmount: monthlyTotal,
+          dailyPortion: dailyPortion,
+          daysInPeriod: daysInPeriod
+        }
+      };
+    }
+    
     // ✅ LÓGICA CORRECTA: Calcular meses desde la fecha más antigua con datos
     let monthsWithData = 1; // Mínimo 1 mes por defecto
     
-    if (isGeneralFilter && daysWithData > 30) {
+    if (daysWithData > 30) {
       // Intentar obtener fecha más antigua del backend
       const oldestDate = financialData?.summary?.oldestDataDate || financialData?.oldestDataDate;
       
@@ -383,7 +394,7 @@ const Reports = () => {
       }
     }
     
-    if (isGeneralFilter && daysWithData > 30) {
+    if (daysWithData > 30) {
       // 📊 FILTRO GENERAL: Multiplicar por cantidad de meses transcurridos
       let monthsToUse = monthsWithData; // Por defecto usar monthsWithData
       
@@ -396,7 +407,7 @@ const Reports = () => {
         monthsToUse = Math.max(1, monthsDiff); // ✅ USAR monthsDiff sin el +1
       }
       
-      const totalForPeriod = total * monthsToUse;
+      const totalForPeriod = monthlyTotal * monthsToUse;
       
       return {
         count: activeRecurringExpenses.length,
@@ -404,7 +415,7 @@ const Reports = () => {
         inferred: false,
         calculation: `general-${monthsToUse}months`,
         breakdown: {
-          monthlyAmount: total,
+          monthlyAmount: monthlyTotal,
           monthsUsed: monthsToUse,
           daysWithData
         }
@@ -414,7 +425,7 @@ const Reports = () => {
       
       return {
         count: activeRecurringExpenses.length,
-        total: total,
+        total: monthlyTotal,
         inferred: false,
         calculation: 'monthly-specific'
       };
@@ -423,18 +434,8 @@ const Reports = () => {
 
   // ✅ NUEVA FUNCIÓN: Para la card de gastos (suma exacta mensual sin multiplicación)
   const getRecurringExpensesMonthlyStats = () => {
-    // ✅ LÓGICA IMPORTANTE: Los gastos recurrentes solo se contabilizan si hay ventas
-    const hasRevenue = (financialData?.summary?.totalRevenue || 0) > 0;
+    // ✅ GASTOS RECURRENTES EXISTEN INDEPENDIENTEMENTE DE LAS VENTAS
     
-    if (!hasRevenue) {
-      return { 
-        count: 0, 
-        total: 0, 
-        inferred: false,
-        message: 'Sin ventas = sin gastos recurrentes'
-      };
-    }
-
     if (!sanitizedRecurringExpenses || sanitizedRecurringExpenses.length === 0) {
       return { 
         count: 0, 
@@ -469,20 +470,15 @@ const Reports = () => {
   const getTotalExpensesStats = () => {
     // Aplicar la lógica correcta:
     // 1. Gastos one-time del período filtrado
-    // 2. Gastos recurrentes SOLO si hubo ventas en el período
+    // 2. Gastos recurrentes SIEMPRE (independientemente de las ventas)
     
     const oneTimeStats = getOneTimeExpensesStats();
     const hasRevenue = (financialData?.summary?.totalRevenue || 0) > 0;
     
-    let recurringTotal = 0;
-    let recurringCount = 0;
-    
-    if (hasRevenue) {
-      // Solo incluir gastos recurrentes si hubo ventas en el período
-      const recurringStats = getRecurringExpensesStats();
-      recurringTotal = recurringStats.total;
-      recurringCount = recurringStats.count;
-    }
+    // ✅ SIEMPRE incluir gastos recurrentes - existen independientemente de las ventas
+    const recurringStats = getRecurringExpensesStats();
+    const recurringTotal = recurringStats.total;
+    const recurringCount = recurringStats.count;
     
     return {
       count: oneTimeStats.count + recurringCount,
@@ -491,9 +487,7 @@ const Reports = () => {
         oneTime: oneTimeStats.total,
         recurring: recurringTotal,
         hasRevenue,
-        message: hasRevenue 
-          ? 'Gastos normales + recurrentes (hay ventas)' 
-          : 'Solo gastos normales (sin ventas = sin recurrentes)'
+        message: 'Gastos normales + recurrentes (siempre incluidos)'
       }
     };
   };
@@ -506,14 +500,50 @@ const Reports = () => {
   };
 
   // ===== Nuevos datos para gráficos de barras (Análisis) =====
-  const categoryChartData = React.useMemo(() => {
+  const categoryChartData = useMemo(() => {
     const expenses = financialData?.expenses || [];
-    if (expenses.length === 0) return [];
+    
+    // ✅ INCLUIR GASTOS RECURRENTES: Combinar gastos únicos + recurrentes
     const totals = expenses.reduce((acc, e) => {
       const key = e.category || 'other';
       acc[key] = (acc[key] || 0) + (e.amount || 0);
       return acc;
     }, {});
+    
+    // ✅ AGREGAR GASTOS RECURRENTES SI EXISTEN
+    if (sanitizedRecurringExpenses && sanitizedRecurringExpenses.length > 0) {
+      const activeRecurringExpenses = sanitizedRecurringExpenses.filter(exp => (exp._isActive !== undefined
+        ? exp._isActive
+        : (exp.recurrence?.isActive ?? exp.recurringConfig?.isActive ?? exp.isActive ?? true)));
+      
+      activeRecurringExpenses.forEach(exp => {
+        try {
+          // Calcular monto para el período filtrado
+          const monthlyAmount = RecurringExpenseCalculator.calculateMonthlyAmount(exp);
+          
+          // Para filtros específicos, calcular porción del período
+          const isGeneralFilter = dateRange?.preset === 'all' || dateRange?.preset === 'allData' || !dateRange?.preset;
+          let amountForPeriod = monthlyAmount;
+          
+          if (!isGeneralFilter && dateRange?.startDate && dateRange?.endDate) {
+            const start = new Date(dateRange.startDate);
+            const end = new Date(dateRange.endDate);
+            const daysInPeriod = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            const dailyPortion = monthlyAmount / 30; // 30 días promedio por mes
+            amountForPeriod = dailyPortion * daysInPeriod;
+          }
+          
+          const category = exp.category || 'other';
+          totals[category] = (totals[category] || 0) + amountForPeriod;
+        } catch (error) {
+          console.warn('Error calculando gasto recurrente para gráfico:', exp.description, error);
+        }
+      });
+    }
+    
+    // Si no hay datos, retornar array vacío
+    if (Object.keys(totals).length === 0) return [];
+    
     return Object.entries(totals)
       .map(([key, value]) => ({
         key,
@@ -522,9 +552,9 @@ const Reports = () => {
       }))
       .sort((a,b) => b.value - a.value)
       .slice(0, 10);
-  }, [financialData?.expenses]);
+  }, [financialData?.expenses, sanitizedRecurringExpenses, dateRange]);
 
-  const paymentMethodChartData = React.useMemo(() => {
+  const paymentMethodChartData = useMemo(() => {
     // Usar ingresos (summary.paymentMethods) si están disponibles; fallback a conteo en gastos
     const pmSummary = financialData?.summary?.paymentMethods || {};
     const entries = Object.entries(pmSummary).filter(([, v]) => v > 0);
@@ -549,7 +579,7 @@ const Reports = () => {
     })).sort((a,b) => b.value - a.value);
   }, [financialData]); // ✅ Removida dependencia de safePaymentMethods
 
-  const revenueTypeChartData = React.useMemo(() => {
+  const revenueTypeChartData = useMemo(() => {
     const summary = financialData?.summary || {};
     const data = [
       { key: 'services', label: 'Cortes', value: summary.serviceRevenue || 0 },
@@ -560,7 +590,7 @@ const Reports = () => {
   }, [financialData]);
 
   // Semana actual (Lunes-Domingo) usando dailyData del hook
-  const weeklyRevenueData = React.useMemo(() => {
+  const weeklyRevenueData = useMemo(() => {
     const daily = financialData?.dailyData || [];
     const today = new Date();
     // Obtener lunes de la semana actual (considerando lunes = 1)
@@ -593,7 +623,7 @@ const Reports = () => {
     });
   }, [financialData]);
 
-  const weeklyTotals = React.useMemo(() => {
+  const weeklyTotals = useMemo(() => {
     const total = weeklyRevenueData.reduce((s, d) => s + d.value, 0);
     const avg = weeklyRevenueData.length > 0 ? total / weeklyRevenueData.length : 0;
     return { total, avg };
@@ -1164,7 +1194,12 @@ const Reports = () => {
                 <p className="text-lg font-semibold text-red-400">
                   {(() => {
                     // ✅ CÁLCULO CORRECTO: Considerar gastos recurrentes por su frecuencia real
-                    const calculation = calculateCorrectDailyExpenses(financialData?.expenses || [], dateRange.startDate, dateRange.endDate);
+                    const calculation = calculateCorrectDailyExpenses(
+                      financialData?.expenses || [], 
+                      sanitizedRecurringExpenses || [], 
+                      dateRange.startDate, 
+                      dateRange.endDate
+                    );
                     return formatCurrency(calculation.dailyRate);
                   })()}
                 </p>
@@ -1255,7 +1290,12 @@ const Reports = () => {
                 <p className="text-yellow-300 font-medium mb-1">Proyección</p>
                 <p className="text-gray-300">Gasto mensual estimado: {(() => {
                   // ✅ CÁLCULO CORRECTO: Proyección mensual basada en frecuencias reales
-                  const calculation = calculateCorrectDailyExpenses(financialData?.expenses || [], dateRange.startDate, dateRange.endDate);
+                  const calculation = calculateCorrectDailyExpenses(
+                    financialData?.expenses || [], 
+                    sanitizedRecurringExpenses || [], 
+                    dateRange.startDate, 
+                    dateRange.endDate
+                  );
                   return formatCurrency(calculation.monthlyProjection);
                 })()}</p>
               </div>
@@ -1401,7 +1441,7 @@ const Reports = () => {
         <RevenueTypesModal
           isOpen={showRevenueTypesModal}
           onClose={() => setShowRevenueTypesModal(false)}
-          revenueData={financialData}
+          revenueData={financialData?.revenueBreakdown}
           dateRange={dateRange}
           formatCurrency={formatCurrency}
         />

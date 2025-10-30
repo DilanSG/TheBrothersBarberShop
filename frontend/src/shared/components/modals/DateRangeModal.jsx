@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { X, Calendar, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import ReactCalendar from 'react-calendar';
 import GradientButton from '../ui/GradientButton';

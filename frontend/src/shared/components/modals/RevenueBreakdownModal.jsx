@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, Scissors, ShoppingBag, Calendar, DollarSign, Edit3, Trash2 } from 'lucide-react';
 import { usePaymentMethodsContext } from '../../contexts/PaymentMethodsContext';
 import { useNotification } from '../../contexts/NotificationContext';

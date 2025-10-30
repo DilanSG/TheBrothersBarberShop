@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Save, AlertCircle, DollarSign, Clock, FileText } from 'lucide-react';
 
 const EditServiceModal = ({ 

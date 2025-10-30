@@ -159,6 +159,20 @@ export const disconnectPrinter = async () => {
   }
 };
 
+/**
+ * Obtener información de reembolsos de un carrito
+ * @param {string} cartId - IDs de las ventas del carrito separados por coma
+ * @returns {Promise<Object>}
+ */
+export const getCartRefundInfo = async (cartId) => {
+  try {
+    const response = await api.get(`/invoices/cart/${cartId}/refunds`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
 const invoiceService = {
   generateInvoice,
   printInvoice,
@@ -170,7 +184,8 @@ const invoiceService = {
   testPrinter,
   getPrinterStatus,
   connectPrinter,
-  disconnectPrinter
+  disconnectPrinter,
+  getCartRefundInfo
 };
 
 export default invoiceService;

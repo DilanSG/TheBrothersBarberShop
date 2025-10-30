@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useUI } from '../../utils/UIContext';
 import { colors, effects, layout } from './styles';
 
@@ -91,7 +91,7 @@ export function Avatar({
     xl: 'w-16 h-16'
   };
 
-  const [imageError, setImageError] = React.useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const handleError = () => {
     setImageError(true);

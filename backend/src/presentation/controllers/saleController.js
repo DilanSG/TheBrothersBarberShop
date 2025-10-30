@@ -45,11 +45,28 @@ export const createWalkInSale = asyncHandler(async (req, res) => {
 // @route   POST /api/v1/sales/cart
 // @access  Privado/Barbero+
 export const createCartSale = asyncHandler(async (req, res) => {
-  logger.info('Creando venta desde carrito', { 
+  logger.info('🛒 Creando venta desde carrito', { 
     userId: req.user.id, 
     role: req.user.role,
-    itemsCount: req.body.items?.length || 0
+    itemsCount: req.body.cart?.length || 0
   });
+  
+  // DIAGNÓSTICO: Ver qué está recibiendo el endpoint
+  logger.info('📦 PAYLOAD RECIBIDO:');
+  logger.info(`  - hasCart: ${!!req.body.cart}`);
+  logger.info(`  - cartLength: ${req.body.cart?.length || 0}`);
+  logger.info(`  - hasBarberId: ${!!req.body.barberId}`);
+  logger.info(`  - hasNotes: ${!!req.body.notes}`);
+  logger.info(`  - hasClientData: ${!!req.body.clientData}`);
+  logger.info(`  - clientDataType: ${typeof req.body.clientData}`);
+  
+  if (req.body.clientData) {
+    logger.info('📋 CLIENT DATA RECIBIDO:');
+    logger.info(`  - Keys: ${Object.keys(req.body.clientData).join(', ')}`);
+    logger.info(`  - JSON: ${JSON.stringify(req.body.clientData, null, 2)}`);
+  } else {
+    logger.warn('⚠️ CLIENT DATA ES NULL/UNDEFINED');
+  }
   
   const result = await SaleUseCases.createCartSale(req.body);
   
@@ -136,6 +153,49 @@ export const getAllSales = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Obtener facturas de carrito (TODAS las ventas desde carrito, con o sin clientData)
+// @route   GET /api/v1/sales/cart-invoices
+// @access  Privado/Barbero+ (barberos ven sus facturas, admins ven todas)
+export const getCartInvoices = asyncHandler(async (req, res) => {
+  logger.info('📋 Obteniendo TODAS las ventas de carrito', {
+    userId: req.user.id,
+    role: req.user.role
+  });
+
+  // Si es barbero, obtener su barberId
+  let barberId = null;
+  if (req.user.role === 'barber') {
+    const barber = await SaleUseCases.findBarberByIdOrUserId(req.user.id);
+    barberId = barber._id;
+    logger.info('👤 Barbero autenticado', { barberId });
+  }
+
+  // Llamar al método que filtra por notas de carrito
+  const cartInvoices = await SaleUseCases.getCartInvoices(barberId);
+
+  logger.info(`✅ Ventas de carrito encontradas: ${cartInvoices.length}`, {
+    role: req.user.role,
+    barberId: barberId || 'admin',
+    ventasConClientData: cartInvoices.filter(s => s.clientData).length,
+    ventasPOS: cartInvoices.filter(s => !s.clientData).length,
+    sampleData: cartInvoices.length > 0 ? {
+      firstInvoice: {
+        id: cartInvoices[0]._id,
+        clientName: cartInvoices[0].clientData 
+          ? `${cartInvoices[0].clientData?.firstName} ${cartInvoices[0].clientData?.lastName}`
+          : 'Venta POS',
+        date: cartInvoices[0].saleDate
+      }
+    } : 'Sin ventas de carrito'
+  });
+
+  res.json({
+    success: true,
+    count: cartInvoices.length,
+    data: cartInvoices
+  });
+});
+
 // @desc    Obtener venta por ID
 // @route   GET /api/v1/sales/:id
 // @access  Privado/Admin
@@ -168,11 +228,15 @@ export const getBarberSalesStats = asyncHandler(async (req, res) => {
   const { barberId } = req.params;
   const { date, startDate, endDate } = req.query;
   
+  logger.info(`🔍 [Controller] getBarberSalesStats llamado - barberId: ${barberId}, filters:`, { date, startDate, endDate });
+  
   const stats = await SaleUseCases.getBarberSalesStats(barberId, {
     date,
     startDate,
     endDate
   });
+  
+  logger.info(`🔍 [Controller] Stats recibidas del UseCase:`, { stats, isNull: stats === null, type: typeof stats });
   
   res.json({
     success: true,

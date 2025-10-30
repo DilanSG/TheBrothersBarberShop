@@ -50,7 +50,7 @@ const ServicesBreakdownModal = ({ isOpen, onClose, revenueData, dashboardData, d
   };
 
   // Bloquear scroll del body
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
       return () => { document.body.style.overflow = 'unset'; };

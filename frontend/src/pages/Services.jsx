@@ -14,6 +14,17 @@ import UserAvatar from '@components/ui/UserAvatar';
 import { useNavigationCache } from '@hooks/useNavigationCache';
 
 import logger from '@utils/logger';
+
+// Formatear precio
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(price || 0);
+};
+
 function ServicesPage() {
   const { user } = useAuth();
   const [services, setServices] = useState([]);
@@ -555,7 +566,7 @@ function ServicesPage() {
                             <div className="p-1.5 bg-green-500/20 rounded-lg border border-green-500/30 shadow-sm shadow-green-500/20">
                               <DollarSign className="w-3 h-3 text-green-400" />
                             </div>
-                            <span className="text-green-400 font-semibold">${service.price}</span>
+                            <span className="text-green-400 font-semibold">{formatPrice(service.price)}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="p-1.5 bg-blue-500/20 rounded-lg border border-blue-500/30 shadow-sm shadow-blue-500/20">

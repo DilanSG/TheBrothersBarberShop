@@ -15,16 +15,19 @@ import {
   CreditCard,
   Banknote,
   Smartphone,
-  RefreshCw
+  RefreshCw,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '@contexts/AuthContext';
 import { useNotification } from '@contexts/NotificationContext';
 import { PageContainer } from '@components/layout/PageContainer';
 import GradientText from '@components/ui/GradientText';
 import RefundSaleModal from '@components/common/RefundSaleModal';
+import InvoiceDataModal from '@components/modals/InvoiceDataModal';
 import { inventoryService, salesService, serviceService, barberService } from '@services/api';
 import { useInventoryRefresh } from '@contexts/InventoryContext';
 import { usePaymentMethodsContext } from '@contexts/PaymentMethodsContext';
+import { useNavigate } from 'react-router-dom';
 import { 
   SALE_TYPES, 
   SALE_TYPE_LABELS,
@@ -74,6 +77,7 @@ const BarberSales = () => {
   const { user } = useAuth();
   const { showSuccess, showError, showInfo } = useNotification();
   const { notifySale } = useInventoryRefresh();
+  const navigate = useNavigate();
 
   // Estados principales
   const [products, setProducts] = useState([]);
@@ -84,7 +88,8 @@ const BarberSales = () => {
 
   // Estados del carrito
   const [cart, setCart] = useState([]);
-  const [saleType, setSaleType] = useState(SALE_TYPES.PRODUCT); // Usar constante estandarizada
+  // Datos de factura a nivel de carrito (opcional)
+  const [cartClientData, setCartClientData] = useState(null)
   const [selectedService, setSelectedService] = useState(null);
   const [servicePrice, setServicePrice] = useState('');
 
@@ -99,6 +104,9 @@ const BarberSales = () => {
 
   // Estados para métodos de pago
   const [paymentMethodModal, setPaymentMethodModal] = useState({ show: false, item: null });
+
+  // Estados para datos de factura
+  const [invoiceDataModal, setInvoiceDataModal] = useState({ show: false, item: null });
 
   // Estados para selección de barbero (solo para admins)
   const [selectedBarberId, setSelectedBarberId] = useState(null);
@@ -119,10 +127,10 @@ const BarberSales = () => {
     // Si el usuario es admin, usar el barbero seleccionado
     if (user.role === 'admin') {
       if (selectedBarberId) {
-        logger.debug('👤 Usuario admin usando barbero seleccionado:', selectedBarberId);
+        logger.debug('Usuario admin usando barbero seleccionado:', selectedBarberId);
         return selectedBarberId;
       } else {
-        logger.debug('⚠️ Usuario admin sin barbero seleccionado');
+        logger.debug('Usuario admin sin barbero seleccionado');
         return null;
       }
     }
@@ -131,15 +139,14 @@ const BarberSales = () => {
     if (user.role === 'barber') {
       // Primero intentar con barberId si existe
       if (user.barberId) {
-        logger.debug('✅ Usando user.barberId:', user.barberId);
+        logger.debug('Usando user.barberId:', user.barberId);
         return user.barberId;
       }
       // Si no, usar el _id del usuario (necesitaremos buscar el perfil de barbero)
-      logger.debug('⚠️ No hay barberId, usando user._id:', user._id);
+      logger.debug('No hay barberId, usando user._id:', user._id);
       return user._id;
     }
-    
-    logger.debug('❌ Tipo de usuario no reconocido');
+    logger.debug('Tipo de usuario no reconocido');
     return null;
   };
 
@@ -156,20 +163,20 @@ const BarberSales = () => {
   const loadBarbers = async () => {
     setLoadingBarbers(true);
     try {
-      logger.debug('👥 Cargando lista de barberos...');
+      logger.debug('Cargando lista de barberos...');
       const response = await barberService.getAllBarbers();
-      logger.debug('👥 Respuesta de barberos:', response);
-      
+      logger.debug('Respuesta de barberos:', response);
+
       if (response.success && response.data) {
         setAvailableBarbers(response.data);
-        logger.debug('👥 Barberos disponibles:', response.data.length);
-        
+        logger.debug('Barberos disponibles:', response.data.length);
+
         // Seleccionar el primer barbero por defecto (con validación)
         if (response.data.length > 0 && !selectedBarberId) {
           const firstBarber = response.data[0];
           if (firstBarber && firstBarber.user?._id) {
             setSelectedBarberId(firstBarber.user._id);
-            logger.debug('👥 Barbero seleccionado por defecto:', firstBarber.user._id, firstBarber.user.name);
+            logger.debug('Barbero seleccionado por defecto:', firstBarber.user._id, firstBarber.user.name);
           }
         }
         
@@ -177,7 +184,7 @@ const BarberSales = () => {
         if (selectedBarberId) {
           const selectedBarberExists = response.data.some(barber => barber.user?._id === selectedBarberId);
           if (!selectedBarberExists) {
-            logger.warn('⚠️ Barbero seleccionado no existe en la lista, seleccionando el primero disponible');
+            logger.warn('Barbero seleccionado no existe en la lista, seleccionando el primero disponible');
             if (response.data.length > 0 && response.data[0].user?._id) {
               setSelectedBarberId(response.data[0].user._id);
             } else {
@@ -187,7 +194,7 @@ const BarberSales = () => {
         }
       }
     } catch (error) {
-      console.error('❌ Error cargando barberos:', error);
+      console.error('Error cargando barberos:', error);
       showError('Error al cargar la lista de barberos');
     } finally {
       setLoadingBarbers(false);
@@ -200,8 +207,8 @@ const BarberSales = () => {
     setError('');
     
     try {
-      logger.debug('🔄 Cargando datos iniciales...');
-      
+      logger.debug('Cargando datos iniciales...');
+
       // Añadir timestamp para evitar caché después de ventas
       const timestamp = Date.now();
       
@@ -209,8 +216,6 @@ const BarberSales = () => {
         inventoryService.getInventory({ _t: timestamp }),
         serviceService.getAllServices()
       ]);
-
-      logger.debug('📦 Respuesta de inventario:', productsResp);
 
       // Procesar productos
       let productsData = [];
@@ -227,16 +232,13 @@ const BarberSales = () => {
         productsData = productsResp;
       }
 
-      logger.debug('📦 Productos procesados:', productsData.length);
-
       // Filtrar solo productos disponibles (stock > 0)
       const availableProducts = productsData.filter(product => {
         const stock = product.currentStock || product.stock || product.quantity || 0;
-        logger.debug(`📦 ${product.name}: stock=${stock}`);
         return product && stock > 0;
       });
 
-      logger.debug('📦 Productos disponibles:', availableProducts.length);
+      logger.debug('Productos disponibles:', availableProducts.length);
 
       // Procesar servicios
       let servicesData = [];
@@ -256,10 +258,10 @@ const BarberSales = () => {
       setProducts(availableProducts);
       setServices(activeServices);
       
-      logger.debug('✅ Datos cargados - Productos:', availableProducts.length, 'Servicios:', activeServices.length);
+      logger.debug('Datos cargados - Productos:', availableProducts.length, 'Servicios:', activeServices.length);
 
     } catch (error) {
-      console.error('❌ Error cargando datos:', error);
+      console.error('Error cargando datos:', error);
       setError('Error al cargar los productos y servicios');
       showError('Error al cargar los datos iniciales');
     } finally {
@@ -306,7 +308,7 @@ const BarberSales = () => {
         setCart(validItems);
       }
     }
-  }, [allPaymentMethods]); // Solo dependemos de allPaymentMethods, no de cart
+  }, [allPaymentMethods]); 
 
   // Agregar producto al carrito
   const addToCart = (product, quantity = 1) => {
@@ -363,7 +365,7 @@ const BarberSales = () => {
         price: Number(product.price), // Asegurar que sea número
         quantity: Number(quantity), // Asegurar que sea número
         stock: availableStock,
-        paymentMethod: 'efectivo' // El backend espera 'efectivo', no 'cash'
+        paymentMethod: 'efectivo'
       }]);
     }
     
@@ -410,12 +412,50 @@ const BarberSales = () => {
       serviceId: selectedService._id,
       price: Number(price), // Asegurar que sea número
       quantity: 1,
-      paymentMethod: 'efectivo' // El backend espera 'efectivo', no 'cash'
+      paymentMethod: 'efectivo' 
     }]);
 
     setSelectedService(null);
     setServicePrice('');
     showInfo(`Servicio ${selectedService.name} agregado`);
+  };
+
+  // Agregar servicio directamente sin depender del estado selectedService
+  const addWalkInServiceDirect = (service) => {
+    // Validar servicio
+    if (!service) {
+      showError('Selecciona un servicio');
+      return;
+    }
+    
+    if (!service._id || !service.name) {
+      showError('Servicio inválido');
+      return;
+    }
+
+    const price = parseFloat(service.price);
+    if (isNaN(price) || price <= 0) {
+      showError('El servicio debe tener un precio válido mayor a 0');
+      return;
+    }
+
+    // Validar que el nombre del servicio no esté vacío
+    if (!service.name.trim()) {
+      showError('El servicio debe tener un nombre válido');
+      return;
+    }
+
+    setCart([...cart, {
+      id: `walkin-${Date.now()}`,
+      type: SALE_TYPES.SERVICE, // Usar constante estandarizada
+      name: service.name.trim(),
+      serviceId: service._id,
+      price: Number(price), // Asegurar que sea número
+      quantity: 1,
+      paymentMethod: 'efectivo' 
+    }]);
+
+    showInfo(`Servicio ${service.name} agregado`);
   };
 
   // Remover item del carrito
@@ -467,6 +507,11 @@ const BarberSales = () => {
     ));
     closePaymentMethodModal();
     showInfo('Método de pago actualizado');
+  };
+
+  // Función para modal de datos de factura del carrito
+  const closeInvoiceDataModal = () => {
+    setInvoiceDataModal({ show: false, item: null });
   };
 
   // Calcular totales por método de pago
@@ -526,7 +571,13 @@ const BarberSales = () => {
       }
 
       // Validar que todos los items tienen los campos requeridos
-      const validPaymentMethods = ['efectivo', 'tarjeta', 'transferencia']; // Métodos que acepta el backend
+      // Usar los mismos métodos de pago válidos que en el useEffect de limpieza
+      const validPaymentMethods = allPaymentMethods.map(method => method.id);
+      
+      console.log('🔄 Iniciando validación de carrito antes de procesar venta');
+      console.log('📦 Items en carrito:', cart.length);
+      console.log('💳 Métodos de pago válidos:', validPaymentMethods);
+      
       const invalidItems = cart.filter(item => 
         !item.type || 
         !item.quantity || 
@@ -540,7 +591,9 @@ const BarberSales = () => {
       );
 
       if (invalidItems.length > 0) {
-        console.error('❌ Items inválidos en el carrito:', invalidItems);
+        console.error('Items inválidos en el carrito:', invalidItems);
+        console.log('📋 Métodos de pago válidos disponibles:', validPaymentMethods);
+        console.log('🔍 Total de métodos configurados:', allPaymentMethods);
         
         // Log detallado para debugging
         invalidItems.forEach(item => {
@@ -578,7 +631,20 @@ const BarberSales = () => {
         return;
       }
 
+      console.log('✅ Validación de carrito exitosa - Todos los items son válidos');
+      console.log('📤 Procediendo a enviar carrito al backend...');
+
       // Enviar todo el carrito con métodos de pago a la nueva API
+      // Extraer clientData preferentemente del nivel de carrito (si existe), si no tomar del primer item
+      const clientDataFromCart = cartClientData || cart.find(item => item.clientData)?.clientData || null;
+      
+      logger.debug('🔍 Verificando clientData en el carrito:', {
+        hayClientData: !!clientDataFromCart,
+        clientDataJSON: JSON.stringify(clientDataFromCart),
+        itemsConClientData: cart.filter(item => item.clientData).length,
+        hasCartLevelClientData: !!cartClientData
+      });
+      
       const cartSaleData = {
         cart: cart.map(item => {
           // Asegurar que todos los campos requeridos estén presentes
@@ -599,24 +665,31 @@ const BarberSales = () => {
           return cartItem;
         }),
         barberId: barberId,
-        notes: `Venta desde carrito - ${cart.length} items`
+        notes: `Venta desde carrito - ${cart.length} items`,
+        // Agregar datos del cliente si existen
+        clientData: clientDataFromCart
       };
 
-      logger.debug('🛒 Enviando datos del carrito:', cartSaleData);
+      logger.debug('Enviando datos del carrito:', {
+        cartLength: cartSaleData.cart.length,
+        barberId: cartSaleData.barberId,
+        hasClientData: !!cartSaleData.clientData,
+        clientDataJSON: JSON.stringify(cartSaleData.clientData)
+      });
 
       const result = await salesService.createCartSale(cartSaleData);
 
       // Mensaje detallado de éxito
       const paymentSummary = getPaymentMethodSummary();
-      let successMessage = `✅ Venta completada exitosamente\n`;
-      successMessage += `💰 Total: ${formatPrice(cartTotal)}\n`;
-      successMessage += `📦 Items vendidos: ${cart.length}\n`;
-      
+      let successMessage = `Venta completada exitosamente\n`;
+      successMessage += `Total: ${formatPrice(cartTotal)}\n`;
+      successMessage += `Items vendidos: ${cart.length}\n`;
+
       // Mostrar resumen por método de pago
       Object.entries(paymentSummary).forEach(([methodId, total]) => {
         if (total > 0) {
           const methodInfo = getPaymentMethodInfo(methodId);
-          successMessage += `💳 ${methodInfo.name}: ${formatPrice(total)}\n`;
+          successMessage += `${methodInfo.name}: ${formatPrice(total)}\n`;
         }
       });
 
@@ -624,6 +697,8 @@ const BarberSales = () => {
 
       // Limpiar carrito
       setCart([]);
+  // Limpiar datos del cliente a nivel de carrito
+  setCartClientData(null);
       setSaleCompleted(true);
 
       // Reiniciar estado después de 3 segundos
@@ -635,14 +710,14 @@ const BarberSales = () => {
       notifySale();
 
       // Recargar productos para mostrar stock actualizado
-      logger.debug('🔄 Recargando inventario para mostrar stock actualizado...');
+      logger.debug('Recargando inventario para mostrar stock actualizado...');
       setTimeout(async () => {
         try {
-          logger.debug('🔄 Iniciando recarga de inventario después de venta...');
+          logger.debug('Iniciando recarga de inventario después de venta...');
           await loadInitialData();
-          logger.debug('✅ Inventario recargado exitosamente después de venta');
+          logger.debug('Inventario recargado exitosamente después de venta');
         } catch (error) {
-          console.error('❌ Error recargando inventario:', error);
+          console.error('Error recargando inventario:', error);
         }
       }, 1500);
 
@@ -678,7 +753,8 @@ const BarberSales = () => {
   }
 
   return (
-    <PageContainer>
+    <>
+      <PageContainer>
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 space-y-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -694,8 +770,18 @@ const BarberSales = () => {
             Registra ventas de productos y cortes
           </p>
           
-          {/* Botón de reembolso/gestión de ventas */}
-          <div className="flex justify-center mb-4">
+          {/* Botones de acción */}
+          <div className="flex justify-center gap-3 mb-4">
+            <button
+              onClick={() => navigate('/admin/cart-invoices')}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/20 border border-blue-500/30 rounded-xl text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 transition-colors shadow-lg shadow-blue-500/20"
+            >
+              <FileText className="w-4 h-4" />
+              <span className="text-sm font-medium">
+                Facturas de Carrito
+              </span>
+            </button>
+            
             <button
               onClick={() => setRefundModalOpen(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-red-600/20 border border-red-500/30 rounded-xl text-red-400 hover:bg-red-600/30 hover:text-red-300 transition-colors shadow-lg shadow-red-500/20"
@@ -745,7 +831,7 @@ const BarberSales = () => {
               )}
               {!selectedBarberId && availableBarbers.length > 0 && (
                 <p className="text-xs text-yellow-400 mt-2">
-                  ⚠️ Debes seleccionar un barbero antes de procesar ventas
+                  Debes seleccionar un barbero antes de procesar ventas
                 </p>
               )}
             </div>
@@ -762,42 +848,6 @@ const BarberSales = () => {
           </div>
         )}
 
-        {/* Selector de tipo de venta - Tabs centrales */}
-        <div className="flex justify-center mb-6">
-          <div className="bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm shadow-lg p-1 flex gap-1 w-fit">
-            <button
-              onClick={() => setSaleType(SALE_TYPES.PRODUCT)}
-              className={`group relative px-3 py-2.5 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 overflow-hidden backdrop-blur-sm flex items-center justify-center gap-1.5 ${
-                saleType === SALE_TYPES.PRODUCT 
-                  ? 'border-blue-500/50 bg-blue-500/10 shadow-xl shadow-blue-500/20' 
-                  : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
-              }`}
-            >
-              <Package size={14} className={`transition-all duration-300 ${
-                saleType === SALE_TYPES.PRODUCT ? 'text-blue-300' : 'text-white'
-              }`} />
-              <span className={`font-medium text-xs whitespace-nowrap ${
-                saleType === SALE_TYPES.PRODUCT ? 'text-blue-300' : 'text-white'
-              }`}>Productos</span>
-            </button>
-            <button
-              onClick={() => setSaleType(SALE_TYPES.SERVICE)}
-              className={`group relative px-3 py-2.5 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 overflow-hidden backdrop-blur-sm flex items-center justify-center gap-1.5 ${
-                saleType === SALE_TYPES.SERVICE 
-                  ? 'border-green-500/50 bg-green-500/10 shadow-xl shadow-green-500/20' 
-                  : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
-              }`}
-            >
-              <Scissors size={14} className={`transition-all duration-300 ${
-                saleType === SALE_TYPES.SERVICE ? 'text-green-300' : 'text-white'
-              }`} />
-              <span className={`font-medium text-xs whitespace-nowrap ${
-                saleType === SALE_TYPES.SERVICE ? 'text-green-300' : 'text-white'
-              }`}>Servicios de Corte</span>
-            </button>
-          </div>
-        </div>
-
         {/* Layout principal: Carrito arriba en móvil, lado a lado en desktop */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 min-h-screen">
           {/* Carrito - Primero en móvil, último en desktop */}
@@ -805,6 +855,16 @@ const BarberSales = () => {
             <div className="group relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 sm:p-4 lg:p-6 shadow-xl shadow-blue-500/20 overflow-hidden lg:sticky lg:top-4">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-xl"></div>
               <div className="relative">
+                  {/* Botón global para datos de factura del carrito (aparece solo cuando hay items) */}
+                  {cart.length > 0 && (
+                    <button
+                      onClick={() => setInvoiceDataModal({ show: true, item: null })}
+                      title="Datos de factura del carrito"
+                      className="absolute top-3 right-3 z-20 p-2 rounded-md bg-white/5 hover:bg-white/10 text-blue-300"
+                    >
+                      <FileText className="w-4 h-4" />
+                    </button>
+                  )}
                 <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 flex items-center">
                   <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-green-400" />
                   <span>Carrito </span>({cart.length})
@@ -854,19 +914,17 @@ const BarberSales = () => {
                                   const colors = getPaymentMethodColor(item.paymentMethod);
                                   
                                   return (
-                                    <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs border ${colors.bg} ${colors.border}`}>
+                                    <button
+                                      onClick={() => openPaymentMethodModal(item)}
+                                      className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs border cursor-pointer hover:opacity-80 transition-opacity duration-300 ${colors.bg} ${colors.border}`}
+                                      title="Cambiar método de pago"
+                                    >
                                       <IconComponent size={12} className={colors.text} />
                                       <span className={`${colors.text} whitespace-nowrap hidden sm:inline`}>{methodInfo?.name || item.paymentMethod}</span>
-                                    </div>
+                                    </button>
                                   );
                                 })()}
-                                <button
-                                  onClick={() => openPaymentMethodModal(item)}
-                                  className="p-1 text-gray-400 hover:text-blue-300 transition-colors duration-300 rounded hover:bg-white/5 touch-manipulation"
-                                  title="Cambiar método de pago"
-                                >
-                                  <Edit3 className="w-3 h-3" />
-                                </button>
+                                {/* Per-item invoice icon removed — ahora hay un botón global en la esquina del carrito */}
                               </div>
                             </div>
 
@@ -1003,232 +1061,139 @@ const BarberSales = () => {
 
           {/* Contenido principal - Segundo en móvil, primero en desktop */}
           <div className="order-2 lg:order-1 lg:col-span-2 space-y-4 sm:space-y-6 lg:space-y-8">
-            {/* Contenido según tipo de venta */}
-            {saleType === SALE_TYPES.PRODUCT ? (
-              <>
-                {/* Filtros de productos */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
-                  {/* Búsqueda */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
-                    <input
-                      type="text"
-                      placeholder="Buscar productos..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="glassmorphism-input pl-10 sm:pl-12"
-                    />
-                  </div>
-
-                  {/* Filtro por categoría */}
-                  <div className="relative">
-                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5 z-10" />
-                    <select
-                      value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
-                      className="glassmorphism-select pl-10 sm:pl-12"
-                    >
-                      <option value="all">Todas las categorías</option>
-                      {categories.map(category => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Grid de productos que fluye alrededor del carrito */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-                  {filteredProducts.length === 0 ? (
-                    <div className="col-span-full text-center py-6 sm:py-8">
-                      <Package className="w-8 h-8 sm:w-12 sm:h-12 text-gray-600 mx-auto mb-2 sm:mb-3" />
-                      <p className="text-gray-400 text-xs sm:text-sm lg:text-base">
-                        {searchTerm || categoryFilter !== 'all' 
-                          ? 'No se encontraron productos con los filtros aplicados' 
-                          : 'No hay productos disponibles'}
-                      </p>
-                    </div>
-                  ) : (
-                    filteredProducts.map((product) => (
-                      <div
-                        key={product._id}
-                        className="group relative backdrop-blur-sm border rounded-lg p-3 sm:p-4 transition-all duration-300 overflow-hidden hover:scale-[1.002] hover:-translate-y-0.5 cursor-pointer ml-1 mr-1 border-blue-500/30 bg-blue-500/5 shadow-sm shadow-blue-500/20"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-lg"></div>
-                        <div className="relative space-y-2 sm:space-y-3">
-                          <div>
-                            <h3 className="font-semibold text-white text-xs sm:text-sm lg:text-base">{product.name}</h3>
-                            {product.description && (
-                              <p className="text-gray-400 text-xs mt-1 line-clamp-2">{product.description}</p>
-                            )}
-                            {product.category && (
-                              <span className="inline-block mt-1 sm:mt-2 px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full border border-blue-500/30">
-                                {product.category}
-                              </span>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-green-400 font-bold text-xs sm:text-sm lg:text-base">{formatPrice(product.price)}</p>
-                              <p className="text-gray-500 text-xs">Stock: {product.quantity || product.stock || 0}</p>
-                            </div>
-                            <button
-                              onClick={() => addToCart(product)}
-                              disabled={(product.quantity || product.stock || 0) === 0}
-                              className="group relative p-1.5 sm:p-2 bg-gradient-to-r from-blue-600/20 to-green-600/20 rounded-lg border border-blue-500/30 hover:border-green-500/40 transition-all duration-300 backdrop-blur-sm hover:bg-gradient-to-r hover:from-blue-600/30 hover:to-green-600/30 transform hover:scale-110 shadow-xl shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                            >
-                              <Plus className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400 group-hover:text-green-400 transition-colors duration-300" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Grid de productos que fluye alrededor del carrito */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-                  {loadingInventory ? (
-                    Array.from({ length: 6 }).map((_, index) => (
-                      <div key={index} className="group relative backdrop-blur-sm border border-white/10 rounded-lg p-3 sm:p-4 transition-all duration-300 overflow-hidden">
-                        <div className="animate-pulse">
-                          <div className="h-4 bg-gray-700 rounded mb-2"></div>
-                          <div className="h-3 bg-gray-700 rounded mb-3"></div>
-                          <div className="h-8 bg-gray-700 rounded"></div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    filteredProducts.map((product) => (
-                      <div
-                        key={product._id}
-                        className="group relative backdrop-blur-sm border border-white/20 rounded-lg p-3 sm:p-4 transition-all duration-300 overflow-hidden hover:scale-105 bg-white/5 hover:border-white/40 hover:bg-white/10"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-lg"></div>
-                        <div className="relative">
-                          <div className="flex items-center justify-between mb-2 sm:mb-3">
-                            <h4 className="text-sm sm:text-base font-semibold text-white truncate flex-1">
-                              {product.name}
-                            </h4>
-                            <div className={`px-1.5 sm:px-2 py-1 rounded text-xs ${
-                              product.stock > 10 
-                                ? 'bg-green-500/20 text-green-300' 
-                                : product.stock > 0 
-                                ? 'bg-yellow-500/20 text-yellow-300' 
-                                : 'bg-red-500/20 text-red-300'
-                            }`}>
-                              {product.stock}
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-1 sm:space-y-2 mb-3 sm:mb-4">
-                            <p className="text-xs sm:text-sm text-gray-400">
-                              {product.category}
-                            </p>
-                            <p className="text-sm sm:text-base font-semibold text-green-400">
-                              {formatPrice(product.price)}
-                            </p>
-                          </div>
-
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => updateCartQuantity(product._id, SALE_TYPES.PRODUCT, getCartQuantity(product._id, SALE_TYPES.PRODUCT) - 1)}
-                              disabled={getCartQuantity(product._id, SALE_TYPES.PRODUCT) === 0}
-                              className="group relative p-1.5 sm:p-2 bg-gradient-to-r from-red-600/20 to-blue-600/20 rounded-lg border border-red-500/30 hover:border-blue-500/40 transition-all duration-300 backdrop-blur-sm hover:bg-gradient-to-r hover:from-red-600/30 hover:to-blue-600/30 transform hover:scale-110 shadow-xl shadow-blue-500/20 disabled:opacity-50 disabled:hover:scale-100"
-                            >
-                              <Minus className="w-3 h-3 sm:w-4 sm:h-4 text-red-400 group-hover:text-blue-400 transition-colors duration-300" />
-                            </button>
-                            
-                            <span className="min-w-[2rem] sm:min-w-[2.5rem] text-center text-sm sm:text-base text-white font-semibold">
-                              {getCartQuantity(product._id, SALE_TYPES.PRODUCT)}
-                            </span>
-                            
-                            <button
-                              onClick={() => addToCart(product)}
-                              disabled={product.stock <= getCartQuantity(product._id, SALE_TYPES.PRODUCT)}
-                              className="group relative p-1.5 sm:p-2 bg-gradient-to-r from-blue-600/20 to-green-600/20 rounded-lg border border-blue-500/30 hover:border-green-500/40 transition-all duration-300 backdrop-blur-sm hover:bg-gradient-to-r hover:from-blue-600/30 hover:to-green-600/30 transform hover:scale-110 shadow-xl shadow-blue-500/20 disabled:opacity-50 disabled:hover:scale-100"
-                            >
-                              <Plus className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400 group-hover:text-green-400 transition-colors duration-300" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </>
-            ) : (
-              /* Panel de servicios de corte - Inputs flotantes responsivo */
-              <div className="space-y-4 sm:space-y-6">
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                    <div className="p-2 sm:p-3 bg-gradient-to-r from-green-600/20 to-blue-600/20 rounded-xl border border-green-500/20 shadow-xl shadow-blue-500/20">
-                      <Scissors className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
-                    </div>
-                    <h3 className="text-base sm:text-lg font-semibold text-white">Agregar Servicio de Corte</h3>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  {/* Selector de servicio */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Servicio
-                    </label>
-                    <select
-                      value={selectedService?._id || ''}
-                      onChange={(e) => {
-                        const service = services.find(s => s._id === e.target.value);
-                        setSelectedService(service);
-                        setServicePrice(service?.price ? String(service.price) : '');
-                      }}
-                      className="glassmorphism-select"
-                    >
-                      <option value="">Selecciona un servicio</option>
-                      {services.map(service => (
-                        <option key={service._id} value={service._id}>
-                          {service.name} - {formatPrice(service.price)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Precio personalizado */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Precio (puedes ajustarlo)
-                    </label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <input
-                        type="number"
-                        value={servicePrice}
-                        onChange={(e) => setServicePrice(e.target.value)}
-                        placeholder="0"
-                        min="0"
-                        step="1000"
-                        className="glassmorphism-input pl-10"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Botón agregar responsivo */}
-                  <button
-                    onClick={addWalkInService}
-                    disabled={!selectedService || !servicePrice}
-                    className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-green-600/20 to-blue-600/20 border border-green-500/30 hover:border-blue-500/40 rounded-xl text-white transition-all duration-300 backdrop-blur-sm hover:bg-gradient-to-r hover:from-green-600/30 hover:to-blue-600/30 transform hover:scale-105 shadow-xl shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center font-medium text-sm sm:text-base"
-                  >
-                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    Agregar al Carrito
-                  </button>
-                </div>
+            {/* Filtros */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+              {/* Búsqueda */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
+                <input
+                  type="text"
+                  placeholder="Buscar productos y servicios..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="glassmorphism-input pl-10 sm:pl-12"
+                />
               </div>
-            )}
+
+              {/* Filtro por categoría */}
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5 z-10" />
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="glassmorphism-select pl-10 sm:pl-12"
+                >
+                  <option value="all">Todas las categorías</option>
+                  {categories.map(category => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Grid unificado: Servicios primero (verdes), luego productos (azules) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+              {/* SERVICIOS PRIMERO - Cards verdes */}
+              {services
+                .filter(service => 
+                  searchTerm === '' || 
+                  service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  service.description?.toLowerCase().includes(searchTerm.toLowerCase())
+                )
+                .map((service) => (
+                <div
+                  key={service._id}
+                  className="group relative backdrop-blur-sm border rounded-lg p-3 sm:p-4 transition-all duration-300 overflow-hidden hover:scale-[1.002] hover:-translate-y-0.5 cursor-pointer ml-1 mr-1 border-green-500/30 bg-green-500/5 shadow-sm shadow-green-500/20"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-lg"></div>
+                  <div className="relative space-y-2 sm:space-y-3">
+                    <div>
+                      <h3 className="font-semibold text-white text-xs sm:text-sm lg:text-base flex items-center gap-2">
+                        <Scissors className="w-3 h-3 text-green-400" />
+                        {service.name}
+                      </h3>
+                      {service.description && (
+                        <p className="text-gray-400 text-xs mt-1 line-clamp-2">{service.description}</p>
+                      )}
+                      <span className="inline-block mt-1 sm:mt-2 px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full border border-green-500/30">
+                        Servicio
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <p className="text-green-400 font-bold text-xs sm:text-sm lg:text-base">{formatPrice(service.price)}</p>
+                      <button
+                        onClick={() => {
+                          // Agregar directamente al carrito con el servicio seleccionado
+                          addWalkInServiceDirect(service);
+                        }}
+                        className="group relative p-1.5 sm:p-2 bg-gradient-to-r from-green-600/20 to-blue-600/20 rounded-lg border border-green-500/30 hover:border-blue-500/40 transition-all duration-300 backdrop-blur-sm hover:bg-gradient-to-r hover:from-green-600/30 hover:to-blue-600/30 transform hover:scale-110 shadow-xl shadow-green-500/20"
+                      >
+                        <Plus className="w-3 h-3 sm:w-4 sm:h-4 text-green-400 group-hover:text-blue-400 transition-colors duration-300" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* PRODUCTOS DESPUÉS - Cards azules */}
+              {filteredProducts.length === 0 && services.filter(s => 
+                  searchTerm === '' || 
+                  s.name.toLowerCase().includes(searchTerm.toLowerCase())
+                ).length === 0 ? (
+                <div className="col-span-full text-center py-6 sm:py-8">
+                  <Package className="w-8 h-8 sm:w-12 sm:h-12 text-gray-600 mx-auto mb-2 sm:mb-3" />
+                  <p className="text-gray-400 text-xs sm:text-sm lg:text-base">
+                    {searchTerm || categoryFilter !== 'all' 
+                      ? 'No se encontraron productos o servicios con los filtros aplicados' 
+                      : 'No hay productos o servicios disponibles'}
+                  </p>
+                </div>
+              ) : null}
+              
+              {/* Mapeo de productos */}
+              {filteredProducts.map((product) => (
+                <div
+                  key={product._id}
+                  className="group relative backdrop-blur-sm border rounded-lg p-3 sm:p-4 transition-all duration-300 overflow-hidden hover:scale-[1.002] hover:-translate-y-0.5 cursor-pointer ml-1 mr-1 border-blue-500/30 bg-blue-500/5 shadow-sm shadow-blue-500/20"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-lg"></div>
+                    <div className="relative space-y-2 sm:space-y-3">
+                      <div>
+                        <h3 className="font-semibold text-white text-xs sm:text-sm lg:text-base">{product.name}</h3>
+                        {product.description && (
+                          <p className="text-gray-400 text-xs mt-1 line-clamp-2">{product.description}</p>
+                        )}
+                        {product.category && (
+                          <span className="inline-block mt-1 sm:mt-2 px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full border border-blue-500/30">
+                            {product.category}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-green-400 font-bold text-xs sm:text-sm lg:text-base">{formatPrice(product.price)}</p>
+                          <p className="text-gray-500 text-xs">Stock: {product.quantity || product.stock || 0}</p>
+                        </div> {/* Cierre price column */}
+                        <button
+                          onClick={() => addToCart(product)}
+                          disabled={(product.quantity || product.stock || 0) === 0}
+                          className="group relative p-1.5 sm:p-2 bg-gradient-to-r from-blue-600/20 to-green-600/20 rounded-lg border border-blue-500/30 hover:border-green-500/40 transition-all duration-300 backdrop-blur-sm hover:bg-gradient-to-r hover:from-blue-600/30 hover:to-green-600/30 transform hover:scale-110 shadow-xl shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        >
+                          <Plus className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400 group-hover:text-green-400 transition-colors duration-300" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
           </div>
         </div>
       </div>
+      </PageContainer>
 
       {/* Modal para editar método de pago */}
       {paymentMethodModal.show && (
@@ -1316,7 +1281,35 @@ const BarberSales = () => {
         }}
         selectedBarberId={user?.role === 'admin' ? selectedBarberId : null}
       />
-    </PageContainer>
+
+      {/* Modal de Datos de Factura */}
+      <InvoiceDataModal
+        isOpen={invoiceDataModal.show}
+        onClose={closeInvoiceDataModal}
+        onSubmit={(clientData) => {
+          // Si invoiceDataModal.item es null => datos aplican al carrito completo
+          const { item } = invoiceDataModal;
+          if (item) {
+            logger.debug('Guardando clientData en item del carrito:', {
+              itemId: item.id,
+              itemType: item.type,
+              clientData
+            });
+            setCart(cart.map(cartItem => 
+              cartItem.id === item.id && cartItem.type === item.type
+                ? { ...cartItem, clientData }
+                : cartItem
+            ));
+          } else {
+            logger.debug('Guardando clientData a nivel de carrito:', JSON.stringify(clientData));
+            setCartClientData(clientData);
+          }
+          showSuccess('Datos de factura guardados');
+        }}
+        item={invoiceDataModal.item}
+        initialData={cartClientData}
+      />
+    </>
   );
 };
 

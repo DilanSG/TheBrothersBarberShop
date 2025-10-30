@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageContainer } from '@components/layout/PageContainer';
 import { useAuth } from '@contexts/AuthContext';
@@ -12,7 +12,7 @@ import {
   Calendar, 
   Clock, 
   User, 
-  Scissors, 
+  Scissors,
   ArrowLeft, 
   Edit, 
   Trash2, 
@@ -23,6 +23,16 @@ import {
   Mail,
   DollarSign
 } from 'lucide-react';
+
+// Formatear precio
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(price || 0);
+};
 
 /**
  * Componente para ver el detalle completo de una cita
@@ -275,7 +285,7 @@ const AppointmentDetail = () => {
                     <DollarSign className="w-4 h-4 text-gray-400" />
                     <div>
                       <p className="text-sm text-gray-400">Precio</p>
-                      <p className="text-white font-medium">${appointment.service?.price}</p>
+                      <p className="text-white font-medium">{formatPrice(appointment.service?.price)}</p>
                     </div>
                   </div>
                 </div>

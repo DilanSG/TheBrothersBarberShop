@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Minus, Copy, AlertTriangle, Clock, DollarSign, Package, Scissors, Filter, Trash2, RotateCcw } from 'lucide-react';
 import { refundService } from '../../services/refundService';
 import scrollLockManager from '../../utils/scrollLockManager';

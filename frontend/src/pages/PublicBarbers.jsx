@@ -7,6 +7,17 @@ import GradientText from '@components/ui/GradientText';
 import { Star, Clock, MapPin, Calendar, Users, Award, Scissors, User } from 'lucide-react';
 
 import logger from '@utils/logger';
+
+// Formatear precio
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(price || 0);
+};
+
 // Componente de loading mejorado
 const LoadingSpinner = () => (
   <PageContainer>
@@ -100,7 +111,7 @@ const BarberCard = ({ barber }) => {
       {/* Efecto de brillo */}
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-3xl"></div>
       
-      {/* Header con imagen mejorado */}
+      {/* Header con imagen */}
       <div className="relative h-80 overflow-hidden rounded-t-3xl">
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent z-10"></div>
         {barber.photo?.url || barber.user?.profilePicture ? (
@@ -127,7 +138,7 @@ const BarberCard = ({ barber }) => {
           </button>
         )}
           
-          {/* Estado de disponibilidad mejorado */}
+          {/* Estado de disponibilidad */}
           <div className="absolute top-6 left-6 z-20">
             <div className={`flex items-center px-4 py-2 rounded-2xl text-sm font-medium text-white shadow-lg backdrop-blur-sm transition-all duration-300 border
               ${isAvailable 
@@ -147,9 +158,9 @@ const BarberCard = ({ barber }) => {
             </div>
           </div>
 
-          {/* Badges flotantes mejorados */}
+          {/* Badges flotantes */}
           <div className="absolute top-6 right-6 flex flex-col gap-3 z-20">
-            {/* Rating con diseño mejorado */}
+            {/* Rating con diseño */}
             {barber.rating?.average > 0 && (
               <div className="bg-gradient-to-r from-yellow-600/90 to-orange-600/90 backdrop-blur-sm px-4 py-2 rounded-2xl text-sm font-semibold text-white shadow-lg flex items-center gap-2 group-hover:from-yellow-500/90 group-hover:to-orange-500/90 transition-all duration-300 border border-yellow-400/30">
                 <Star className="w-4 h-4 fill-current" />
@@ -221,7 +232,7 @@ const BarberCard = ({ barber }) => {
                       <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400 
                         group-hover/service:from-emerald-300 group-hover/service:to-blue-300 
                         transition-all duration-300">
-                        ${service.price}
+                        {formatPrice(service.price)}
                       </span>
                     </div>
                   </div>
