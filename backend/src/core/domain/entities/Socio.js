@@ -85,9 +85,12 @@ socioSchema.pre('save', async function(next) {
     throw new Error('Solo los usuarios admin pueden ser socios');
   }
 
-  // Solo permitir un socio fundador
+  // Solo permitir un socio fundador activo
   if (this.tipoSocio === 'fundador' && this.isNew) {
-    const existingFounder = await this.constructor.findOne({ tipoSocio: 'fundador' });
+    const existingFounder = await this.constructor.findOne({ 
+      tipoSocio: 'fundador', 
+      isActive: true 
+    });
     if (existingFounder) {
       throw new Error('Solo puede haber un socio fundador');
     }

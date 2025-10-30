@@ -3,18 +3,37 @@ import logger from '@utils/logger';
 import useBodyScrollLock from '@hooks/useBodyScrollLock';
 import {
   ShoppingCart, Package, Calendar, AlertTriangle, X,
-  Scissors, Clock, User, FileText, Receipt, ExternalLink
+  Scissors, Clock, User, FileText, ExternalLink
 } from 'lucide-react';
 import { 
   SALE_TYPES, 
   SALE_TYPE_LABELS 
 } from '@shared/constants/salesConstants';
 
+// Helper para formatear fechas sin desfase de timezone
+const formatDateSafe = (dateString) => {
+  if (!dateString) return 'Fecha no disponible';
+  
+  // Para fechas en formato YYYY-MM-DD, agregarle la hora del mediodía
+  // para evitar problemas de timezone
+  const dateWithTime = dateString.includes('T') ? dateString : `${dateString}T12:00:00`;
+  const date = new Date(dateWithTime);
+  
+  return date.toLocaleDateString('es-ES', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
+
 /**
  * Modal para detalles de ventas con información detallada por producto y día
  */
 export const DetailedSalesModal = ({ isOpen, onClose, salesData, barberName, dateRange, loading, error }) => {
-  if (!isOpen) return null;
+  // ✅ HOOKS SIEMPRE PRIMERO - antes de cualquier early return
+  // Bloquear scroll del body usando hook personalizado
+  useBodyScrollLock(isOpen);
 
   // Debug: Agregar logs para entender la estructura de datos
   useEffect(() => {
@@ -30,12 +49,46 @@ export const DetailedSalesModal = ({ isOpen, onClose, salesData, barberName, dat
     }
   }, [salesData]);
 
+  // Early return DESPUÉS de los hooks
+  if (!isOpen) return null;
+
   const formatCurrency = (amount) => new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   }).format(amount || 0);
+
+  // ✅ Helper para formatear el rango de fechas del modal
+  const formatModalDateRange = () => {
+    if (!dateRange) return 'Período seleccionado';
+    
+    // Helper local para formatear fecha YYYY-MM-DD a DD/MM/YYYY
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '';
+      const [year, month, day] = dateStr.split('-');
+      return `${day}/${month}/${year}`;
+    };
+    
+    if (dateRange.preset === 'all') {
+      return 'Todos los registros';
+    }
+    
+    if (dateRange.preset === 'today' && dateRange.startDate) {
+      return formatDate(dateRange.startDate);
+    }
+    
+    if (dateRange.preset === 'yesterday' && dateRange.startDate) {
+      return formatDate(dateRange.startDate);
+    }
+    
+    if (dateRange.preset === 'custom' && dateRange.startDate && dateRange.endDate) {
+      return `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`;
+    }
+    
+    // Fallback cuando no hay fechas disponibles
+    return 'Período seleccionado';
+  };
 
   // Calcular totales
   const totalAmount = salesData?.reduce((sum, day) => sum + (day.totalAmount || 0), 0) || 0;
@@ -48,9 +101,6 @@ export const DetailedSalesModal = ({ isOpen, onClose, salesData, barberName, dat
     barberName,
     dateRange
   });
-
-  // Bloquear scroll del body usando hook personalizado
-  useBodyScrollLock(isOpen);
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 sm:p-6 lg:p-8">
@@ -68,7 +118,7 @@ export const DetailedSalesModal = ({ isOpen, onClose, salesData, barberName, dat
                     Ventas - {barberName}
                   </h3>
                   <p className="text-xs sm:text-sm text-green-300">
-                    {dateRange ? `${dateRange.startDate} - ${dateRange.endDate}` : 'Período seleccionado'}
+                    {formatModalDateRange()}
                   </p>
                 </div>
               </div>
@@ -116,19 +166,16 @@ export const DetailedSalesModal = ({ isOpen, onClose, salesData, barberName, dat
               </div>
             ) : (
               <div className="space-y-4 pt-4">
-                {salesData.map((day, dayIndex) => (
+                {salesData
+                  .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar por fecha descendente (más reciente primero)
+                  .map((day, dayIndex) => (
                   <div key={dayIndex} className="space-y-3">
                     {/* Encabezado del día */}
                     <div className="flex items-center justify-between py-2 border-b border-green-500/20">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-green-400" />
                         <h4 className="font-medium text-white">
-                          {new Date(day.date).toLocaleDateString('es-ES', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
+                          {formatDateSafe(day.date)}
                         </h4>
                       </div>
                       <div className="text-right">
@@ -161,22 +208,6 @@ export const DetailedSalesModal = ({ isOpen, onClose, salesData, barberName, dat
                           </div>
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-bold text-green-400">{formatCurrency(sale.total)}</p>
-                            {/* Botón de factura */}
-                            {sale._id && (
-                              <button
-                                onClick={() => {
-                                  const token = localStorage.getItem('token');
-                                  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
-                                  const invoiceUrl = `${apiUrl}/invoices/sale/${sale._id}/view?token=${token}`;
-                                  console.log('🔍 Abriendo URL de factura:', invoiceUrl);
-                                  window.open(invoiceUrl, '_blank');
-                                }}
-                                className="group p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40 transition-all duration-300"
-                                title="Ver factura"
-                              >
-                                <Receipt size={14} className="text-blue-400 group-hover:scale-110 transition-transform" />
-                              </button>
-                            )}
                           </div>
                         </div>
 
@@ -236,7 +267,9 @@ export const DetailedSalesModal = ({ isOpen, onClose, salesData, barberName, dat
  * Modal para detalles de citas completadas
  */
 export const DetailedAppointmentsModal = ({ isOpen, onClose, appointmentsData, barberName, dateRange, loading, error }) => {
-  if (!isOpen) return null;
+  // ✅ HOOKS SIEMPRE PRIMERO - antes de cualquier early return
+  // Bloquear scroll del body usando hook personalizado
+  useBodyScrollLock(isOpen);
 
   // Debug: Agregar logs para entender la estructura de datos de citas
   useEffect(() => {
@@ -252,12 +285,46 @@ export const DetailedAppointmentsModal = ({ isOpen, onClose, appointmentsData, b
     }
   }, [appointmentsData]);
 
+  // Early return DESPUÉS de los hooks
+  if (!isOpen) return null;
+
   const formatCurrency = (amount) => new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   }).format(amount || 0);
+
+  // ✅ Helper para formatear el rango de fechas del modal
+  const formatModalDateRange = () => {
+    if (!dateRange) return 'Período seleccionado';
+    
+    // Helper local para formatear fecha YYYY-MM-DD a DD/MM/YYYY
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '';
+      const [year, month, day] = dateStr.split('-');
+      return `${day}/${month}/${year}`;
+    };
+    
+    if (dateRange.preset === 'all') {
+      return 'Todos los registros';
+    }
+    
+    if (dateRange.preset === 'today' && dateRange.startDate) {
+      return formatDate(dateRange.startDate);
+    }
+    
+    if (dateRange.preset === 'yesterday' && dateRange.startDate) {
+      return formatDate(dateRange.startDate);
+    }
+    
+    if (dateRange.preset === 'custom' && dateRange.startDate && dateRange.endDate) {
+      return `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`;
+    }
+    
+    // Fallback cuando no hay fechas disponibles
+    return 'Período seleccionado';
+  };
 
   // Calcular totales
   const totalAppointments = appointmentsData?.reduce((sum, day) => sum + (day.appointments?.length || 0), 0) || 0;
@@ -272,9 +339,6 @@ export const DetailedAppointmentsModal = ({ isOpen, onClose, appointmentsData, b
     barberName,
     dateRange
   });
-
-  // Bloquear scroll del body usando hook personalizado
-  useBodyScrollLock(isOpen);
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 sm:p-6 lg:p-8">
@@ -292,7 +356,7 @@ export const DetailedAppointmentsModal = ({ isOpen, onClose, appointmentsData, b
                     Citas Completadas - {barberName}
                   </h3>
                   <p className="text-xs sm:text-sm text-blue-300">
-                    {dateRange ? `${dateRange.startDate} - ${dateRange.endDate}` : 'Período seleccionado'}
+                    {formatModalDateRange()}
                   </p>
                 </div>
               </div>
@@ -340,19 +404,16 @@ export const DetailedAppointmentsModal = ({ isOpen, onClose, appointmentsData, b
               </div>
             ) : (
               <div className="space-y-4 pt-4">
-                {appointmentsData.map((day, dayIndex) => (
+                {appointmentsData
+                  .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar por fecha descendente (más reciente primero)
+                  .map((day, dayIndex) => (
                   <div key={dayIndex} className="space-y-3">
                     {/* Encabezado del día */}
                     <div className="flex items-center justify-between py-2 border-b border-blue-500/20">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-blue-400" />
                         <h4 className="font-medium text-white">
-                          {new Date(day.date).toLocaleDateString('es-ES', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
+                          {formatDateSafe(day.date)}
                         </h4>
                       </div>
                       <div className="text-right">
@@ -438,6 +499,11 @@ export const DetailedAppointmentsModal = ({ isOpen, onClose, appointmentsData, b
  * Modal para detalles de cortes (servicios walk-in) con hora de realización
  */
 export const DetailedCutsModal = ({ isOpen, onClose, cutsData, barberName, dateRange, loading, error }) => {
+  // ✅ HOOKS SIEMPRE PRIMERO - antes de cualquier early return
+  // Bloquear scroll del body usando hook personalizado
+  useBodyScrollLock(isOpen);
+
+  // Early return DESPUÉS de los hooks
   if (!isOpen) return null;
 
   const formatCurrency = (amount) => new Intl.NumberFormat('es-CO', {
@@ -447,12 +513,40 @@ export const DetailedCutsModal = ({ isOpen, onClose, cutsData, barberName, dateR
     maximumFractionDigits: 0
   }).format(amount || 0);
 
+  // ✅ Helper para formatear el rango de fechas del modal
+  const formatModalDateRange = () => {
+    if (!dateRange) return 'Período seleccionado';
+    
+    // Helper local para formatear fecha YYYY-MM-DD a DD/MM/YYYY
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '';
+      const [year, month, day] = dateStr.split('-');
+      return `${day}/${month}/${year}`;
+    };
+    
+    if (dateRange.preset === 'all') {
+      return 'Todos los registros';
+    }
+    
+    if (dateRange.preset === 'today' && dateRange.startDate) {
+      return formatDate(dateRange.startDate);
+    }
+    
+    if (dateRange.preset === 'yesterday' && dateRange.startDate) {
+      return formatDate(dateRange.startDate);
+    }
+    
+    if (dateRange.preset === 'custom' && dateRange.startDate && dateRange.endDate) {
+      return `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`;
+    }
+    
+    // Fallback cuando no hay fechas disponibles
+    return 'Período seleccionado';
+  };
+
   // Calcular totales
   const totalCuts = cutsData?.reduce((sum, day) => sum + (day.cuts?.length || 0), 0) || 0;
   const totalRevenue = cutsData?.reduce((sum, day) => sum + (day.totalAmount || 0), 0) || 0;
-
-  // Bloquear scroll del body usando hook personalizado
-  useBodyScrollLock(isOpen);
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 sm:p-6 lg:p-8">
@@ -470,7 +564,7 @@ export const DetailedCutsModal = ({ isOpen, onClose, cutsData, barberName, dateR
                     Cortes Realizados - {barberName}
                   </h3>
                   <p className="text-xs sm:text-sm text-purple-300">
-                    {dateRange ? `${dateRange.startDate} - ${dateRange.endDate}` : 'Período seleccionado'}
+                    {formatModalDateRange()}
                   </p>
                 </div>
               </div>
@@ -518,19 +612,16 @@ export const DetailedCutsModal = ({ isOpen, onClose, cutsData, barberName, dateR
               </div>
             ) : (
               <div className="space-y-4 pt-4">
-                {cutsData.map((day, dayIndex) => (
+                {cutsData
+                  .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar por fecha descendente (más reciente primero)
+                  .map((day, dayIndex) => (
                   <div key={dayIndex} className="space-y-3">
                     {/* Encabezado del día */}
                     <div className="flex items-center justify-between py-2 border-b border-purple-500/20">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-purple-400" />
                         <h4 className="font-medium text-white">
-                          {new Date(day.date).toLocaleDateString('es-ES', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
+                          {formatDateSafe(day.date)}
                         </h4>
                       </div>
                       <div className="text-right">
@@ -575,20 +666,6 @@ export const DetailedCutsModal = ({ isOpen, onClose, cutsData, barberName, dateR
                                 </p>
                               )}
                             </div>
-                            {/* Botón de factura */}
-                            {cut._id && (
-                              <button
-                                onClick={() => {
-                                  const token = localStorage.getItem('token');
-                                  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
-                                  window.open(`${apiUrl}/invoices/sale/${cut._id}/view?token=${token}`, '_blank');
-                                }}
-                                className="group p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40 transition-all duration-300"
-                                title="Ver factura"
-                              >
-                                <Receipt size={14} className="text-blue-400 group-hover:scale-110 transition-transform" />
-                              </button>
-                            )}
                           </div>
                         </div>
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useUI } from '../../utils/UIContext';
 import { Button } from './Button';
 
@@ -61,7 +61,7 @@ export function Accordion({
   className = '',
   ...props
 }) {
-  const [openItems, setOpenItems] = React.useState(new Set());
+  const [openItems, setOpenItems] = useState(new Set());
 
   const toggleItem = (id) => {
     setOpenItems((prev) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { PageContainer } from '@components/layout/PageContainer';
 import GradientText from '@components/ui/GradientText';
 import { StatusBadge } from '@components/ui/StatusBadge';

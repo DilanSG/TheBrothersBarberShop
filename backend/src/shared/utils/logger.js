@@ -61,14 +61,22 @@ const formats = {
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     winston.format.colorize({ all: true }),
     winston.format.printf(info => {
-      const emoji = {
-        error: '❌',
-        warn: '⚠️',
-        info: 'ℹ️',
-        http: '🌐',
-        debug: '🔍'
+      // Mostrar símbolos solo si LOG_EMOJIS !== 'false' y en desarrollo
+      const useSymbols = (process.env.LOG_EMOJIS ?? 'true') !== 'false' && appConfig.nodeEnv === 'development';
+      const symbolSet = (process.env.LOG_SYMBOL_SET || 'ascii').toLowerCase();
+
+      const symbolMaps = {
+        ascii:   { error: '[ERR]', warn: '[WARN]', info: '[INFO]', http: '[HTTP]', debug: '[DBG]' },
+        unicode: { error: '✖',     warn: '⚠',      info: 'ℹ',      http: '⇄',       debug: '🔎'    },
+        initials:{ error: 'E',     warn: 'W',      info: 'I',      http: 'H',       debug: 'D'      },
+        arrows:  { error: '>>',    warn: '!!',     info: '->',     http: '<>',      debug: '??'     },
+        none:    { error: '',      warn: '',       info: '',       http: '',        debug: ''       }
       };
-      return `${info.timestamp} ${emoji[info.level]} ${info.level}: ${info.message}`;
+
+      const symbol = useSymbols ? (symbolMaps[symbolSet] || symbolMaps.ascii) : symbolMaps.none;
+      const label = info.label || 'app';
+      const levelSymbol = symbol[info.level] || '';
+      return `${info.timestamp} [${label}] ${levelSymbol} ${info.message}`;
     })
   ),
 
@@ -214,9 +222,9 @@ logger.logError = (error, req = null) => {
 
 logger.startupLog = () => {
   logger.info('=================================');
-  logger.info('🚀 Servidor iniciado');
-  logger.info(`🌍 Ambiente: ${config.app.nodeEnv}`);
-  logger.info(`🔌 Puerto: ${config.app.port}`);
+  logger.info('Servidor iniciado');
+  logger.info(`Ambiente: ${config.app.nodeEnv}`);
+  logger.info(`Puerto: ${config.app.port}`);
   logger.info('=================================');
 };
 

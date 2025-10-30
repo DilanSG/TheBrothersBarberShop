@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { X, Repeat, Calendar, Edit2, Trash2, Play, Pause } from 'lucide-react';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import DailyRecurringExpenseModal from './DailyRecurringExpenseModal';

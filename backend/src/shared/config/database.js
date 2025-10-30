@@ -12,11 +12,7 @@ export const connectDB = async () => {
 };
 
 
-// Manejar eventos de conexión
-mongoose.connection.on('connected', () => {
-  logger.info('Mongoose conectado a MongoDB');
-});
-
+// Manejar eventos de conexión (solo para debugging detallado)
 mongoose.connection.on('error', (err) => {
   logger.error('Error de conexión de Mongoose:', err);
 });

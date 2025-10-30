@@ -4,6 +4,7 @@ import Barber from '../../domain/entities/Barber.js';
 import Inventory from '../../domain/entities/Inventory.js';
 import Appointment from '../../domain/entities/Appointment.js';
 import User from '../../domain/entities/User.js';
+import PaymentMethod from '../../domain/entities/PaymentMethod.js';
 import InventoryLogService from './InventoryLogUseCases.js';
 import { reportsCacheService } from './reportsCacheService.js';
 import { AppError } from '../../../shared/utils/errors.js';
@@ -13,6 +14,20 @@ import { SALE_TYPES, getSaleTypeDisplayName } from '../../../shared/constants/sa
 import emailService from '../../../services/emailService.js';
 
 class SaleUseCases {
+  /**
+   * Obtener métodos de pago válidos desde la base de datos
+   */
+  static async getValidPaymentMethods() {
+    try {
+      const paymentMethods = await PaymentMethod.find({ isActive: true });
+      return paymentMethods.map(method => method.backendId);
+    } catch (error) {
+      logger.warn('Error obteniendo métodos de pago, usando métodos por defecto:', error);
+      // Fallback a métodos hardcodeados si hay error
+      return ['efectivo', 'tarjeta', 'transferencia'];
+    }
+  }
+
   /**
    * Buscar barbero por ID de barbero o ID de usuario
    */
@@ -76,10 +91,10 @@ class SaleUseCases {
         throw new AppError('Stock insuficiente para realizar la venta', 400);
       }
 
-      // Validar m�todo de pago
-      const validPaymentMethods = ['efectivo', 'tarjeta', 'transferencia'];
+      // Validar método de pago usando métodos dinámicos de la BD
+      const validPaymentMethods = await SaleUseCases.getValidPaymentMethods();
       if (saleData.paymentMethod && !validPaymentMethods.includes(saleData.paymentMethod)) {
-        throw new AppError(`M�todo de pago inv�lido: ${saleData.paymentMethod}. M�todos v�lidos: ${validPaymentMethods.join(', ')}`, 400);
+        throw new AppError(`Método de pago inválido: ${saleData.paymentMethod}. Métodos válidos: ${validPaymentMethods.join(', ')}`, 400);
       }
 
       // Validar campos requeridos
@@ -209,10 +224,10 @@ class SaleUseCases {
         throw new AppError('El precio del producto debe ser mayor a 0', 400);
       }
       
-      // Validar m�todo de pago
-      const validPaymentMethods = ['efectivo', 'tarjeta', 'transferencia'];
+      // Validar método de pago usando métodos dinámicos de la BD
+      const validPaymentMethods = await SaleUseCases.getValidPaymentMethods();
       if (saleData.paymentMethod && !validPaymentMethods.includes(saleData.paymentMethod)) {
-        throw new AppError(`M�todo de pago inv�lido: ${saleData.paymentMethod}. M�todos v�lidos: ${validPaymentMethods.join(', ')}`, 400);
+        throw new AppError(`Método de pago inválido: ${saleData.paymentMethod}. Métodos válidos: ${validPaymentMethods.join(', ')}`, 400);
       }
 
       // Crear venta individual
@@ -317,10 +332,10 @@ class SaleUseCases {
       throw new AppError('El monto total debe ser mayor a 0', 400);
     }
     
-    // Validar m�todo de pago
-    const validPaymentMethods = ['efectivo', 'tarjeta', 'transferencia'];
+    // Validar método de pago usando métodos dinámicos de la BD
+    const validPaymentMethods = await SaleUseCases.getValidPaymentMethods();
     if (saleData.paymentMethod && !validPaymentMethods.includes(saleData.paymentMethod)) {
-      throw new AppError(`M�todo de pago inv�lido: ${saleData.paymentMethod}. M�todos v�lidos: ${validPaymentMethods.join(', ')}`, 400);
+      throw new AppError(`Método de pago inválido: ${saleData.paymentMethod}. Métodos válidos: ${validPaymentMethods.join(', ')}`, 400);
     }
 
     // Crear la venta walk-in
@@ -842,6 +857,80 @@ class SaleUseCases {
   }
 
   /**
+   * Obtener facturas de carrito (TODAS las ventas desde carrito, con o sin clientData)
+   * @param {String} barberId - ID del barbero (opcional, si es null retorna todas)
+   * @returns {Array} Ventas creadas desde el carrito
+   */
+  static async getCartInvoices(barberId = null) {
+    const query = {
+      status: { $in: ['completed', 'refunded'] }, // Incluir ventas reembolsadas
+      notes: { $regex: /Venta desde carrito/i }
+    };
+
+    // Si es barbero, filtrar solo sus ventas
+    if (barberId) {
+      query.barberId = barberId;
+      logger.info('🔍 Buscando TODAS las ventas de carrito para barbero:', { barberId });
+    } else {
+      logger.info('🔍 Buscando TODAS las ventas de carrito (admin)');
+    }
+
+    logger.info('📊 Query de MongoDB:', JSON.stringify(query));
+
+    const sales = await Sale.find(query)
+      .populate('productId', 'name category price')
+      .populate('serviceId', 'name price')
+      .populate('barberId', 'name specialty')
+      .sort({ saleDate: -1 })
+      .lean(); // .lean() para objetos planos
+
+    logger.info(`✅ Ventas de carrito encontradas: ${sales.length}`);
+
+    // Agregar información de reembolso a cada venta
+    const salesWithRefundInfo = sales.map(sale => ({
+      ...sale,
+      isRefunded: sale.status === 'refunded',
+      displayQuantity: sale.status === 'refunded' ? 0 : sale.quantity,
+      displayTotal: sale.status === 'refunded' ? 0 : sale.totalAmount,
+      originalQuantity: sale.quantity,
+      originalTotal: sale.totalAmount
+    }));
+
+    // Log de las primeras 3 ventas para diagnóstico
+    if (salesWithRefundInfo.length > 0) {
+      logger.info('🔍 Muestra de ventas encontradas:', 
+        salesWithRefundInfo.slice(0, 3).map(sale => ({
+          id: sale._id,
+          hasClientData: !!sale.clientData,
+          isRefunded: sale.isRefunded,
+          status: sale.status,
+          clientDataKeys: sale.clientData ? Object.keys(sale.clientData) : [],
+          clientName: sale.clientData ? `${sale.clientData.firstName || ''} ${sale.clientData.lastName || ''}`.trim() : 'Venta POS',
+          date: sale.saleDate,
+          notes: sale.notes ? sale.notes.substring(0, 50) : ''
+        }))
+      );
+    } else {
+      // Diagnóstico: Verificar cuántas ventas completed existen en total
+      const totalCompleted = await Sale.countDocuments({ status: 'completed' });
+      const totalRefunded = await Sale.countDocuments({ status: 'refunded' });
+      const withCartNotes = await Sale.countDocuments({ 
+        status: { $in: ['completed', 'refunded'] },
+        notes: { $regex: /carrito/i }
+      });
+      
+      logger.warn('⚠️ No se encontraron ventas de carrito', {
+        totalVentasCompleted: totalCompleted,
+        totalVentasRefunded: totalRefunded,
+        ventasConNotasCarrito: withCartNotes,
+        queryUsado: JSON.stringify(query)
+      });
+    }
+
+    return salesWithRefundInfo;
+  }
+
+  /**
    * Obtener venta por ID
    */
   static async getSaleById(id) {
@@ -876,6 +965,40 @@ class SaleUseCases {
    */
   static async getBarberSalesStats(barberId, dateFilter = {}) {
     try {
+      logger.info(`🔍 [SaleUseCases] getBarberSalesStats INICIO - barberId: ${barberId}, dateFilter:`, dateFilter);
+      
+      //Normalizar fechas para clave consistente
+      const normalizedFilter = {};
+      if (dateFilter.date) {
+        normalizedFilter.date = dateFilter.date instanceof Date 
+          ? dateFilter.date.toISOString().split('T')[0]  // Solo la fecha YYYY-MM-DD
+          : dateFilter.date;
+      }
+      if (dateFilter.startDate) {
+        normalizedFilter.startDate = dateFilter.startDate instanceof Date 
+          ? dateFilter.startDate.toISOString()
+          : dateFilter.startDate;
+      }
+      if (dateFilter.endDate) {
+        normalizedFilter.endDate = dateFilter.endDate instanceof Date
+          ? dateFilter.endDate.toISOString()
+          : dateFilter.endDate;
+      }
+      
+      //Generar clave única basada en parámetros
+      const cacheKey = `barber-sales-stats:${barberId}:${JSON.stringify(normalizedFilter)}`;
+      logger.info(`🔍 [SaleUseCases] cacheKey: ${cacheKey}`);
+      
+      // ✅ CACHE: Intentar obtener del cache primero (TTL: 5 minutos)
+      const cached = reportsCacheService.cache.get(cacheKey);
+      if (cached) {
+        logger.debug(`📦 Cache HIT para stats de barbero ${barberId}`);
+        logger.info(`🔍 [SaleUseCases] Retornando desde CACHE:`, cached);
+        return cached;
+      }
+      
+      logger.info(`🔍 [SaleUseCases] Cache MISS - consultando BD...`);
+
       // Construir filtros de fecha
       const matchConditions = {
         barberId: new mongoose.Types.ObjectId(barberId),
@@ -884,23 +1007,37 @@ class SaleUseCases {
 
       // Aplicar filtros de fecha
       if (dateFilter.date) {
-        // Filtro por fecha espec�fica - usar saleDate en lugar de createdAt
-        const targetDate = new Date(dateFilter.date + 'T00:00:00.000-05:00'); // Colombia UTC-5
+        // ✅ FIX: Filtro por fecha específica sin zona horaria (usar UTC)
+        const targetDate = new Date(dateFilter.date + 'T00:00:00.000Z'); // UTC para evitar desfases
         const startOfDay = new Date(targetDate);
-        startOfDay.setHours(0, 0, 0, 0);
+        startOfDay.setUTCHours(0, 0, 0, 0);
         const endOfDay = new Date(targetDate);
-        endOfDay.setHours(23, 59, 59, 999);
+        endOfDay.setUTCHours(23, 59, 59, 999);
+        
+        logger.info(`🔍 [SaleUseCases] Filtro por fecha específica:`, {
+          dateFilter: dateFilter.date,
+          targetDate: targetDate.toISOString(),
+          startOfDay: startOfDay.toISOString(),
+          endOfDay: endOfDay.toISOString()
+        });
         
         matchConditions.saleDate = {
           $gte: startOfDay,
           $lte: endOfDay
         };
       } else if (dateFilter.startDate && dateFilter.endDate) {
-        // Filtro por rango de fechas - usar saleDate en lugar de createdAt
-        const startDate = new Date(dateFilter.startDate + 'T00:00:00.000-05:00'); // Colombia UTC-5
-        startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(dateFilter.endDate + 'T23:59:59.999-05:00'); // Colombia UTC-5
-        endDate.setHours(23, 59, 59, 999);
+        // ✅ FIX: Filtro por rango de fechas sin zona horaria (usar UTC)
+        const startDate = new Date(dateFilter.startDate + 'T00:00:00.000Z'); // UTC para evitar desfases
+        startDate.setUTCHours(0, 0, 0, 0);
+        const endDate = new Date(dateFilter.endDate + 'T23:59:59.999Z'); // UTC para evitar desfases
+        endDate.setUTCHours(23, 59, 59, 999);
+        
+        logger.info(`🔍 [SaleUseCases] Filtro por rango:`, {
+          startDateFilter: dateFilter.startDate,
+          endDateFilter: dateFilter.endDate,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        });
         
         matchConditions.saleDate = {
           $gte: startDate,
@@ -912,6 +1049,8 @@ class SaleUseCases {
         matchConditions,
         dateFilter
       });
+
+      logger.info(`🔍 [SaleUseCases] Ejecutando aggregate con matchConditions:`, matchConditions);
 
       const stats = await Sale.aggregate([
         {
@@ -927,6 +1066,8 @@ class SaleUseCases {
           }
         }
       ]);
+      
+      logger.info(`🔍 [SaleUseCases] Stats de aggregate:`, { statsLength: stats.length, stats });
 
       // Inicializar respuesta con valores por defecto
       const result = {
@@ -980,6 +1121,11 @@ class SaleUseCases {
         filteredBy: dateFilter
       });
 
+      // ✅ CACHE: Guardar en cache por 5 minutos (300 segundos)
+      reportsCacheService.cache.set(cacheKey, result, 300);
+      logger.debug(`💾 Cache SET para stats de barbero ${barberId}`);
+
+      logger.info(`🔍 [SaleUseCases] Retornando result FINAL:`, result);
       return result;
     } catch (error) {
       logger.error('Error getting barber sales stats:', error);
@@ -1596,13 +1742,28 @@ class SaleUseCases {
    * Crear venta desde carrito con m�todos de pago m�ltiples
    */
   static async createCartSale(cartData) {
-    const { cart, barberId, notes } = cartData;
+    const { cart, barberId, notes, clientData } = cartData;
     
-    logger.info('?? Iniciando creaci�n de venta desde carrito', {
+    logger.info('🛒 Iniciando creación de venta desde carrito', {
       cartLength: cart?.length || 0,
       barberId,
-      notes: notes ? 'S�' : 'No'
+      notes: notes ? 'Sí' : 'No',
+      hasClientData: !!clientData
     });
+
+    // Log detallado del clientData recibido
+    if (clientData) {
+      logger.info('📋 Datos del cliente recibidos:', {
+        firstName: clientData.firstName || 'N/A',
+        lastName: clientData.lastName || 'N/A',
+        email: clientData.email || 'N/A',
+        phone: clientData.phone || 'N/A',
+        address: clientData.address || 'N/A',
+        sendEmail: clientData.sendEmail || false
+      });
+    } else {
+      logger.warn('⚠️ No se recibió clientData en el carrito');
+    }
 
     // Verificar que el barbero existe
     const barber = await SaleUseCases.findBarberByIdOrUserId(barberId);
@@ -1714,10 +1875,10 @@ class SaleUseCases {
         throw new AppError('El monto total debe ser mayor a 0', 400);
       }
       
-      // Validar m�todo de pago
-      const validPaymentMethods = ['efectivo', 'tarjeta', 'transferencia'];
+      // Validar método de pago usando métodos dinámicos de la BD
+      const validPaymentMethods = await SaleUseCases.getValidPaymentMethods();
       if (!validPaymentMethods.includes(saleItem.paymentMethod)) {
-        throw new AppError(`M�todo de pago inv�lido: ${saleItem.paymentMethod}. M�todos v�lidos: ${validPaymentMethods.join(', ')}`, 400);
+        throw new AppError(`Método de pago inválido: ${saleItem.paymentMethod}. Métodos válidos: ${validPaymentMethods.join(', ')}`, 400);
       }
 
       const sale = new Sale({
@@ -1735,13 +1896,25 @@ class SaleUseCases {
         barberId: barber._id,
         barberName: barber.user?.name || barber.specialty || 'Barbero',
         notes: `${notes} - Item del carrito`,
+        // Datos del cliente (opcional)
+        clientData: clientData || undefined,
         // Campos obligatorios
         status: 'completed',
-        saleDate: now()
+        saleDate: new Date()
       });
 
       await sale.save();
       createdSales.push(sale);
+      
+      // Log cada venta guardada con clientData
+      if (clientData) {
+        logger.info('💾 Venta guardada con clientData:', {
+          saleId: sale._id,
+          clientName: `${clientData.firstName} ${clientData.lastName}`,
+          clientEmail: clientData.email,
+          itemName: saleItem.productName || saleItem.serviceName
+        });
+      }
     }
 
     const finalTotalAmount = createdSales.reduce((sum, sale) => sum + sale.totalAmount, 0);

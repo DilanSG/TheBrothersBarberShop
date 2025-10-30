@@ -1,6 +1,6 @@
 ﻿import React, { createContext, useContext, useState, useEffect } from 'react';
+import { logger } from '../utils/logger.js';
 
-import logger from '../utils/logger';
 const NotificationContext = createContext();
 
 export const useNotification = () => {
@@ -13,7 +13,7 @@ export const useNotification = () => {
 
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
-  const [recentNotifications, setRecentNotifications] = useState(new Map()); // Para rastrear notificaciones recientes
+  const [recentNotifications, setRecentNotifications] = useState(new Map());
 
   // Limpiar notificaciones recientes expiradas cada 30 segundos
   useEffect(() => {

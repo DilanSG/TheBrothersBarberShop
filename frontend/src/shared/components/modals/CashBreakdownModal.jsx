@@ -58,7 +58,7 @@ const CashBreakdownModal = ({ isOpen, onClose, revenueData, dashboardData, dateR
   };
 
   // Bloquear scroll del body
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       scrollLockManager.lock();
       
@@ -72,7 +72,7 @@ const CashBreakdownModal = ({ isOpen, onClose, revenueData, dashboardData, dateR
   }, [isOpen]);
 
   // Cleanup adicional al desmontar el componente - solo si estaba abierto
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       if (isOpen) {
         scrollLockManager.unlock();

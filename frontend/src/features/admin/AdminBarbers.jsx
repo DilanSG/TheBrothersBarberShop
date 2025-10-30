@@ -1,29 +1,22 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users, AlertTriangle, Crown, Shield, Calendar,
-  TrendingUp, Scissors, Package, Download, X, CalendarDays, FileText,
+  Users, AlertTriangle, Scissors, Package, X, 
   ShoppingCart, DollarSign, Clock, Eye, Filter, RefreshCw, Receipt
 } from 'lucide-react';
 import { useAuth } from '@contexts/AuthContext';
 import { useNotification } from '@contexts/NotificationContext';
-import { getCurrentDateColombia } from '@/shared/utils/dateUtils';
+import { logger } from '@utils/logger';
 import { PageContainer } from '@components/layout/PageContainer';
 import GradientText from '@components/ui/GradientText';
-import GradientButton from '@components/ui/GradientButton';
 import { SimpleDateFilter } from '@components/common/SimpleDateFilter';
 import { useBarberStats } from '@hooks/useBarberStats';
-import { useBarberUI } from '@hooks/useBarberUI';
 import { useDetailedReports } from '@hooks/useDetailedReports';
-import CalendarModal from '@components/modals/CalendarModal';
-import logger from '@utils/logger';
 import { 
   DetailedSalesModal, 
   DetailedCutsModal, 
   DetailedAppointmentsModal 
 } from './DetailedModals';
-
-// DayRangeFilter component removed - using SimpleDateFilter from Reports for consistency
 
 /**
  * Modal para detalles de ventas
@@ -31,7 +24,10 @@ import {
 const SalesDetailModal = ({ isOpen, onClose, salesData, barberName, dateRange }) => {
   if (!isOpen) return null;
 
-  const totalAmount = salesData?.reduce((sum, sale) => sum + (sale.total || 0), 0) || 0;
+  //SalesData viene agrupado por día con { date, sales[], totalAmount, totalProducts }
+  const totalAmount = salesData?.reduce((sum, day) => sum + (day.totalAmount || 0), 0) || 0;
+  const totalProducts = salesData?.reduce((sum, day) => sum + (day.totalProducts || 0), 0) || 0;
+  
   const formatCurrency = (amount) => new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
@@ -39,8 +35,39 @@ const SalesDetailModal = ({ isOpen, onClose, salesData, barberName, dateRange })
     maximumFractionDigits: 0
   }).format(amount);
 
+  //Helper para formatear el rango de fechas del modal
+  const formatModalDateRange = () => {
+    if (!dateRange) return 'Período seleccionado';
+    
+    //Helper local para formatear fecha YYYY-MM-DD a DD/MM/YYYY
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '';
+      const [year, month, day] = dateStr.split('-');
+      return `${day}/${month}/${year}`;
+    };
+    
+    if (dateRange.preset === 'all') {
+      return 'Todos los registros';
+    }
+    
+    if (dateRange.preset === 'today' && dateRange.startDate) {
+      return formatDate(dateRange.startDate);
+    }
+    
+    if (dateRange.preset === 'yesterday' && dateRange.startDate) {
+      return formatDate(dateRange.startDate);
+    }
+    
+    if (dateRange.preset === 'custom' && dateRange.startDate && dateRange.endDate) {
+      return `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`;
+    }
+    
+    // Fallback cuando no hay fechas disponibles
+    return 'Período seleccionado';
+  };
+
   // Bloquear scroll del body
-  React.useEffect(() => {
+  useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = 'unset'; };
   }, []);
@@ -61,7 +88,7 @@ const SalesDetailModal = ({ isOpen, onClose, salesData, barberName, dateRange })
                     Ventas - {barberName}
                   </h3>
                   <p className="text-xs sm:text-sm text-green-300">
-                    {dateRange ? `${dateRange.startDate} - ${dateRange.endDate}` : 'Período seleccionado'}
+                    {formatModalDateRange()}
                   </p>
                 </div>
               </div>
@@ -78,7 +105,7 @@ const SalesDetailModal = ({ isOpen, onClose, salesData, barberName, dateRange })
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center">
                   <p className="text-xs sm:text-sm text-green-300">Total Productos</p>
-                  <p className="text-lg sm:text-xl font-bold text-white">{salesData?.length || 0}</p>
+                  <p className="text-lg sm:text-xl font-bold text-white">{totalProducts}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-xs sm:text-sm text-green-300">Total Ventas</p>
@@ -99,57 +126,68 @@ const SalesDetailModal = ({ isOpen, onClose, salesData, barberName, dateRange })
               </div>
             ) : (
               <div className="space-y-3">
-                {salesData.map((sale, index) => (
-                  <div key={`${sale._id || sale.id || index}`} className="group relative p-4 bg-green-500/5 border border-green-500/20 rounded-xl hover:bg-green-500/10 transition-all duration-300">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Package size={14} className="text-green-400" />
-                          <h4 className="text-sm font-medium text-white">
-                            Venta #{sale.saleNumber || sale._id?.slice(-6) || index + 1}
-                          </h4>
-                          <span className="px-2 py-1 text-xs bg-green-500/20 text-green-300 rounded-full">
-                            {new Date(sale.date || sale.createdAt).toLocaleDateString('es-ES')}
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-300 mb-2">
-                          <span className="text-white">{new Date(sale.date || sale.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-green-400">{formatCurrency(sale.total || 0)}</p>
-                      </div>
+                {/* Iterar sobre días, luego sobre sales de cada día */}
+                {salesData.map((dayData, dayIndex) => (
+                  <div key={`day-${dayData.date || dayIndex}`} className="mb-6">
+                    {/* Encabezado del día */}
+                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-green-500/20">
+                      <Calendar size={16} className="text-green-400" />
+                      <h4 className="text-sm font-semibold text-white">
+                        {new Date(dayData.date).toLocaleDateString('es-ES', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
+                      </h4>
+                      <span className="ml-auto text-xs text-green-300">
+                        {dayData.totalProducts} productos - {formatCurrency(dayData.totalAmount)}
+                      </span>
                     </div>
                     
-                    {/* Lista de productos en la venta */}
-                    {sale.items && sale.items.length > 0 ? (
-                      <div className="space-y-2 border-t border-green-500/20 pt-3">
-                        <p className="text-xs font-medium text-green-300 mb-2">Productos vendidos:</p>
-                        {sale.items.map((item, itemIndex) => (
-                          <div key={itemIndex} className="flex items-center justify-between p-2 bg-green-500/5 rounded-lg">
+                    {/* Ventas del día */}
+                    {dayData.sales && dayData.sales.length > 0 ? (
+                      dayData.sales.map((sale, saleIndex) => (
+                        <div key={`${sale._id || sale.id || saleIndex}`} className="group relative p-4 bg-green-500/5 border border-green-500/20 rounded-xl hover:bg-green-500/10 transition-all duration-300 mb-2">
+                          <div className="flex items-start justify-between mb-3">
                             <div className="flex-1">
-                              <p className="text-xs font-medium text-white">{item.name || item.productName}</p>
-                              <p className="text-xs text-gray-400">Cantidad: {item.quantity || 1}</p>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Package size={14} className="text-green-400" />
+                                <h5 className="text-sm font-medium text-white">
+                                  Venta #{sale.saleNumber || sale._id?.slice(-6) || saleIndex + 1}
+                                </h5>
+                                <span className="text-xs text-gray-300">
+                                  {new Date(sale.date || sale.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
                             </div>
                             <div className="text-right">
-                              <p className="text-xs text-green-400">{formatCurrency(item.price || 0)}</p>
-                              <p className="text-xs font-medium text-white">{formatCurrency((item.price || 0) * (item.quantity || 1))}</p>
+                              <p className="text-sm font-bold text-green-400">{formatCurrency(sale.total || 0)}</p>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="border-t border-green-500/20 pt-3">
-                        <div className="flex items-center justify-between p-2 bg-green-500/5 rounded-lg">
-                          <div className="flex-1">
-                            <p className="text-xs font-medium text-white">{sale.productName || sale.name || 'Producto sin especificar'}</p>
-                            <p className="text-xs text-gray-400">Cantidad: {sale.quantity || 1}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-green-400">{formatCurrency(sale.price || sale.total || 0)}</p>
-                          </div>
+                          
+                          {/* Lista de productos en la venta */}
+                          {sale.items && sale.items.length > 0 ? (
+                            <div className="space-y-2 border-t border-green-500/20 pt-3">
+                              <p className="text-xs font-medium text-green-300 mb-2">Productos vendidos:</p>
+                              {sale.items.map((item, itemIndex) => (
+                                <div key={itemIndex} className="flex items-center justify-between p-2 bg-green-500/5 rounded-lg">
+                                  <div className="flex-1">
+                                    <p className="text-xs font-medium text-white">{item.name || item.productName}</p>
+                                    <p className="text-xs text-gray-400">Cantidad: {item.quantity || 1}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-xs text-green-400">{formatCurrency(item.price || 0)}</p>
+                                    <p className="text-xs font-medium text-white">{formatCurrency((item.price || 0) * (item.quantity || 1))}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
                         </div>
-                      </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-gray-400 ml-4">No hay ventas en este día</p>
                     )}
                   </div>
                 ))}
@@ -176,8 +214,27 @@ const AppointmentsDetailModal = ({ isOpen, onClose, appointmentsData, barberName
     maximumFractionDigits: 0
   }).format(amount);
 
+  // Helper para formatear el rango de fechas del modal
+  const formatModalDateRange = () => {
+    if (!dateRange) return 'Período seleccionado';
+    
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '';
+      const [year, month, day] = dateStr.split('-');
+      return `${day}/${month}/${year}`;
+    };
+    
+    if (dateRange.preset === 'all') return 'Todos los registros';
+    if (dateRange.preset === 'today' && dateRange.startDate) return formatDate(dateRange.startDate);
+    if (dateRange.preset === 'yesterday' && dateRange.startDate) return formatDate(dateRange.startDate);
+    if (dateRange.preset === 'custom' && dateRange.startDate && dateRange.endDate) {
+      return `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`;
+    }
+    return 'Período seleccionado';
+  };
+
   // Bloquear scroll del body
-  React.useEffect(() => {
+  useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = 'unset'; };
   }, []);
@@ -218,7 +275,7 @@ const AppointmentsDetailModal = ({ isOpen, onClose, appointmentsData, barberName
                     Citas - {barberName}
                   </h3>
                   <p className="text-xs sm:text-sm text-blue-300">
-                    {dateRange ? `${dateRange.startDate} - ${dateRange.endDate}` : 'Período seleccionado'}
+                    {formatModalDateRange()}
                   </p>
                 </div>
               </div>
@@ -328,8 +385,27 @@ const ServicesDetailModal = ({ isOpen, onClose, servicesData, barberName, dateRa
     maximumFractionDigits: 0
   }).format(amount);
 
+  // Helper para formatear el rango de fechas del modal
+  const formatModalDateRange = () => {
+    if (!dateRange) return 'Período seleccionado';
+    
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '';
+      const [year, month, day] = dateStr.split('-');
+      return `${day}/${month}/${year}`;
+    };
+    
+    if (dateRange.preset === 'all') return 'Todos los registros';
+    if (dateRange.preset === 'today' && dateRange.startDate) return formatDate(dateRange.startDate);
+    if (dateRange.preset === 'yesterday' && dateRange.startDate) return formatDate(dateRange.startDate);
+    if (dateRange.preset === 'custom' && dateRange.startDate && dateRange.endDate) {
+      return `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`;
+    }
+    return 'Período seleccionado';
+  };
+
   // Bloquear scroll del body
-  React.useEffect(() => {
+  useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = 'unset'; };
   }, []);
@@ -350,7 +426,7 @@ const ServicesDetailModal = ({ isOpen, onClose, servicesData, barberName, dateRa
                     Cortes - {barberName}
                   </h3>
                   <p className="text-xs sm:text-sm text-purple-300">
-                    {dateRange ? `${dateRange.startDate} - ${dateRange.endDate}` : 'Período seleccionado'}
+                    {formatModalDateRange()}
                   </p>
                 </div>
               </div>
@@ -457,62 +533,41 @@ const ServicesDetailModal = ({ isOpen, onClose, servicesData, barberName, dateRa
 const BarberStatsCard = ({ 
   barber, 
   totals, 
-  isLoading = false, // Loading general
-  loadingStatus = null, // Estado granular de loading
+  isLoading = false,
   onSalesClick, 
   onAppointmentsClick, 
   onServicesClick, 
   formatCurrency,
-  navigate, // ✅ Agregamos navigate como prop
-  dateRange, // ✅ Nuevo sistema de filtros (objeto con preset, startDate, endDate)
-  onGenerateInvoice // Función para generar factura consolidada
+  navigate,
+  dateRange,
+  onGenerateInvoice
 }) => {
   return (
     <div className="group relative bg-transparent border border-white/10 rounded-2xl backdrop-blur-sm shadow-2xl shadow-blue-500/20 overflow-hidden min-h-[400px] flex flex-col">
       {/* Efecto de brillo */}
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[2.5%] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out rounded-2xl"></div>
-      
-      {/* Botón de Factura Consolidada - Esquina superior derecha */}
+
+      {/* Botón de Reporte Consolidado */}
       <button
         onClick={() => onGenerateInvoice(barber._id)}
-        className="absolute top-4 right-4 z-30 p-2.5 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg hover:from-blue-600/30 hover:to-purple-600/30 hover:border-blue-500/50 transition-all duration-300 hover:scale-110 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 group/invoice"
-        title="Generar factura consolidada del período"
+        className="absolute top-2 right-2 z-30 p-1.5 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-md hover:from-blue-600/30 hover:to-purple-600/30 hover:border-blue-500/50 transition-all duration-300 hover:scale-105 shadow-md shadow-blue-500/20 hover:shadow-blue-500/40 group/invoice"
+        title="Generar reporte consolidado del período"
       >
-        <Receipt className="w-5 h-5 text-blue-400 group-hover/invoice:text-blue-300" />
+        <Receipt className="w-4 h-4 text-blue-400 group-hover/invoice:text-blue-300" />
       </button>
       
       <div className="relative p-6 lg:p-8 flex-1 flex flex-col">
-        {/* Overlay de loading granular */}
-        {loadingStatus && (
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-10 rounded-2xl">
-            <div className="text-center text-white">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent mx-auto mb-3"></div>
-              <div className="text-sm font-medium">
-                {loadingStatus === 'fetching_sales' && '📊 Cargando ventas...'}
-                {loadingStatus === 'fetching_appointments' && '📅 Cargando citas...'}
-                {loadingStatus === 'processing' && '⚙️ Procesando...'}
-                {loadingStatus === 'complete' && '✅ Completado'}
-                {loadingStatus === 'error' && '❌ Error al cargar'}
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Header del barbero - Altura flexible para nombres largos */}
-        <div className="flex items-start gap-4 mb-6 min-h-[80px] sm:min-h-[88px] relative z-20">
+        {/* Header del barbero */}
+        <div className="flex items-start gap-4 mb-6 min-h-[80px] sm:min-h-[88px]">
           <div className="relative flex-shrink-0 z-30">
             {/* Imagen clickeable que navega al perfil público */}
             <button
               onClick={(e) => {
                 e.stopPropagation(); // Evitar propagación del evento
-                logger.debug('🎯 CLICK EN FOTO DETECTADO - Navegando al perfil público del barbero:', barber.user?.name);
-                logger.debug('🎯 BarberID:', barber._id);
-                logger.debug('🎯 Navigate function:', typeof navigate);
                 try {
                   navigate(`/barbers/${barber._id}`);
-                  logger.debug('✅ Navegación ejecutada exitosamente');
                 } catch (error) {
-                  console.error('❌ Error en navegación:', error);
+                  console.error('Error en navegación:', error);
                 }
               }}
               className="relative block hover:scale-105 transition-transform duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 rounded-full z-40 cursor-pointer"
@@ -525,13 +580,12 @@ const BarberStatsCard = ({
                     alt={barber.user?.name || 'Barbero'}
                     className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-blue-500/30 shadow-lg"
                     onError={(e) => {
-                      console.error('❌ Error loading profile picture:', e.target.src, 'for barber:', barber.user?.name);
+                      console.error('Error cargando imagen de perfil:', e.target.src, 'for barber:', barber.user?.name);
                       e.target.style.display = 'none';
                       const fallback = e.target.parentElement.querySelector('.fallback-avatar');
                       if (fallback) fallback.style.display = 'flex';
                     }}
                     onLoad={() => {
-                      logger.debug('✅ Profile picture loaded successfully for:', barber.user?.name);
                     }}
                   />
                   {/* Fallback avatar - inicialmente oculto */}
@@ -552,17 +606,17 @@ const BarberStatsCard = ({
           </div>
           
           <div className="flex-1 min-w-0">
-            {/* Nombre - permitir múltiples líneas */}
+            {/* Nombre */}
             <h3 className="text-lg sm:text-xl font-bold text-white mb-1 leading-tight break-words">
               {barber.user?.name || barber.name || 'Barbero'}
             </h3>
             
-            {/* Email - con tooltip para email completo */}
+            {/* Email */}
             <p className="text-sm text-gray-400 truncate" title={barber.user?.email || barber.email || 'Sin email'}>
               {barber.user?.email || barber.email || 'Sin email'}
             </p>
             
-            {/* Teléfono - mismo estilo que el email */}
+            {/* Teléfono */}
             {(barber.user?.phone || barber.phone) && (
               <p className="text-sm text-gray-400 truncate mt-1" title={barber.user?.phone || barber.phone}>
                 {barber.user?.phone || barber.phone}
@@ -571,7 +625,7 @@ const BarberStatsCard = ({
           </div>
         </div>
 
-        {/* Estadísticas clickeables - Ocupa el espacio restante */}
+        {/* Estadísticas clickeables */}
         {isLoading && !totals ? (
           // Mostrar loading solo si realmente no hay datos
           <div className="flex-1 flex items-center justify-center">
@@ -586,9 +640,6 @@ const BarberStatsCard = ({
           {/* Ventas */}
           <button
             onClick={() => {
-              logger.debug('🚨 CLICK EN VENTAS DETECTADO');
-              logger.debug('🚨 barberId que se va a pasar:', barber._id);
-              logger.debug('🚨 función onSalesClick:', onSalesClick);
               onSalesClick(barber._id);
             }}
             className="group/stat w-full p-4 bg-green-500/5 border border-green-500/20 rounded-xl hover:bg-green-500/10 hover:border-green-500/40 transition-all duration-300 text-left hover:scale-[1.02]"
@@ -690,14 +741,9 @@ const BarberStatsCard = ({
 };
 
 /**
- * Página principal AdminBarbers mejorada
+ * Página principal AdminBarbers
  */
 const AdminBarbers = () => {
-  // Log de debug ultra-visible
-  logger.debug('�🟢🟢 ADMINBARBERS COMPONENT RENDERING 🟢🟢🟢');
-  logger.debug('🟢 Current timestamp:', new Date().toISOString());
-  logger.debug('🟢 Window location:', window.location.pathname);
-  
   const { user } = useAuth();
   const { showError, showInfo } = useNotification();
   const navigate = useNavigate();
@@ -714,29 +760,20 @@ const AdminBarbers = () => {
     return result;
   };
 
-  // Hook personalizado para manejar estadísticas y datos
-  // 🚀 USANDO HOOK OPTIMIZADO PARA TESTING DE PERFORMANCE
+  // Hook para estadísticas de barberos
   const {
     barbers,
     statistics,
     filteredStats,
     loading,
     error,
-    sortedAvailableDates,
     filterType,
     filterDate,
-    filterLoading,
-    loadingStatus, // Estados de progreso granular
-    applyFilter, // Función debounced
-    getPerformanceStats, // Métricas de rendimiento
-    clearCache, // Limpiar cache
-    loadData, // Función para recargar datos
-    isLoadingData,
-    isApplyingFilter
-  } = useBarberStats(); // � HOOK OPTIMIZADO IMPLEMENTADO
-
-  // Usar barbers como barbersData para el fallback
-  const barbersData = barbers;
+    applyFilter,
+    getPerformanceStats,
+    clearCache,
+    loadData
+  } = useBarberStats();
 
   // Hook para reportes detallados
   const {
@@ -764,77 +801,6 @@ const AdminBarbers = () => {
     services: { isOpen: false, data: null, barber: null, dateRange: null }
   });
 
-  // Efecto para aplicar filtro inicial de "General" cuando se cargan los barberos
-  useEffect(() => {
-    logger.debug('🎯 USEEFFECT FILTRO INICIAL:', {
-      barbersLength: barbers.length,
-      loading,
-      dateRangePreset: dateRange.preset,
-      hasApplyFilter: typeof applyFilter === 'function',
-      statisticsKeysCount: Object.keys(statistics).length,
-      filteredStatsKeysCount: Object.keys(filteredStats).length,
-      timestamp: new Date().toLocaleTimeString("es-CO", { timeZone: "America/Bogota" })
-    });
-    
-    // Aplicar filtro general si:
-    // 1. Hay barberos cargados
-    // 2. No está cargando barberos
-    // 3. Está en modo "all" (General)
-    // 4. Y NO tiene estadísticas cargadas (es el problema principal)
-    if (barbers.length > 0 && !loading && dateRange.preset === 'all' && typeof applyFilter === 'function' && Object.keys(statistics).length === 0) {
-      logger.debug('✅ APLICANDO FILTRO GENERAL INICIAL...', { 
-        barbersLength: barbers.length,
-        barbersData: barbers.map(b => ({ id: b._id, name: b.user?.name || b.name }))
-      });
-      applyFilter('General', '', barbers); // Pasar los barberos como tercer parámetro
-    } else {
-      logger.debug('❌ NO SE APLICA FILTRO - Condiciones no cumplidas:', {
-        hasBarberos: barbers.length > 0,
-        notLoading: !loading,
-        isAll: dateRange.preset === 'all',
-        hasApplyFilter: typeof applyFilter === 'function',
-        noStatistics: Object.keys(statistics).length === 0
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [barbers.length, loading, dateRange.preset, Object.keys(statistics).length]); // Agregada dependencia de statistics
-
-  // Efecto adicional para forzar carga cuando se monta el componente sin datos
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      // Usar fallback a barbersData si barbers está vacío
-      const currentBarbers = barbers.length > 0 ? barbers : barbersData;
-      
-      if (currentBarbers.length > 0 && !loading && !filterLoading && Object.keys(statistics).length === 0 && Object.keys(filteredStats).length === 0) {
-        logger.debug('🔄 FORZANDO CARGA INICIAL DESPUÉS DE NAVEGACIÓN', { 
-          barbersLength: barbers.length,
-          barbersDataLength: barbersData.length,
-          usingFallback: barbers.length === 0 && barbersData.length > 0
-        });
-        if (typeof applyFilter === 'function') {
-          applyFilter('General', '', currentBarbers); // Pasar los barberos correctos
-        }
-      } else if (currentBarbers.length === 0) {
-        logger.debug('⚠️ No hay barberos disponibles para forzar carga inicial');
-      }
-    }, 1000); // Esperar 1 segundo después del mount
-
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Solo se ejecuta al montar el componente
-
-  // Usar fechas disponibles del hook en lugar de extraerlas localmente
-  const availableDates = sortedAvailableDates || [];
-  
-  // Debug temporal: verificar qué recibimos del hook
-  logger.debug('🔍 AdminBarbers - Hook data:', {
-    sortedAvailableDates: sortedAvailableDates?.length || 0,
-    availableDates: availableDates?.length || 0,
-    allAvailableDates: typeof sortedAvailableDates
-  });
-
-  // ========== NUEVOS HANDLERS PARA SIMPLEDATEFILTER ==========
-  
   // Helper para calcular fechas basado en preset
   const calculateDatesFromPreset = (preset) => {
     const today = getTodayLocalDate();
@@ -845,9 +811,15 @@ const AdminBarbers = () => {
       case 'today':
         return { startDate: today, endDate: today };
       case 'yesterday': {
-        const yesterday = new Date(today + 'T12:00:00');
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        const [year, month, day] = today.split('-').map(Number);
+        const todayDate = new Date(year, month - 1, day); 
+        todayDate.setDate(todayDate.getDate() - 1);
+        
+        const yesterdayYear = todayDate.getFullYear();
+        const yesterdayMonth = (todayDate.getMonth() + 1).toString().padStart(2, '0');
+        const yesterdayDay = todayDate.getDate().toString().padStart(2, '0');
+        const yesterdayStr = `${yesterdayYear}-${yesterdayMonth}-${yesterdayDay}`;
+        
         return { startDate: yesterdayStr, endDate: yesterdayStr };
       }
       default:
@@ -857,7 +829,16 @@ const AdminBarbers = () => {
 
   // Handler para cambio de preset (all, today, yesterday, custom)
   const handlePresetChange = async (preset) => {
-    logger.debug('📅 [AdminBarbers] Cambio de preset:', { preset });
+    //IMPORTANTE: Para 'custom', NO actualizar las fechas aún (esperamos handleCustomDateChange)
+    // Solo actualizamos el preset para que el componente SimpleDateFilter sepa que está en modo custom
+    if (preset === 'custom') {
+      setDateRange(prev => ({
+        ...prev,
+        preset: 'custom'
+        // Mantener startDate y endDate del estado anterior
+      }));
+      return;
+    }
     
     const { startDate, endDate } = calculateDatesFromPreset(preset);
     
@@ -867,11 +848,9 @@ const AdminBarbers = () => {
       endDate
     });
 
-    // Usar barbersData del hook como fallback
-    const activeBarbersData = (barbers?.length > 0) ? barbers : (barbersData || []);
-    
-    if (!activeBarbersData || activeBarbersData.length === 0) {
-      logger.debug('⚠️ [AdminBarbers] No hay barberos disponibles');
+    // Validación: Solo aplicar si hay barberos disponibles
+    if (!barbers || barbers.length === 0) {
+      logger.info('[handlePresetChange] No hay barberos disponibles');
       return;
     }
 
@@ -886,213 +865,30 @@ const AdminBarbers = () => {
       filterType = 'Ayer';
       filterDate = startDate;
     }
-    
-    await applyFilter(filterType, filterDate, activeBarbersData);
+
+    logger.info('[handlePresetChange] Aplicando filtro:', { filterType, filterDate, barbersCount: barbers.length });
+    await applyFilter(filterType, filterDate, barbers); // Pasar barberos explícitamente
   };
 
   // Handler para cambio de fechas personalizadas
   const handleCustomDateChange = async (startDate, endDate) => {
-    logger.debug('📅 [AdminBarbers] Rango personalizado:', { startDate, endDate });
-    
     setDateRange({
       preset: 'custom',
       startDate,
       endDate
     });
-
-    // Usar barbersData del hook como fallback
-    const activeBarbersData = (barbers?.length > 0) ? barbers : (barbersData || []);
     
-    if (!activeBarbersData || activeBarbersData.length === 0) {
-      logger.debug('⚠️ [AdminBarbers] No hay barberos disponibles');
+    // Validación: Solo aplicar si hay barberos disponibles
+    if (!barbers || barbers.length === 0) {
+      logger.info('[handleCustomDateChange] No hay barberos disponibles');
       return;
     }
-
-    // Para rango personalizado, usar endDate como filterDate
-    await applyFilter('Personalizado', endDate, activeBarbersData);
+    
+    logger.info('[handleCustomDateChange] Aplicando filtro personalizado:', { startDate, endDate, barbersCount: barbers.length });
+    // Para rango personalizado, pasar las fechas exactas al filtro
+    await applyFilter('Personalizado', endDate, barbers, startDate); // Pasar barberos explícitamente
   };
   
-  // ========== FIN NUEVOS HANDLERS ==========
-
-
-  // Filtrar datos según los días seleccionados y fecha final
-  const getFilteredDataByDays = (barberStats, days, endDate = null) => {
-    if (!barberStats) return { sales: [], appointments: [], walkIns: [] };
-
-    // Si es filtro General, devolver todos los datos asegurando que sean arrays
-    if (days === 'general') {
-      return {
-        sales: Array.isArray(barberStats.sales) ? barberStats.sales : [],
-        appointments: Array.isArray(barberStats.appointments) ? barberStats.appointments : [],
-        walkIns: Array.isArray(barberStats.walkIns) ? barberStats.walkIns : []
-      };
-    }
-
-    const actualEndDate = endDate ? new Date(endDate) : new Date();
-    const startDate = new Date(actualEndDate);
-    startDate.setDate(actualEndDate.getDate() - days + 1);
-    
-    // Establecer horas para comparación correcta (UTC)
-    startDate.setUTCHours(0, 0, 0, 0);
-    actualEndDate.setUTCHours(23, 59, 59, 999);
-
-    const filterByDate = (items) => {
-      if (!Array.isArray(items)) return [];
-      return items.filter(item => {
-        const itemDate = new Date(item.date || item.createdAt || item.saleDate);
-        return itemDate >= startDate && itemDate <= actualEndDate;
-      });
-    };
-
-    const filtered = {
-      sales: filterByDate(barberStats.sales || []),
-      appointments: filterByDate(barberStats.appointments || []),
-      walkIns: filterByDate(barberStats.walkIns || [])
-    };
-
-    return filtered;
-  };
-
-  // Funciones para manejar cambios de filtros conectados al hook
-  const handleDayRangeChange = async (days) => {
-    logger.debug(`🎯 [AdminBarbers] Cambiando filtro a: ${days}`, { 
-      barbersLength: barbers?.length || 0,
-      barbersDataLength: barbersData?.length || 0,
-      barbers: barbers,
-      barbersData: barbersData
-    });
-    
-    // Usar barbersData del hook como fallback si barbers está vacío
-    const activeBarbersData = (barbers?.length > 0) ? barbers : (barbersData || []);
-    logger.debug(`🎯 [AdminBarbers] Datos de barberos a usar:`, { 
-      usingBarbers: (barbers?.length > 0),
-      activeBarbersLength: activeBarbersData?.length || 0,
-      activeBarbersData: activeBarbersData
-    });
-
-    // Si no hay barberos disponibles, esperar un poco y reintentar
-    if (!activeBarbersData || activeBarbersData.length === 0) {
-      logger.debug('⚠️ [AdminBarbers] No hay barberos disponibles, esperando...');
-      setTimeout(() => {
-        if (barbers?.length > 0 || barbersData?.length > 0) {
-          handleDayRangeChange(days); // Reintentar
-        }
-      }, 500);
-      return;
-    }
-    
-    setSelectedDayRange(days);
-    
-    if (days === 'general') {
-      // Para filtro General, mostrar todos los datos
-      await applyFilter('General', '', activeBarbersData);
-      setSelectedEndDate(null);
-    } else if (days === 1) {
-      // Para "Hoy", usar fecha actual
-      const today = getTodayLocalDate();
-      await applyFilter('Hoy', today, activeBarbersData);
-      setSelectedEndDate(today);
-    } else if (days === 7) {
-      // Para "Últimos 7 días", configurar rango real
-      const today = getTodayLocalDate();
-      const endDate = today;
-      const todayDate = new Date(today + 'T12:00:00');
-      const startDate = new Date(todayDate);
-      startDate.setDate(todayDate.getDate() - 6); // 7 días incluyendo hoy
-      
-      await applyFilter('7 días', endDate, activeBarbersData);
-      setSelectedEndDate(endDate);
-    } else if (days === 30) {
-      // Para "Últimos 30 días", configurar rango real
-      const today = getTodayLocalDate();
-      const endDate = today;
-      const todayDate = new Date(today + 'T12:00:00');
-      const startDate = new Date(todayDate);
-      startDate.setDate(todayDate.getDate() - 29); // 30 días incluyendo hoy
-      
-      await applyFilter('30 días', endDate, activeBarbersData);
-      setSelectedEndDate(endDate);
-    } else if (days === 15) {
-      // Para "Últimos 15 días", configurar rango específico
-      const today = getTodayLocalDate();
-      const endDate = today;
-      const todayDate = new Date(today + 'T12:00:00');
-      const startDate = new Date(todayDate);
-      startDate.setDate(todayDate.getDate() - 14); // 15 días incluyendo hoy
-      
-      await applyFilter('15 días', endDate, activeBarbersData);
-      setSelectedEndDate(endDate);
-    } else {
-      // Para otros rangos personalizados
-      const today = getTodayLocalDate();
-      const endDate = today;
-      const todayDate = new Date(today + 'T12:00:00');
-      const startDate = new Date(todayDate);
-      startDate.setDate(todayDate.getDate() - (days - 1));
-      
-      let filterTypeForHook = days <= 7 ? '7 días' : days <= 15 ? '15 días' : '30 días';
-      await applyFilter(filterTypeForHook, endDate, activeBarbersData);
-      setSelectedEndDate(endDate);
-    }
-  };
-
-  const handleEndDateChange = async (dateString) => {
-    logger.debug(`🎯 [AdminBarbers] Cambiando fecha a: ${dateString}`, { 
-      barbersLength: barbers?.length || 0,
-      barbersDataLength: barbersData?.length || 0
-    });
-    
-    // Usar barbersData del hook como fallback si barbers está vacío
-    const activeBarbersData = (barbers?.length > 0) ? barbers : (barbersData || []);
-
-    // Si no hay barberos disponibles, esperar un poco y reintentar
-    if (!activeBarbersData || activeBarbersData.length === 0) {
-      logger.debug('⚠️ [AdminBarbers] No hay barberos disponibles para cambio de fecha, esperando...');
-      setTimeout(() => {
-        if (barbers?.length > 0 || barbersData?.length > 0) {
-          handleEndDateChange(dateString); // Reintentar
-        }
-      }, 500);
-      return;
-    }
-    
-    setSelectedEndDate(dateString);
-    if (dateString) {
-      // Determinar el tipo de filtro basado en el selectedDayRange actual
-      let filterTypeForDate = 'Hoy';
-      if (selectedDayRange === 1) {
-        filterTypeForDate = 'Hoy';
-      } else if (selectedDayRange === 7) {
-        filterTypeForDate = '7 días';
-      } else if (selectedDayRange === 15) {
-        filterTypeForDate = '15 días';
-      } else if (selectedDayRange === 30) {
-        filterTypeForDate = '30 días';
-      }
-      
-      await applyFilter(filterTypeForDate, dateString, activeBarbersData);
-    }
-  };
-
-  // LEGACY: getFilteredStatsByDays - No longer needed with SimpleDateFilter
-  // Keeping for backward compatibility, but using dateRange instead
-  const getFilteredStatsByDays = useMemo(() => {
-    if (!statistics || !barbers.length) return {};
-
-    const filtered = {};
-    barbers.forEach(barber => {
-      const barberStats = statistics[barber._id];
-      if (barberStats) {
-        // Using filteredStats from hook instead of local filtering
-        filtered[barber._id] = filteredStats[barber._id] || { sales: [], appointments: [], walkIns: [] };
-      } else {
-        // Asegurar que siempre haya un objeto con arrays vacíos
-        filtered[barber._id] = { sales: [], appointments: [], walkIns: [] };
-      }
-    });
-    return filtered;
-  }, [statistics, filteredStats, barbers, dateRange.preset]);
-
   // Effect para asegurar que siempre haya scroll disponible
   useEffect(() => {
     const ensureScroll = () => {
@@ -1117,299 +913,169 @@ const AdminBarbers = () => {
     };
   }, [dateRange.preset, dateRange.startDate, dateRange.endDate, barbers]);
 
-  // Helper para formatear fecha YYYY-MM-DD a DD/MM/YYYY de forma segura
-  const formatDateSafe = (dateStr) => {
-    if (!dateStr) return '';
-    
-    // Extraer año, mes, día directamente del string YYYY-MM-DD
-    const [year, month, day] = dateStr.split('-');
-    return `${day}/${month}/${year}`;
-  };
-
-  // Función para formatear el rango de fechas (simplificada para nuevo sistema)
-  const formatDateRange = () => {
-    if (dateRange.preset === 'all') return 'Todos los registros disponibles';
-    
-    if (dateRange.preset === 'today') {
-      return formatDateSafe(dateRange.startDate || getTodayLocalDate());
-    }
-    
-    if (dateRange.preset === 'yesterday') {
-      return formatDateSafe(dateRange.startDate);
-    }
-    
-    if (dateRange.preset === 'custom' && dateRange.startDate && dateRange.endDate) {
-      const formattedStart = formatDateSafe(dateRange.startDate);
-      const formattedEnd = formatDateSafe(dateRange.endDate);
-      return `${formattedStart} - ${formattedEnd}`;
-    }
-    
-    // Fallback
-    return 'Rango personalizado';
-  };
-
   // Funciones para abrir modales con reportes detallados
-  const openSalesModal = async (barberId) => {
-    logger.debug('🚨 INICIANDO openSalesModal - FUNCIÓN PERSONALIZADA');
-    logger.debug('🚨 barberId recibido:', barberId);
-    
+  const openSalesModal = useCallback(async (barberId) => {
     const barber = barbers.find(b => b._id === barberId);
     const barberName = barber?.user?.name || barber?.name || 'Barbero';
-    const dateRangeStr = formatDateRange();
-    
-    logger.debug('🛒 Abriendo modal de ventas detalladas:', { barberId, dateRangeStr, dateRange });
-    logger.debug('🔍 Fechas calculadas para el modal:', { 
-      dateRange, 
-      todayStr: getTodayLocalDate(),
-      filterType: filterType || 'ninguno'
-    });
-    
-    // DEBUG: Comparar datos de card vs modal
-    const barberStats = statistics[barberId] || filteredStats[barberId];
-    logger.debug('📊 COMPARACIÓN CARD vs MODAL para', barberName, ':', {
-      dateRange: dateRange.preset,
-      filterType: filterType,
-      cardStats: barberStats,
-      salesFromCard: barberStats?.sales,
-      aboutToFetchModalData: { startDateStr: 'calculando...', endDateStr: 'calculando...' }
-    });
     
     let startDateStr, endDateStr;
     
     if (dateRange.preset === 'all') {
-      // Para filtro General, NO pasar fechas (igual que useBarberStats)
       startDateStr = undefined;
       endDateStr = undefined;
     } else {
-      // Usar fechas directamente del estado dateRange
       startDateStr = dateRange.startDate;
       endDateStr = dateRange.endDate;
     }
     
-    logger.debug('📅 Fechas finales para el backend:', { 
-      startDateStr, 
-      endDateStr, 
-      barberId,
-      modalDateRange: `${startDateStr} a ${endDateStr}`,
-      currentPreset: dateRange.preset
-    });
-    
-    // Abrir modal inmediatamente con loading state
     setModalData(prev => ({
       ...prev,
       sales: {
         isOpen: true,
         data: null,
         barber: barberName,
-        dateRange: dateRangeStr,
-        loading: true,
-        error: null
+        dateRange: dateRange
       }
     }));
     
     try {
-      // Obtener datos detallados
       const salesData = await fetchDetailedSales(barberId, startDateStr, endDateStr);
       
-      // DEBUG: Comparar resultados
-      const modalTotalAmount = salesData?.reduce((sum, day) => sum + (day.totalAmount || 0), 0) || 0;
-      const modalTotalProducts = salesData?.reduce((sum, day) => sum + (day.totalProducts || 0), 0) || 0;
-      
-      logger.debug('🔍 COMPARACIÓN FINAL CARD vs MODAL para', barberName, ':', {
-        cardSales: barberStats?.sales?.total || 0,
-        cardSalesCount: barberStats?.sales?.totalQuantity || 0, // Cambiar a totalQuantity
-        modalSales: modalTotalAmount,
-        modalSalesCount: modalTotalProducts,
-        diferenciaMonto: (barberStats?.sales?.total || 0) - modalTotalAmount,
-        diferenciaCount: (barberStats?.sales?.totalQuantity || 0) - modalTotalProducts, // Cambiar a totalQuantity
-        salesDataDays: salesData?.length || 0
-      });
-      
-      // Actualizar modal con datos
       setModalData(prev => ({
         ...prev,
         sales: {
           ...prev.sales,
-          data: salesData,
-          loading: false
+          data: salesData
         }
       }));
     } catch (error) {
-      console.error('❌ Error cargando ventas detalladas:', error);
+      console.error('Error cargando ventas detalladas:', error);
       setModalData(prev => ({
         ...prev,
         sales: {
           ...prev.sales,
-          data: [],
-          loading: false,
-          error: 'Error al cargar las ventas detalladas'
+          data: []
         }
       }));
     }
-  };
+  }, [dateRange, barbers, statistics, filteredStats]);
 
-  const openServicesModal = async (barberId) => {
+  const openServicesModal = useCallback(async (barberId) => {
     const barber = barbers.find(b => b._id === barberId);
     const barberName = barber?.user?.name || barber?.name || 'Barbero';
-    const dateRange = formatDateRange();
-    
-    logger.debug('✂️ Abriendo modal de cortes detallados:', { barberId, dateRange, selectedDayRange });
-    
     let startDateStr, endDateStr;
     
-    if (selectedDayRange === 'general') {
-      // Para filtro General, NO pasar fechas (igual que useBarberStats)
+    if (dateRange.preset === 'all') {
       startDateStr = undefined;
       endDateStr = undefined;
     } else {
-      // Calcular fechas de inicio y fin para filtros específicos
-      const todayStr = getTodayLocalDate();
-      const endDate = selectedEndDate ? new Date(selectedEndDate + 'T12:00:00') : new Date(todayStr + 'T12:00:00');
-      const startDate = new Date(endDate);
-      startDate.setDate(endDate.getDate() - (selectedDayRange - 1));
-      
-      startDateStr = startDate.toISOString().split('T')[0];
-      endDateStr = endDate.toISOString().split('T')[0];
+      startDateStr = dateRange.startDate;
+      endDateStr = dateRange.endDate;
     }
     
-    // Abrir modal inmediatamente con loading state
     setModalData(prev => ({
       ...prev,
       services: {
         isOpen: true,
         data: null,
         barber: barberName,
-        dateRange: dateRange,
-        loading: true,
-        error: null
+        dateRange: dateRange
       }
     }));
     
     try {
-      // Obtener datos detallados de cortes
       const cutsData = await fetchDetailedCuts(barberId, startDateStr, endDateStr);
       
-      // Actualizar modal con datos
       setModalData(prev => ({
         ...prev,
         services: {
           ...prev.services,
-          data: cutsData,
-          loading: false
+          data: cutsData
         }
       }));
     } catch (error) {
-      console.error('❌ Error cargando cortes detallados:', error);
+      console.error('Error cargando cortes detallados:', error);
       setModalData(prev => ({
         ...prev,
         services: {
           ...prev.services,
-          data: [],
-          loading: false,
-          error: 'Error al cargar los cortes detallados'
+          data: []
         }
       }));
     }
-  };
+  }, [dateRange, barbers]);
 
-  const openAppointmentsModal = async (barberId) => {
+  const openAppointmentsModal = useCallback(async (barberId) => {
     const barber = barbers.find(b => b._id === barberId);
     const barberName = barber?.user?.name || barber?.name || 'Barbero';
-    const dateRange = formatDateRange();
-    
-    logger.debug('📅 Abriendo modal de citas detalladas:', { barberId, dateRange, selectedDayRange });
-    
     let startDateStr, endDateStr;
     
-    if (selectedDayRange === 'general') {
-      // Para filtro General, NO pasar fechas (igual que useBarberStats)
+    if (dateRange.preset === 'all') {
       startDateStr = undefined;
       endDateStr = undefined;
     } else {
-      // Calcular fechas de inicio y fin para filtros específicos
-      const todayStr = getTodayLocalDate();
-      const endDate = selectedEndDate ? new Date(selectedEndDate + 'T12:00:00') : new Date(todayStr + 'T12:00:00');
-      const startDate = new Date(endDate);
-      startDate.setDate(endDate.getDate() - (selectedDayRange - 1));
-      
-      startDateStr = startDate.toISOString().split('T')[0];
-      endDateStr = endDate.toISOString().split('T')[0];
+      startDateStr = dateRange.startDate;
+      endDateStr = dateRange.endDate;
     }
     
-    // Abrir modal inmediatamente con loading state
     setModalData(prev => ({
       ...prev,
       appointments: {
         isOpen: true,
         data: null,
         barber: barberName,
-        dateRange: dateRange,
-        loading: true,
-        error: null
+        dateRange: dateRange
       }
     }));
     
     try {
-      // Obtener datos detallados
       const appointmentsData = await fetchCompletedAppointments(barberId, startDateStr, endDateStr);
       
-      // Actualizar modal con datos
       setModalData(prev => ({
         ...prev,
         appointments: {
           ...prev.appointments,
-          data: appointmentsData,
-          loading: false
+          data: appointmentsData
         }
       }));
     } catch (error) {
-      console.error('❌ Error cargando citas detalladas:', error);
+      console.error('Error cargando citas detalladas:', error);
       setModalData(prev => ({
         ...prev,
         appointments: {
           ...prev.appointments,
-          data: [],
-          loading: false,
-          error: 'Error al cargar las citas detalladas'
+          data: []
         }
       }));
     }
-  };
+  }, [dateRange, barbers]);
 
   // Funciones para cerrar modales
   const closeSalesModal = () => setModalData(prev => ({
     ...prev,
-    sales: { isOpen: false, data: null, barber: null, dateRange: null, loading: false, error: null }
+    sales: { isOpen: false, data: null, barber: null, dateRange: null }
   }));
 
   const closeAppointmentsModal = () => setModalData(prev => ({
     ...prev,
-    appointments: { isOpen: false, data: null, barber: null, dateRange: null, loading: false, error: null }
+    appointments: { isOpen: false, data: null, barber: null, dateRange: null }
   }));
 
   const closeServicesModal = () => setModalData(prev => ({
     ...prev,
-    services: { isOpen: false, data: null, barber: null, dateRange: null, loading: false, error: null }
+    services: { isOpen: false, data: null, barber: null, dateRange: null }
   }));
 
-  // Función para generar factura consolidada del período filtrado
+  // Función para generar reporte consolidado del período filtrado
   const handleGenerateConsolidatedInvoice = async (barberId) => {
-    // ⚠️ VALIDACIÓN: No permitir factura con filtro "General"
+    // VALIDACIÓN: No permitir factura con filtro "General"
     if (dateRange.preset === 'all') {
-      showError('No se puede generar factura consolidada con el filtro General. Por favor selecciona un período específico (Hoy, Ayer o Personalizado).');
+      showError('No se puede generar Reporte consolidado con el filtro General. Selecciona un período específico');
       return;
     }
     
     const barber = barbers.find(b => b._id === barberId);
     const barberName = barber?.user?.name || barber?.name || 'Barbero';
-    
-    logger.debug('🧾 Generando factura consolidada:', { 
-      barberId, 
-      barberName,
-      dateRange,
-      filterType
-    });
-    
     try {
       const { startDate, endDate } = dateRange;
       
@@ -1418,17 +1084,37 @@ const AdminBarbers = () => {
         showError('Por favor selecciona un rango de fechas válido antes de generar la factura.');
         return;
       }
+
+      showInfo(`Generando reporte de ${barberName} desde ${startDate} hasta ${endDate}...`);
+
+      // Usar fetch con token de autenticación para descargar el PDF
+      const token = localStorage.getItem('token');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+      const invoiceUrl = `${API_URL}/invoices/consolidated/${barberId}?startDate=${startDate}&endDate=${endDate}`;
       
-      logger.debug('📅 Rango de fechas para factura:', { startDate, endDate });
+      const response = await fetch(invoiceUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/pdf'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Convertir respuesta a blob y abrir en nueva ventana
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
       
-      // Abrir factura consolidada en nueva ventana
-      const invoiceUrl = `/api/v1/invoices/consolidated/${barberId}?startDate=${startDate}&endDate=${endDate}`;
-      showInfo(`Generando factura de ${barberName} desde ${startDate} hasta ${endDate}...`);
-      window.open(invoiceUrl, '_blank');
+      // Limpiar el blob URL después de 1 minuto
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
       
     } catch (error) {
-      console.error('❌ Error generando factura consolidada:', error);
-      showError('Error al generar la factura consolidada');
+      console.error('Error generando reporte consolidado:', error);
+      showError('Error al generar el reporte consolidado');
     }
   };
 
@@ -1438,35 +1124,23 @@ const AdminBarbers = () => {
     const statsToUse = (filterType && filterType !== 'General') ? filteredStats : statistics;
     const barberStats = statsToUse[barberId];
     
-    // Debug específico para filtro General
-    if (filterType === 'General') {
-      logger.debug(`🔍 GENERAL FILTER DEBUG para ${barberId}:`, {
-        filterType,
-        statisticsKeys: Object.keys(statistics),
-        filteredStatsKeys: Object.keys(filteredStats),
-        usingStats: 'statistics',
-        barberStats: barberStats,
-        hasBarberStats: !!barberStats
-      });
-    }
-    
     if (!barberStats) {
-      logger.debug(`⚠️ No hay estadísticas para barbero ${barberId} (filterType: ${filterType})`);
-      return { sales: 0, appointments: 0, services: 0, total: 0, salesCount: 0, appointmentsCount: 0, servicesCount: 0 };
+      return { sales: 0, appointments: 0, services: 0, walkIns: 0, total: 0, salesCount: 0, appointmentsCount: 0, servicesCount: 0, walkInsCount: 0 };
     }
 
     const totals = {
       sales: barberStats.sales?.total || 0,
-      salesCount: barberStats.sales?.totalQuantity || 0, // Usar totalQuantity para contar productos
+      salesCount: barberStats.sales?.totalQuantity || barberStats.sales?.count || 0,
       appointments: barberStats.appointments?.total || 0,
-      appointmentsCount: barberStats.appointments?.completed || 0,
+      appointmentsCount: barberStats.appointments?.completed || barberStats.appointments?.count || 0,
       services: barberStats.cortes?.total || 0,
-      servicesCount: barberStats.cortes?.count || 0,
+      servicesCount: barberStats.cortes?.totalQuantity || barberStats.cortes?.count || 0,
+      walkIns: barberStats.cortes?.total || 0,
+      walkInsCount: barberStats.cortes?.totalQuantity || barberStats.cortes?.count || 0,
       total: (barberStats.sales?.total || 0) + (barberStats.appointments?.total || 0) + (barberStats.cortes?.total || 0)
     };
     
     if (filterType === 'General') {
-      logger.debug(`📊 GENERAL TOTALS calculados para ${barberId}:`, totals);
     }
     
     return totals;
@@ -1534,7 +1208,7 @@ const AdminBarbers = () => {
             dateRange={dateRange}
             onPresetChange={handlePresetChange}
             onCustomDateChange={handleCustomDateChange}
-            loading={loading || filterLoading}
+            loading={loading}
           />
         </div>
 
@@ -1546,19 +1220,10 @@ const AdminBarbers = () => {
             </div>
             <p className="text-gray-400">No hay barberos registrados</p>
           </div>
-        ) : Object.keys(statistics).length === 0 && !loading && !filterLoading ? (
+        ) : Object.keys(statistics).length === 0 && !loading ? (
           // Mostrar loading cuando tenemos barberos pero no estadísticas (cargando filtros)
           <div className="text-center py-12 min-h-96">
             {(() => {
-              logger.debug('🔄 ESTADO LOADING DEL FILTRO:', {
-                statisticsKeysCount: Object.keys(statistics).length,
-                filteredStatsKeysCount: Object.keys(filteredStats).length,
-                loading,
-                filterLoading,
-                filterType,
-                barbersCount: barbers.length,
-                timestamp: new Date().toLocaleTimeString("es-CO", { timeZone: "America/Bogota" })
-              });
               return null;
             })()}
             <RefreshCw className="w-8 h-8 animate-spin text-blue-400 mb-4 mx-auto" />
@@ -1572,63 +1237,26 @@ const AdminBarbers = () => {
             {/* Debug completo antes del mapeo - SOLO para General */}
             {(() => {
               if (filterType === 'General' && !window.debugShown) {
-                logger.debug(`🎯 PRE-MAPEO - Estado completo para filtro General:`, {
-                  barbersCount: barbers.length,
-                  statisticsKeys: Object.keys(statistics),
-                  filteredStatsKeys: Object.keys(filteredStats),
-                  filterType,
-                  loading,
-                  filterLoading
-                });
                 window.debugShown = true; // Evitar spam
               }
               return null;
             })()}
             {barbers.map(barber => {
               const totals = calculateTotals(barber._id);
-              const statsToUse = (filterType && filterType !== 'General') ? filteredStats : statistics;
-              const hasData = statsToUse[barber._id] || false;
-              const barberLoadingStatus = loadingStatus[barber._id] || null;
-              
-              // Determinar si está cargando: solo si está aplicando filtro Y totals es nulo/vacío
-              const isCardLoading = filterLoading && (!totals || totals.total === 0) && !hasData;
-              
-              // Debug temporal para General filter - REDUCIDO
-              if (filterType === 'General' && !barber._debugShown) {
-                logger.debug(`🎨 RENDERIZANDO CARD para ${barber.user?.name}:`, {
-                  totals,
-                  isCardLoading,
-                  hasData: !!hasData,
-                  filterLoading,
-                  totalAmount: totals?.total
-                });
-                
-                // Debug específico para header del barbero
-                logger.debug(`👤 DATOS BARBERO HEADER para ${barber.user?.name}:`, {
-                  profilePicture: barber.user?.profilePicture,
-                  name: barber.user?.name,
-                  email: barber.user?.email,
-                  specialty: barber.specialty,
-                  barberObject: barber
-                });
-                
-                barber._debugShown = true; // Evitar spam por barbero
-              }
               
               return (
                 <BarberStatsCard
                   key={barber._id}
                   barber={barber}
                   totals={totals}
-                  isLoading={isCardLoading}
-                  loadingStatus={barberLoadingStatus}
+                  isLoading={loading}
                   onSalesClick={openSalesModal}
                   onAppointmentsClick={openAppointmentsModal}
                   onServicesClick={openServicesModal}
                   formatCurrency={formatCurrency}
-                  navigate={navigate} // ✅ Pasamos navigate como prop
-                  dateRange={dateRange} // ✅ Nuevo sistema de filtros (dateRange object)
-                  onGenerateInvoice={handleGenerateConsolidatedInvoice} // ✅ Función para factura
+                  navigate={navigate}
+                  dateRange={dateRange}
+                  onGenerateInvoice={handleGenerateConsolidatedInvoice}
                 />
               );
             })}
@@ -1642,8 +1270,6 @@ const AdminBarbers = () => {
           salesData={modalData.sales.data}
           barberName={modalData.sales.barber}
           dateRange={modalData.sales.dateRange}
-          loading={modalData.sales.loading}
-          error={modalData.sales.error}
         />
         
         <DetailedCutsModal
@@ -1652,8 +1278,6 @@ const AdminBarbers = () => {
           cutsData={modalData.services.data}
           barberName={modalData.services.barber}
           dateRange={modalData.services.dateRange}
-          loading={modalData.services.loading}
-          error={modalData.services.error}
         />
         
         <DetailedAppointmentsModal
@@ -1662,8 +1286,6 @@ const AdminBarbers = () => {
           appointmentsData={modalData.appointments.data}
           barberName={modalData.appointments.barber}
           dateRange={modalData.appointments.dateRange}
-          loading={modalData.appointments.loading}
-          error={modalData.appointments.error}
         />
       </div>
     </PageContainer>

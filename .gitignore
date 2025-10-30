@@ -1,266 +1,528 @@
-# ============================================# ============================================
+# ============================================# ============================================# ============================================
 
-# THE BROTHERS BARBER SHOP - .gitignore# THE BROTHERS BARBER SHOP - .gitignore
+# THE BROTHERS BARBER SHOP - .gitignore
+
+# Optimizado para Vercel (Frontend) + Render (Backend)# THE BROTHERS BARBER SHOP - .gitignore# THE BROTHERS BARBER SHOP - .gitignore
+
+# ============================================
 
 # Optimizado para Vercel (Frontend) + Render (Backend)# Optimizado para Vercel (Frontend) + Render (Backend)
 
-# ============================================# ============================================
+# ==========================================
 
+# DEPENDENCIAS Y MÓDULOS# ============================================# ============================================
 
+# ==========================================
 
-# ==========================================# ==========================================
+node_modules/
 
-# DEPENDENCIAS Y MÓDULOS# DEPENDENCIAS Y MÓDULOS
+npm-debug.log*
 
-# ==========================================# ==========================================
+yarn-debug.log*# ==========================================# ==========================================
+
+yarn-error.log*
+
+pnpm-debug.log*# DEPENDENCIAS Y MÓDULOS# DEPENDENCIAS Y MÓDULOS
+
+lerna-debug.log*
+
+.npm# ==========================================# ==========================================
+
+.pnpm-store/
 
 node_modules/node_modules/
 
-npm-debug.log*npm-debug.log*
+# ==========================================
 
-yarn-debug.log*yarn-debug.log*
+# VARIABLES DE ENTORNO Y CONFIGURACIÓNnpm-debug.log*npm-debug.log*
 
-yarn-error.log*yarn-error.log*
+# ==========================================
 
-pnpm-debug.log*pnpm-debug.log*
-
-lerna-debug.log*lerna-debug.log*
-
-.npm.npm
-
-.pnpm-store/.pnpm-store/
-
-
-
-# ==========================================# Lock files (opcional - descomentar para committearlos)
-
-# VARIABLES DE ENTORNO Y CONFIGURACIÓN# package-lock.json
-
-# ==========================================# yarn.lock
-
-.env# pnpm-lock.yaml
+.envyarn-debug.log*yarn-debug.log*
 
 .env.local
 
-.env.development.local# ==========================================
+.env.development.localyarn-error.log*yarn-error.log*
+
+.env.test.local
+
+.env.production.localpnpm-debug.log*pnpm-debug.log*
+
+.env.example
+
+*.envlerna-debug.log*lerna-debug.log*
+
+.env.*
+
+.npm.npm
+
+# Archivos de configuración específicos del proyecto
+
+TheBrothersBarberShop.env.pnpm-store/.pnpm-store/
+
+config/environments/production.json
+
+config/environments/development.json
+
+
+
+# ==========================================# ==========================================# Lock files (opcional - descomentar para committearlos)
+
+# LOGS Y ARCHIVOS DE DEBUG
+
+# ==========================================# VARIABLES DE ENTORNO Y CONFIGURACIÓN# package-lock.json
+
+logs/
+
+*.log# ==========================================# yarn.lock
+
+npm-debug.log*
+
+yarn-debug.log*.env# pnpm-lock.yaml
+
+yarn-error.log*
+
+lerna-debug.log*.env.local
+
+backend/logs/*.log
+
+backend/logs/*.json.env.development.local# ==========================================
+
+frontend/logs/
 
 .env.test.local# VARIABLES DE ENTORNO Y CONFIGURACIÓN
 
-.env.production.local# ==========================================
+# ==========================================
 
-.env.*.local.env
-
-*.env.env.local
-
-.env.development.local
-
-# Mantener archivos de ejemplo.env.test.local
-
-!.env.example.env.production.local
-
-!backend/.env.example.env.*.local
-
-!frontend/.env.example*.env
-
-
-
-# ==========================================# Mantener archivos de ejemplo
-
-# ARCHIVOS DE LOGS Y MONITOREO!.env.example
-
-# ==========================================!backend/.env.example
-
-logs/!frontend/.env.example
-
-*.log
-
-combined.log# ==========================================
-
-error.log# ARCHIVOS DE LOGS Y MONITOREO
-
-exceptions.log# ==========================================
-
-rejections.loglogs/
-
-http.log*.log
-
-combined.log
-
-# Winston logs (backend)error.log
-
-backend/logs/exceptions.log
-
-backend/*.log
-
-backend/src/logs/# Winston logs (backend)
-
-backend/logs/
-
-# ==========================================backend/*.log
-
-# BUILDS Y ARCHIVOS DE PRODUCCIÓNbackend/src/logs/
+# ARCHIVOS TEMPORALES Y CACHE.env.production.local# ==========================================
 
 # ==========================================
 
-dist/rejections.log.env
+.cache/.env.*.local.env
 
-build/
+.temp/
 
-out/http.log
-
-.next/
-
-.nuxt/.env.local.pnpm-debug.log*package-lock.json
-
-.cache/
-
-.parcel-cache/# ==========================================
-
-*.tsbuildinfo
-
-# BUILDS Y ARCHIVOS DE PRODUCCIÓN.env.development.local
-
-# Frontend builds
-
-frontend/dist/# ==========================================
-
-frontend/build/
-
-frontend/.vite/dist/.env.test.localyarn.lock
-
-frontend/.vercel/
-
-build/
-
-# Backend builds
-
-backend/dist/out/.env.production.local
-
-backend/build/
-
-.next/
-
-# ==========================================
-
-# BASES DE DATOS Y BACKUPS.nuxt/.env.*.local# =================pnpm-lock.yaml
-
-# ==========================================
-
-*.sqlite.cache/
-
-*.sqlite3
-
-*.db.parcel-cache/
-
-*.db-journal
-
-
-
-# MongoDB backups (mantener estructura de carpetas)
-
-backend/backups/daily/*.json# Frontend builds# =================# ENVIRONMENT FILES
-
-backend/backups/incremental/*.json
-
-!backend/backups/.gitkeepfrontend/dist/
-
-!backend/backups/daily/.gitkeep
-
-!backend/backups/incremental/.gitkeepfrontend/build/# BUILD OUTPUTS
-
-
-
-# ==========================================frontend/.vite/
-
-# UPLOADS Y ARCHIVOS TEMPORALES
-
-# ==========================================frontend/.vercel/# =================# =================# =================
-
-uploads/
-
-temp/
-
-backend/uploads/
-
-frontend/uploads/# Backend buildsdist/
+.tmp/*.env.env.local
 
 *.tmp
 
-*.tempbackend/dist/
+*.temp.env.development.local
+
+uploads/temp/*
+
+!uploads/temp/.gitkeep# Mantener archivos de ejemplo.env.test.local
+
+backend/uploads/temp/*
+
+!backend/uploads/temp/.gitkeep!.env.example.env.production.local
 
 
 
-# ==========================================backend/build/build/.env# ENVIRONMENT FILES
+# Cache de Node.js!backend/.env.example.env.*.local
 
-# TESTING Y COBERTURA
+.node_cache/
 
-# ==========================================
-
-coverage/
-
-.nyc_output/# ==========================================out/
-
-*.lcov
-
-test-results/# BASES DE DATOS Y BACKUPS
-
-playwright-report/
-
-# ==========================================.next/.env.local# =================
+!frontend/.env.example*.env
 
 # ==========================================
 
-# IDEs Y EDITORES*.sqlite
+# BUILDS Y DISTRIBUCIÓN
 
 # ==========================================
 
-.vscode/**.sqlite3.nuxt/
+# Frontend (Vite/React)# ==========================================# Mantener archivos de ejemplo
 
-!.vscode/settings.json
+frontend/dist/
 
-!.vscode/extensions.json*.db
+frontend/build/# ARCHIVOS DE LOGS Y MONITOREO!.env.example
 
-.idea/
+frontend/.vite/
 
-*.swp*.db-journal.cache/.env.development.local.env
+frontend/.rollup.cache/# ==========================================!backend/.env.example
 
-*.swo
+
+
+# Backend buildslogs/!frontend/.env.example
+
+backend/dist/
+
+backend/build/*.log
+
+
+
+# ==========================================combined.log# ==========================================
+
+# BASES DE DATOS
+
+# ==========================================error.log# ARCHIVOS DE LOGS Y MONITOREO
+
+# Archivos de base de datos locales
+
+*.dbexceptions.log# ==========================================
+
+*.sqlite
+
+*.sqlite3rejections.loglogs/
+
+database.json
+
+data/http.log*.log
+
+db/
+
+combined.log
+
+# Backups de base de datos (mantener solo estructura de carpetas)
+
+backend/backups/daily/*# Winston logs (backend)error.log
+
+!backend/backups/daily/.gitkeep
+
+backend/backups/incremental/*backend/logs/exceptions.log
+
+!backend/backups/incremental/.gitkeep
+
+backend/backups/migration/*backend/*.log
+
+!backend/backups/migration/.gitkeep
+
+backend/src/logs/# Winston logs (backend)
+
+# ==========================================
+
+# ARCHIVOS DEL SISTEMA OPERATIVObackend/logs/
+
+# ==========================================
+
+# Windows# ==========================================backend/*.log
+
+Thumbs.db
+
+Thumbs.db:encryptable# BUILDS Y ARCHIVOS DE PRODUCCIÓNbackend/src/logs/
+
+ehthumbs.db
+
+ehthumbs_vista.db# ==========================================
+
+*.stackdump
+
+[Dd]esktop.inidist/rejections.log.env
+
+$RECYCLE.BIN/
+
+*.cabbuild/
+
+*.msi
+
+*.msixout/http.log
+
+*.msm
+
+*.msp.next/
+
+*.lnk
+
+.nuxt/.env.local.pnpm-debug.log*package-lock.json
+
+# macOS
+
+.DS_Store.cache/
+
+.DS_Store?
+
+._*.parcel-cache/# ==========================================
+
+.Spotlight-V100
+
+.Trashes*.tsbuildinfo
+
+ehthumbs.db
+
+Icon?# BUILDS Y ARCHIVOS DE PRODUCCIÓN.env.development.local
+
+
+
+# Linux# Frontend builds
 
 *~
 
-.DS_Store
+.fuse_hidden*frontend/dist/# ==========================================
 
-Thumbs.db# MongoDB backups*.tsbuildinfo
+.directory
+
+.Trash-*frontend/build/
+
+.nfs*
+
+frontend/.vite/dist/.env.test.localyarn.lock
+
+# ==========================================
+
+# EDITORES E IDEsfrontend/.vercel/
+
+# ==========================================
+
+# Visual Studio Codebuild/
+
+.vscode/
+
+!.vscode/settings.json# Backend builds
+
+!.vscode/tasks.json
+
+!.vscode/launch.jsonbackend/dist/out/.env.production.local
+
+!.vscode/extensions.json
+
+!.vscode/*.code-snippetsbackend/build/
 
 
 
-# ==========================================backend/backups/
+# IntelliJ IDEA.next/
 
-# DOCUMENTACIÓN TEMPORAL
+.idea/
 
-# ==========================================backups/.env.test.local.env.local
+*.iws# ==========================================
 
-*.backup
+*.iml
 
-*.old*.dump
+*.ipr# BASES DE DATOS Y BACKUPS.nuxt/.env.*.local# =================pnpm-lock.yaml
 
-*.bak
 
-*.orig*.bson# =================
+
+# Sublime Text# ==========================================
+
+*.sublime-workspace
+
+*.sublime-project*.sqlite.cache/
+
+
+
+# Vim*.sqlite3
+
+*.swp
+
+*.swo*.db.parcel-cache/
+
+*~
+
+*.db-journal
+
+# Emacs
+
+*~
+
+\#*\#
+
+/.emacs.desktop# MongoDB backups (mantener estructura de carpetas)
+
+/.emacs.desktop.lock
+
+*.elcbackend/backups/daily/*.json# Frontend builds# =================# ENVIRONMENT FILES
+
+auto-save-list
+
+trampbackend/backups/incremental/*.json
+
+.\#*
+
+!backend/backups/.gitkeepfrontend/dist/
+
+# ==========================================
+
+# TESTING Y COVERAGE!backend/backups/daily/.gitkeep
+
+# ==========================================
+
+coverage/!backend/backups/incremental/.gitkeepfrontend/build/# BUILD OUTPUTS
+
+*.lcov
+
+.coverage
+
+.nyc_output
+
+test-results/# ==========================================frontend/.vite/
+
+junit.xml
+
+backend/test-results.txt# UPLOADS Y ARCHIVOS TEMPORALES
+
+
+
+# ==========================================# ==========================================frontend/.vercel/# =================# =================# =================
+
+# DOCUMENTACIÓN GENERADA
+
+# ==========================================uploads/
+
+docs/build/
+
+.docusaurus/temp/
+
+
+
+# ==========================================backend/uploads/
+
+# DEPLOYMENT Y CI/CD
+
+# ==========================================frontend/uploads/# Backend buildsdist/
+
+# Vercel
+
+.vercel*.tmp
+
+.vercel.json
+
+*.tempbackend/dist/
+
+# Render
+
+render.yaml.backup
+
+
+
+# Docker# ==========================================backend/build/build/.env# ENVIRONMENT FILES
+
+.dockerignore.backup
+
+docker-compose.override.yml# TESTING Y COBERTURA
+
+
+
+# GitHub Actions (mantener workflows)# ==========================================
+
+# No ignorar .github/workflows/
+
+coverage/
+
+# ==========================================
+
+# ARCHIVOS DE DESARROLLO Y DEBUG.nyc_output/# ==========================================out/
+
+# ==========================================
+
+# Archivos de análisis y diagnóstico temporales*.lcov
+
+analyze-*.js
+
+debug-*.jstest-results/# BASES DE DATOS Y BACKUPS
+
+test-*.temp.js
+
+playwright-report/
+
+# Archivos de migración completados
+
+migration-*.completed# ==========================================.next/.env.local# =================
+
+migrate-*.done
+
+# ==========================================
+
+# Scripts de desarrollo temporales (mantener los principales)
+
+scripts/temp/# IDEs Y EDITORES*.sqlite
+
+dev-*.temp.js
+
+# ==========================================
+
+# ==========================================
+
+# CERTIFICADOS Y LLAVES.vscode/**.sqlite3.nuxt/
+
+# ==========================================
+
+*.pem!.vscode/settings.json
+
+*.key
+
+*.cert!.vscode/extensions.json*.db
+
+*.crt
+
+*.p12.idea/
+
+*.pfx
+
+certificates/*.swp*.db-journal.cache/.env.development.local.env
+
+ssl/
+
+*.swo
+
+# ==========================================
+
+# ARCHIVOS DE CONFIGURACIÓN SENSIBLES*~
+
+# ==========================================
+
+# Configuraciones de servicios externos.DS_Store
+
+cloudinary.config.js
+
+mongodb.config.jsThumbs.db# MongoDB backups*.tsbuildinfo
+
+email.config.js
+
+jwt.config.js
+
+
+
+# ==========================================# ==========================================backend/backups/
+
+# OTROS ARCHIVOS TEMPORALES DEL PROYECTO
+
+# ==========================================# DOCUMENTACIÓN TEMPORAL
+
+# Archivos de respaldo temporales
+
+*.backup# ==========================================backups/.env.test.local.env.local
+
+*.old
+
+*.temp*.backup
+
+*_backup.*
+
+*_old.**.old*.dump
+
+
+
+# Archivos de análisis y reportes temporales*.bak
+
+report-*.json
+
+analysis-*.json*.orig*.bson# =================
+
+stats-*.json
 
 
 
 # ==========================================
 
-# DEPLOYMENT Y CI/CD
+# ARCHIVOS ESPECÍFICOS DEL PROYECTO# ==========================================
 
-# ==========================================# ==========================================# LOGS & RUNTIME.env.production.local.env.development.local
+# ==========================================
 
-.vercel
+# Mantener structure pero no contenido sensible# DEPLOYMENT Y CI/CD
 
-.render# ARCHIVOS TEMPORALES Y CACHE
+PRIVATE_NOTES.md
 
-.netlify
+DEPLOYMENT_KEYS.md# ==========================================# ==========================================# LOGS & RUNTIME.env.production.local.env.development.local
+
+PASSWORDS.txt
+
+SECRETS.txt.vercel
+
+
+
+# Archivos de configuración de impresoras (pueden contener IPs).render# ARCHIVOS TEMPORALES Y CACHE
+
+config/printer.local.js
+
+printer-config.local.js.netlify
 
 # ==========================================# =================
 
@@ -1104,7 +1366,10 @@ coverage/
 jest.config.js.bak
 
 # Cypress
-cypress/fixtures/examples.json 
- #   A r c h i v o s   d e   c o n f i g u r a c i o n   c o n   c r e d e n c i a l e s  
- s c r i p t s / c o n f i g u r e - e m a i l . m d  
+cypress/fixtures/examples.json
+ 
+ #   A r c h i v o s   d e   c o n f i g u r a c i o n   c o n   c r e d e n c i a l e s 
+ 
+ s c r i p t s / c o n f i g u r e - e m a i l . m d 
+ 
  

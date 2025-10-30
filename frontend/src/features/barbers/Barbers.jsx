@@ -197,7 +197,7 @@ function BarbersPage() {
       
       if (response.success) {
         const barbersData = response.data || [];
-        logger.debug('🧔 [Barbers] Barberos obtenidos del backend:', barbersData.length);
+        logger.debug('Barberos obtenidos del backend:', barbersData.length);
         
         // Filtrar barberos activos
         const activeBarbers = barbersData.filter(barber => {
@@ -209,22 +209,22 @@ function BarbersPage() {
           return isActive;
         });
 
-        logger.debug('✅ [Barbers] Barberos activos:', activeBarbers.length);
+        logger.debug('Barberos activos:', activeBarbers.length);
 
         // Filtrar barberos principales (isMainBarber: true)
         const mainBarbers = activeBarbers.filter(barber => barber.isMainBarber === true);
-        logger.debug('🎯 [Barbers] Barberos principales encontrados:', mainBarbers.length);
-        logger.debug('🎯 [Barbers] Lista de principales:', mainBarbers.map(b => b.user?.name));
-        
+        logger.debug('Barberos principales encontrados:', mainBarbers.length);
+        logger.debug('Lista de principales:', mainBarbers.map(b => b.user?.name));
+
         // Si no hay barberos principales, mostrar los primeros 3 activos
         const barbersToShow = mainBarbers.length > 0 ? mainBarbers : activeBarbers.slice(0, 3);
-        logger.debug('📺 [Barbers] Barberos finales a mostrar:', barbersToShow.length);
-        logger.debug('📺 [Barbers] Lista final:', barbersToShow.map(b => b.user?.name));
-        
-        // 🚨 DEBUG: Verificar si estamos configurando más de 3 barberos
+        logger.debug('Barberos finales a mostrar:', barbersToShow.length);
+        logger.debug('Lista final:', barbersToShow.map(b => b.user?.name));
+
+        // DEBUG:Verificar si estamos configurando más de 3 barberos
         if (barbersToShow.length > 3) {
-          console.error('🚨 ERROR: Se están configurando más de 3 barberos!', barbersToShow.length);
-          console.error('🚨 Detalles:', barbersToShow.map(b => ({
+          console.error('ERROR: Se están configurando más de 3 barberos!', barbersToShow.length);
+          console.error('Detalles:', barbersToShow.map(b => ({
             name: b.user?.name,
             isMainBarber: b.isMainBarber,
             id: b._id

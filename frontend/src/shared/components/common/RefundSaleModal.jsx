@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Minus, Shield, AlertTriangle, Clock, DollarSign, Package, Scissors, Calendar, Filter, SendHorizontal, Trash2, CreditCard, ChevronDown, ChevronUp, ArrowLeft, Printer } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Minus, Shield, AlertTriangle, Clock, DollarSign, Package, Scissors, Calendar, Filter, SendHorizontal, Trash2, CreditCard, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 import { refundService } from '../../services/refundService';
 import * as invoiceService from '../../services/invoiceService';
 import logger from '@utils/logger';
@@ -27,7 +27,6 @@ const RefundSaleModal = ({ isOpen, onClose, selectedBarberId = null }) => {
   const [selectedBarberInfo, setSelectedBarberInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [refunding, setRefunding] = useState(false);
-  const [printing, setPrinting] = useState(false);
   const [error, setError] = useState(null);
   const [selectedSale, setSelectedSale] = useState(null);
   const [refundReason, setRefundReason] = useState('');
@@ -91,9 +90,17 @@ const RefundSaleModal = ({ isOpen, onClose, selectedBarberId = null }) => {
         
         // Mostrar todos los datos sin paginación
         if (response.success && response.data) {
-          setMySales(response.data);
+          // Filtrar explícitamente las ventas ya reembolsadas
+          const activeSales = response.data.filter(sale => sale.status !== 'refunded');
+          logger.info('📊 Ventas cargadas para admin', {
+            totalFetched: response.data.length,
+            refundedFiltered: response.data.length - activeSales.length,
+            activeSales: activeSales.length,
+            barberId: selectedBarberId
+          });
+          setMySales(activeSales);
           // Actualizar opciones de filtro con todos los datos disponibles
-          updateFilterOptions(response.data);
+          updateFilterOptions(activeSales);
         } else {
           setMySales([]);
         }
@@ -101,11 +108,20 @@ const RefundSaleModal = ({ isOpen, onClose, selectedBarberId = null }) => {
         // Comportamiento normal para barberos
         setSelectedBarberInfo(null);
         response = await refundService.getMySalesForRefund(filters);
-        setMySales(response.data || []);
+        
+        // Filtrar explícitamente las ventas ya reembolsadas como medida de seguridad
+        const salesData = response.data || [];
+        const activeSales = salesData.filter(sale => sale.status !== 'refunded');
+        logger.info('📊 Ventas cargadas para barbero', {
+          totalFetched: salesData.length,
+          refundedFiltered: salesData.length - activeSales.length,
+          activeSales: activeSales.length
+        });
+        setMySales(activeSales);
         
         // Actualizar opciones de filtro
-        if (response.data) {
-          updateFilterOptions(response.data);
+        if (activeSales.length > 0) {
+          updateFilterOptions(activeSales);
         }
       }
 
@@ -154,6 +170,16 @@ const RefundSaleModal = ({ isOpen, onClose, selectedBarberId = null }) => {
       return;
     }
 
+    // Verificar que la venta no esté ya reembolsada
+    if (selectedSale.status === 'refunded') {
+      setError('Esta venta ya ha sido reembolsada');
+      logger.warn('Intento de reembolsar venta ya reembolsada', {
+        saleId: selectedSale._id,
+        status: selectedSale.status
+      });
+      return;
+    }
+
     if (user?.role !== 'admin' && !adminCode.trim()) {
       setError('Se requiere código de administrador');
       return;
@@ -186,94 +212,6 @@ const RefundSaleModal = ({ isOpen, onClose, selectedBarberId = null }) => {
       setError(error.message || 'Error al procesar el reembolso');
     } finally {
       setRefunding(false);
-    }
-  };
-
-  const handlePrintInvoice = async (sale) => {
-    try {
-      setPrinting(true);
-      
-      logger.info('🖨️ Iniciando impresión de factura:', {
-        saleId: sale._id,
-        productName: sale.productName || sale.serviceName,
-        totalAmount: sale.totalAmount,
-        status: sale.status
-      });
-
-      // Paso 1: Verificar si ya existe factura para esta venta
-      let invoiceId;
-      try {
-        const invoicesResponse = await invoiceService.getInvoicesBySale(sale._id);
-        if (invoicesResponse.success && invoicesResponse.data && invoicesResponse.data.length > 0) {
-          // Ya existe factura
-          invoiceId = invoicesResponse.data[0]._id;
-          logger.info('✅ Factura existente encontrada:', invoiceId);
-        }
-      } catch (err) {
-        logger.warn('⚠️ No hay factura existente, se generará una nueva:', err.message);
-      }
-
-      // Paso 2: Si no existe factura, generarla
-      if (!invoiceId) {
-        logger.info('🔄 Generando nueva factura para venta:', sale._id);
-        
-        try {
-          const generateResponse = await invoiceService.generateInvoice(sale._id, {
-            source: 'admin',
-            notes: 'Generada desde modal de gestión de ventas'
-          });
-
-          if (!generateResponse.success) {
-            throw new Error(generateResponse.message || 'Error generando factura');
-          }
-
-          invoiceId = generateResponse.data._id;
-          logger.info('✅ Factura generada exitosamente:', invoiceId);
-        } catch (generateError) {
-          logger.error('❌ Error generando factura:', {
-            error: generateError.message,
-            saleId: sale._id,
-            response: generateError.response
-          });
-          
-          // Mensaje más específico según el error
-          if (generateError.message?.includes('no encontrada') || generateError.message?.includes('not found')) {
-            showError(`No se pudo encontrar la venta en la base de datos. ID: ${sale._id.substring(0, 8)}...`);
-          } else {
-            showError(`Error al generar factura: ${generateError.message}`);
-          }
-          return;
-        }
-      }
-
-      // Paso 3: Abrir factura en nueva pestaña para visualización e impresión
-      const token = localStorage.getItem('token');
-      // Obtener la URL base sin /api/v1 ya que el endpoint completo ya lo incluye
-      const baseUrl = import.meta.env.VITE_API_URL 
-        ? import.meta.env.VITE_API_URL.replace('/api/v1', '') 
-        : 'http://localhost:5000';
-      const invoiceUrl = `${baseUrl}/api/v1/invoices/sale/${sale._id}/view?token=${token}`;
-      
-      logger.info('🔍 Abriendo URL de factura:', invoiceUrl);
-      
-      // Abrir en nueva pestaña
-      const printWindow = window.open(invoiceUrl, '_blank');
-      
-      if (printWindow) {
-        showSuccess('Factura abierta. Usa Ctrl+P para imprimir.');
-      } else {
-        showError('Por favor, permite ventanas emergentes para imprimir facturas');
-      }
-
-    } catch (error) {
-      logger.error('❌ Error printing invoice:', {
-        error: error.message,
-        stack: error.stack,
-        saleId: sale?._id
-      });
-      showError(error.message || 'Error al abrir factura para impresión');
-    } finally {
-      setPrinting(false);
     }
   };
 
@@ -550,14 +488,21 @@ const RefundSaleModal = ({ isOpen, onClose, selectedBarberId = null }) => {
                       <div
                         key={sale._id}
                         className={`p-2 rounded-lg border transition-all ${
-                          selectedSale?._id === sale._id
+                          sale.status === 'refunded' 
+                            ? 'bg-gray-800/50 border-gray-600/50 opacity-50 cursor-not-allowed'
+                            : selectedSale?._id === sale._id
                             ? 'bg-red-500/20 border-red-500/40'
                             : 'bg-gray-500/10 border-gray-500/30'
                         }`}
                       >
+                        {sale.status === 'refunded' && (
+                          <div className="mb-1 px-1 py-0.5 bg-gray-600/50 border border-gray-500/50 rounded text-center">
+                            <span className="text-xs font-bold text-gray-300">REEMBOLSADO</span>
+                          </div>
+                        )}
                         <div 
-                          onClick={() => setSelectedSale(sale)}
-                          className="cursor-pointer"
+                          onClick={() => sale.status !== 'refunded' && setSelectedSale(sale)}
+                          className={sale.status === 'refunded' ? '' : 'cursor-pointer'}
                         >
                           <div className="flex justify-between items-start">
                             <div className="flex-1 min-w-0">
@@ -607,23 +552,6 @@ const RefundSaleModal = ({ isOpen, onClose, selectedBarberId = null }) => {
                               </span>
                             </div>
                           </div>
-                        </div>
-
-                        {/* Botón de Imprimir Factura */}
-                        <div className="mt-2 pt-2 border-t border-gray-600/30">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePrintInvoice(sale);
-                            }}
-                            disabled={printing}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-1.5 bg-blue-600/20 border border-blue-500/30 rounded-lg text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <Printer className="w-3 h-3" />
-                            <span className="text-xs font-medium">
-                              {printing ? 'Abriendo...' : 'Ver e Imprimir Factura'}
-                            </span>
-                          </button>
                         </div>
                       </div>
                     ))

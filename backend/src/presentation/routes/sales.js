@@ -14,7 +14,8 @@ import {
   getWalkInDetails,
   getDetailedCutsReport,
   getFinancialSummary,
-  createCartSale
+  createCartSale,
+  getCartInvoices
 } from '../controllers/saleController.js';
 import { protect, adminAuth, barberAuth } from '../middleware/auth.js';
 import { validateSale, validateCartSale } from '../middleware/validation.js';
@@ -28,6 +29,9 @@ router.use(protect);
 router.post('/', barberAuth, validateSale, createSale);
 router.post('/walk-in', barberAuth, validateSale, createWalkInSale);
 router.post('/cart', barberAuth, validateCartSale, createCartSale);
+
+// Facturas de carrito (barberos ven las suyas, admin todas)
+router.get('/cart-invoices', barberAuth, getCartInvoices);
 
 // Rutas solo para administradores (reportes y gestión)
 router.get('/', adminAuth, getAllSales);

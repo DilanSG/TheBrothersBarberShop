@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Monitor, RefreshCw, Trash2, BarChart3, Clock, Database } from 'lucide-react';
 import { useNavigationCache, cacheUtils } from '../../hooks/useNavigationCache';
 

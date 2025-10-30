@@ -1,10 +1,14 @@
 import InvoiceUseCases from '../../core/application/usecases/InvoiceUseCases.js';
 import printerService from '../../services/printerService.js';
 import invoiceService from '../../services/invoiceService.js';
+import emailService from '../../services/emailService.js';
+import Sale from '../../core/domain/entities/Sale.js';
 import { asyncHandler } from '../middleware/index.js';
 import { logger } from '../../shared/utils/logger.js';
 import { AppError } from '../../shared/utils/errors.js';
 import { getPrinterConfig, getBusinessInfo } from '../../../config/printer.config.js';
+import { formatShort, formatInColombiaTime } from '../../shared/utils/dateUtils.js';
+import { Logger } from 'winston';
 
 /**
  * @desc    Generar factura desde una venta
@@ -108,12 +112,6 @@ export const getInvoice = asyncHandler(async (req, res) => {
 export const viewInvoiceHTML = asyncHandler(async (req, res) => {
   const { invoiceId } = req.params;
 
-  logger.info('🔵 EJECUTANDO viewInvoiceHTML (endpoint incorrecto)', { 
-    invoiceId,
-    url: req.url,
-    params: req.params 
-  });
-
   // Obtener datos completos de la factura
   const invoiceData = await InvoiceUseCases.formatForPrint(invoiceId);
   
@@ -134,382 +132,6 @@ export const viewInvoiceHTML = asyncHandler(async (req, res) => {
     invoiceId,
     invoiceNumber: invoiceData.invoice.invoiceNumber,
     userId: req.user?.id
-  });
-});
-
-/**
- * @desc    Ver factura desde venta (genera si no existe)
- * @route   GET /api/invoices/sale/:saleId/view
- * @access  Private (Barber/Admin) o Public con token
- */
-export const viewInvoiceFromSale = asyncHandler(async (req, res) => {
-  const { saleId } = req.params;
-
-  logger.info('🟢 EJECUTANDO viewInvoiceFromSale (endpoint correcto)', { 
-    saleId,
-    url: req.originalUrl,
-    method: req.method
-  });
-
-  // Buscar si ya existe una factura para esta venta
-  let invoices = await InvoiceUseCases.getInvoicesBySale(saleId);
-  
-  let invoiceId;
-  if (invoices.length === 0) {
-    // No existe factura, generarla
-    logger.info('Generando factura automáticamente para venta', { saleId });
-    const newInvoice = await InvoiceUseCases.generateInvoiceFromSale(saleId, {
-      source: 'admin',
-      notes: 'Factura generada automáticamente al visualizar'
-    });
-    invoiceId = newInvoice._id.toString();
-    logger.info('Factura generada con ID', { invoiceId });
-  } else {
-    // Usar la primera factura encontrada
-    invoiceId = invoices[0]._id.toString();
-    logger.info('Factura existente encontrada', { invoiceId });
-  }
-
-  logger.info('Formateando factura para print', { invoiceId });
-  
-  // Obtener datos completos de la factura
-  const invoiceData = await InvoiceUseCases.formatForPrint(invoiceId);
-  
-  logger.info('📦 invoiceData recibido:', {
-    hasInvoice: !!invoiceData.invoice,
-    hasClient: !!invoiceData.client,
-    hasBarber: !!invoiceData.barber,
-    itemsCount: invoiceData.items?.length,
-    invoiceNumber: invoiceData.invoice?.number
-  });
-  
-  // Crear HTML simplificado directamente sin usar el servicio complejo
-  const html = `
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Factura ${invoiceData.invoice.number}</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    @media print {
-      body { 
-        margin: 0;
-        padding: 0;
-      }
-      .no-print { 
-        display: none !important; 
-      }
-      @page { 
-        size: 80mm auto;
-        margin: 2mm;
-      }
-    }
-    
-    body {
-      font-family: 'Courier New', monospace;
-      width: 80mm;
-      max-width: 80mm;
-      margin: 0 auto;
-      padding: 5mm;
-      color: #000;
-      background: #fff;
-      font-size: 10pt;
-      line-height: 1.2;
-    }
-    
-    .header {
-      text-align: center;
-      border-bottom: 2px dashed #000;
-      padding-bottom: 8px;
-      margin-bottom: 12px;
-    }
-    
-    .header h1 {
-      font-size: 14pt;
-      font-weight: bold;
-      color: #000;
-      margin-bottom: 3px;
-      letter-spacing: 0.5px;
-    }
-    
-    .header .business-name {
-      font-size: 11pt;
-      font-weight: bold;
-      color: #000;
-      margin-bottom: 5px;
-    }
-    
-    .invoice-info {
-      margin-bottom: 12px;
-      font-size: 9pt;
-      line-height: 1.4;
-    }
-    
-    .invoice-info-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 3px;
-      border-bottom: 1px dotted #ccc;
-      padding-bottom: 2px;
-    }
-    
-    .invoice-info-row strong {
-      font-weight: bold;
-      text-transform: uppercase;
-      font-size: 8pt;
-    }
-    
-    .invoice-info-row span {
-      font-size: 9pt;
-      text-align: right;
-      max-width: 50%;
-      word-wrap: break-word;
-    }
-    
-    .separator {
-      border-top: 1px dashed #000;
-      margin: 8px 0;
-    }
-    
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 8px 0;
-      font-size: 9pt;
-    }
-    
-    thead {
-      border-bottom: 1px solid #000;
-    }
-    
-    th {
-      padding: 4px 2px;
-      text-align: left;
-      font-weight: bold;
-      font-size: 8pt;
-      text-transform: uppercase;
-    }
-    
-    td {
-      padding: 4px 2px;
-      font-size: 9pt;
-    }
-    
-    tbody tr {
-      border-bottom: 1px dotted #ccc;
-    }
-    
-    .text-right {
-      text-align: right;
-    }
-    
-    .text-center {
-      text-align: center;
-    }
-    
-    .totals {
-      margin-top: 10px;
-      border-top: 1px solid #000;
-      padding-top: 8px;
-    }
-    
-    .totals-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 3px 0;
-      font-size: 10pt;
-    }
-    
-    .totals-row.final {
-      border-top: 2px solid #000;
-      border-bottom: 2px solid #000;
-      font-size: 12pt;
-      font-weight: bold;
-      padding: 6px 0;
-      margin-top: 5px;
-    }
-    
-    .totals-label {
-      font-weight: bold;
-      text-transform: uppercase;
-    }
-    
-    .totals-value {
-      font-weight: bold;
-      text-align: right;
-    }
-    
-    .print-btn {
-      padding: 12px 30px;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      margin: 20px auto;
-      display: block;
-      transition: all 0.3s;
-      box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
-      width: 90%;
-      max-width: 250px;
-    }
-    
-    .print-btn:hover {
-      background: #0056b3;
-      box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
-    }
-    
-    .print-btn:active {
-      transform: scale(0.98);
-    }
-    
-    @media screen {
-      body {
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        margin: 20px auto;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div class="business-name">THE BROTHERS</div>
-    <div class="business-name">BARBER SHOP</div>
-    <h1>FACTURA</h1>
-    <div style="font-size: 11pt; font-weight: bold; margin-top: 4px;">${invoiceData.invoice.number}</div>
-  </div>
-  
-  <div class="invoice-info">
-    <div class="invoice-info-row">
-      <strong>Fecha:</strong>
-      <span>${invoiceData.invoice.date}</span>
-    </div>
-    <div class="invoice-info-row">
-      <strong>Barbero:</strong>
-      <span>${invoiceData.barber.name}</span>
-    </div>
-    <div class="invoice-info-row">
-      <strong>Pago:</strong>
-      <span>${invoiceData.payment.methodLabel}</span>
-    </div>
-  </div>
-  
-  <div class="separator"></div>
-  
-  <table>
-    <thead>
-      <tr>
-        <th style="width: 50%;">Item</th>
-        <th class="text-center" style="width: 15%;">Cant</th>
-        <th class="text-right" style="width: 35%;">Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${invoiceData.items.map(item => `
-        <tr>
-          <td>${item.description}</td>
-          <td class="text-center">${item.quantity}</td>
-          <td class="text-right">$${item.subtotal.toLocaleString('es-CO')}</td>
-        </tr>
-      `).join('')}
-    </tbody>
-  </table>
-  
-  <div class="separator"></div>
-  
-  <div class="totals">
-    ${invoiceData.totals.subtotal !== invoiceData.totals.total ? `
-      <div class="totals-row">
-        <div class="totals-label">Subtotal:</div>
-        <div class="totals-value">$${invoiceData.totals.subtotal.toLocaleString('es-CO')}</div>
-      </div>
-    ` : ''}
-    ${invoiceData.totals.discount > 0 ? `
-      <div class="totals-row">
-        <div class="totals-label">Descuento:</div>
-        <div class="totals-value">-$${invoiceData.totals.discount.toLocaleString('es-CO')}</div>
-      </div>
-    ` : ''}
-    ${invoiceData.totals.tax > 0 ? `
-      <div class="totals-row">
-        <div class="totals-label">IVA:</div>
-        <div class="totals-value">$${invoiceData.totals.tax.toLocaleString('es-CO')}</div>
-      </div>
-    ` : ''}
-    <div class="totals-row final">
-      <div class="totals-label">TOTAL:</div>
-      <div class="totals-value">$${invoiceData.totals.total.toLocaleString('es-CO')}</div>
-    </div>
-  </div>
-  
-  <div class="separator"></div>
-  
-  <div style="text-align: center; font-size: 8pt; margin-top: 12px; line-height: 1.3;">
-    <p style="font-weight: bold; margin-bottom: 4px;">¡GRACIAS POR SU VISITA!</p>
-    <p>The Brothers Barber Shop</p>
-    <p>www.thebrothersbarber.com</p>
-  </div>
-  
-  <button class="print-btn no-print" id="printButton">
-    🖨️ Imprimir Factura
-  </button>
-  
-  <script>
-    function handlePrint() {
-      console.log('🖨️ Iniciando impresión...');
-      try {
-        window.print();
-        console.log('✅ window.print() ejecutado exitosamente');
-      } catch (error) {
-        console.error('❌ Error al imprimir:', error);
-        alert('Error al abrir la ventana de impresión: ' + error.message);
-      }
-    }
-    
-    // Agregar event listener al botón (evita CSP inline issues)
-    document.addEventListener('DOMContentLoaded', function() {
-      const printBtn = document.getElementById('printButton');
-      if (printBtn) {
-        printBtn.addEventListener('click', handlePrint);
-        console.log('✅ Event listener agregado al botón de impresión');
-      } else {
-        console.error('❌ No se encontró el botón de impresión');
-      }
-    });
-    
-    // Atajos de teclado para imprimir
-    document.addEventListener('keydown', function(e) {
-      // Ctrl+P o Cmd+P
-      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
-        e.preventDefault();
-        handlePrint();
-      }
-    });
-    
-    // Auto-print opcional (comentado por defecto)
-    // window.addEventListener('load', function() {
-    //   setTimeout(() => handlePrint(), 500);
-    // });
-  </script>
-</body>
-</html>
-  `;
-
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.status(200).send(html);
-
-  logger.info('Factura HTML enviada exitosamente', {
-    saleId,
-    invoiceNumber: invoiceData.invoice.number
   });
 });
 
@@ -694,7 +316,7 @@ export const connectPrinter = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Generar factura consolidada para un barbero en un período
+ * @desc    Generar reporte consolidado para un barbero en un período
  * @route   GET /api/invoices/consolidated/:barberId
  * @access  Private (Admin)
  * @query   startDate, endDate (opcional - si no se proporcionan, trae todos los registros)
@@ -702,8 +324,8 @@ export const connectPrinter = asyncHandler(async (req, res) => {
 export const generateConsolidatedInvoice = asyncHandler(async (req, res) => {
   const { barberId } = req.params;
   const { startDate, endDate } = req.query;
-  
-  logger.info('Generando factura consolidada', {
+
+  logger.info('Generando reporte consolidado', {
     barberId,
     startDate,
     endDate,
@@ -731,6 +353,13 @@ export const generateConsolidatedInvoice = asyncHandler(async (req, res) => {
     dateFilter.createdAt = { $gte: start, $lte: end };
   }
 
+  logger.info('🔍 Fechas recibidas y procesadas:', {
+    startDateOriginal: startDate,
+    endDateOriginal: endDate,
+    startDateParsed: dateFilter.createdAt?.$gte,
+    endDateParsed: dateFilter.createdAt?.$lte
+  });
+
   // Obtener todas las ventas del barbero
   const sales = await Sale.find({
     barberId: barberId,
@@ -745,16 +374,13 @@ export const generateConsolidatedInvoice = asyncHandler(async (req, res) => {
     ...(dateFilter.createdAt && { date: dateFilter.createdAt })
   }).populate('service', 'name basePrice').sort({ date: -1 }).lean();
 
-  // Calcular totales
+  // Calcular totales correctamente usando totalAmount o total
   const salesTotal = sales.reduce((sum, sale) => {
-    if (sale.type === 'walkIn') {
-      return sum + (sale.servicePrice || 0);
-    }
-    return sum + (sale.total || 0);
+    return sum + (sale.totalAmount || 0);
   }, 0);
 
   const appointmentsTotal = appointments.reduce((sum, apt) => {
-    return sum + (apt.finalPrice || apt.service?.basePrice || 0);
+    return sum + (apt.price || apt.service?.basePrice || 0);
   }, 0);
 
   const grandTotal = salesTotal + appointmentsTotal;
@@ -762,6 +388,21 @@ export const generateConsolidatedInvoice = asyncHandler(async (req, res) => {
   // Agrupar ventas por tipo
   const productSales = sales.filter(s => s.type === 'product');
   const walkInSales = sales.filter(s => s.type === 'walkIn');
+
+  // Formatear fechas del período sin conversión de zona horaria
+  const formatPeriodDate = (dateString) => {
+    if (!dateString) return null;
+    // Parsear directamente el string YYYY-MM-DD sin conversión
+    const [year, month, day] = dateString.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
+  // Verificar si es un solo día o un rango
+  const isSingleDay = startDate && endDate && startDate === endDate;
+  const periodLabel = isSingleDay ? 'Día' : 'Período';
+  const periodValue = isSingleDay 
+    ? formatPeriodDate(startDate) 
+    : `${formatPeriodDate(startDate)} - ${formatPeriodDate(endDate)}`;
 
   // Formatear datos para la factura HTML
   const invoiceData = {
@@ -772,17 +413,18 @@ export const generateConsolidatedInvoice = asyncHandler(async (req, res) => {
       phone: barber.user?.phone || 'N/A'
     },
     period: {
-      startDate: startDate || 'Desde el inicio',
-      endDate: endDate || 'Hasta la fecha'
+      label: periodLabel,
+      value: periodValue || (startDate ? `${formatPeriodDate(startDate)} - ${formatPeriodDate(endDate)}` : 'Todo el historial')
     },
     summary: {
       productSales: {
-        count: productSales.length,
-        total: productSales.reduce((sum, s) => sum + (s.total || 0), 0)
+        count: productSales.reduce((sum, s) => sum + (s.quantity || 1), 0), // Suma de cantidades
+        transactions: productSales.length, // Número de transacciones
+        total: productSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0)
       },
       walkInSales: {
         count: walkInSales.length,
-        total: walkInSales.reduce((sum, s) => sum + (s.servicePrice || 0), 0)
+        total: walkInSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0)
       },
       appointments: {
         count: appointments.length,
@@ -807,24 +449,17 @@ export const generateConsolidatedInvoice = asyncHandler(async (req, res) => {
 });
 
 /**
- * Genera el HTML para la factura consolidada
+ * Genera el HTML para el reporte consolidado (formato térmico 80mm)
  */
 function generateConsolidatedInvoiceHTML(data) {
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
+    if (isNaN(amount) || amount === null || amount === undefined) return '$0';
+    return '$' + Math.round(amount).toLocaleString('es-CO');
   };
 
+  // Usar el sistema centralizado de fechas para formato consistente
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('es-CO', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    return formatShort(date);
   };
 
   return `
@@ -833,315 +468,349 @@ function generateConsolidatedInvoiceHTML(data) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Factura Consolidada - ${data.invoiceNumber}</title>
+  <title>Reporte Consolidado - ${data.invoiceNumber}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
-    body {
-      font-family: 'Courier New', Courier, monospace;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      padding: 20px;
+    @media print {
+      body { margin: 0; padding: 0; }
+      .no-print { display: none !important; }
+      @page { size: 80mm auto; margin: 2mm; }
     }
     
-    .invoice-container {
-      max-width: 800px;
+    body {
+      font-family: 'Courier New', monospace;
+      width: 80mm;
+      max-width: 80mm;
       margin: 0 auto;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      overflow: hidden;
+      padding: 5mm;
+      color: #000;
+      background: #fff;
+      font-size: 9pt;
+      line-height: 1.2;
+      font-weight: 600;
     }
     
     .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 30px;
       text-align: center;
+      border-bottom: 2px dashed #000;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
     }
     
-    .header h1 { font-size: 28px; margin-bottom: 10px; font-weight: bold; }
-    .header .invoice-number { font-size: 14px; opacity: 0.9; letter-spacing: 2px; }
+    .header .business-name {
+      font-size: 11pt;
+      font-weight: bold;
+      color: #000;
+      margin-bottom: 3px;
+    }
     
-    .content { padding: 30px; }
-    .section { margin-bottom: 30px; }
+    .header h1 {
+      font-size: 12pt;
+      font-weight: bold;
+      margin: 5px 0;
+    }
+    
+    .header .invoice-number {
+      font-size: 8pt;
+      margin-top: 3px;
+    }
+    
+    .section {
+      margin-bottom: 10px;
+    }
     
     .section-title {
-      font-size: 18px;
+      font-size: 9pt;
       font-weight: bold;
-      color: #667eea;
-      margin-bottom: 15px;
-      padding-bottom: 10px;
-      border-bottom: 2px solid #667eea;
-    }
-    
-    .info-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 15px;
-      margin-bottom: 20px;
-    }
-    
-    .info-item {
-      padding: 15px;
-      background: #f7fafc;
-      border-radius: 8px;
-      border-left: 4px solid #667eea;
-    }
-    
-    .info-label {
-      font-size: 12px;
-      color: #718096;
+      text-transform: uppercase;
       margin-bottom: 5px;
+      padding-bottom: 3px;
+      border-bottom: 1px solid #000;
+    }
+    
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 8pt;
+      margin-bottom: 3px;
+      padding-bottom: 2px;
+      border-bottom: 1px dotted #ccc;
+    }
+    
+    .info-row strong {
+      font-weight: bold;
       text-transform: uppercase;
-      letter-spacing: 1px;
     }
     
-    .info-value { font-size: 14px; color: #2d3748; font-weight: bold; }
-    
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 15px;
-      margin-bottom: 20px;
+    .info-row span {
+      text-align: right;
     }
     
-    .summary-card {
-      padding: 20px;
-      border-radius: 12px;
-      text-align: center;
-      background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-      border: 2px solid #e2e8f0;
+    .separator {
+      border-top: 1px dashed #000;
+      margin: 6px 0;
     }
     
-    .summary-card.total {
-      grid-column: 1 / -1;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
+    .summary-box {
+      padding: 8px 0;
+      margin: 10px 0 6px 0;
+      border-top: 2px solid #000;
+      border-bottom: 2px solid #000;
     }
     
-    .summary-label {
-      font-size: 12px;
+    .summary-title {
+      font-size: 10pt;
+      font-weight: bold;
+      text-transform: uppercase;
       margin-bottom: 8px;
-      opacity: 0.8;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      text-align: center;
+      color: #000;
     }
     
-    .summary-value { font-size: 24px; font-weight: bold; }
-    .summary-count { font-size: 12px; margin-top: 5px; opacity: 0.7; }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9pt;
+      margin: 4px 0;
+      color: #000;
+      font-weight: 600;
+    }
     
-    .details-table {
+    .summary-row.total {
+      font-size: 12pt;
+      font-weight: bold;
+      border-top: 2px solid #000;
+      padding-top: 6px;
+      margin-top: 8px;
+      color: #000;
+    }
+    
+    table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 15px;
-      font-size: 12px;
+      margin: 6px 0;
+      font-size: 8pt;
     }
     
-    .details-table th {
-      background: #667eea;
-      color: white;
-      padding: 12px;
+    thead {
+      border-bottom: 1px solid #000;
+    }
+    
+    th {
+      padding: 3px 2px;
       text-align: left;
       font-weight: bold;
+      font-size: 7pt;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      color: #000;
     }
     
-    .details-table td {
-      padding: 10px 12px;
-      border-bottom: 1px solid #e2e8f0;
+    td {
+      padding: 3px 2px;
+      font-size: 8pt;
+      border-bottom: 1px dotted #ccc;
+      color: #000;
+      font-weight: 600;
     }
     
-    .details-table tr:hover { background: #f7fafc; }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
     
     .footer {
-      margin-top: 40px;
-      padding-top: 20px;
-      border-top: 2px dashed #cbd5e0;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed #000;
       text-align: center;
-      color: #718096;
-      font-size: 12px;
+      font-size: 7pt;
+      line-height: 1.3;
     }
     
-    .print-button {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .print-btn {
+      padding: 12px 30px;
+      background: #007bff;
       color: white;
       border: none;
-      padding: 15px 30px;
-      border-radius: 50px;
-      font-size: 14px;
-      font-weight: bold;
+      border-radius: 4px;
       cursor: pointer;
-      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-      transition: transform 0.2s;
+      font-size: 14px;
+      font-weight: 600;
+      margin: 15px auto;
+      display: block;
+      width: 90%;
+      max-width: 250px;
     }
     
-    .print-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+    .print-btn:hover {
+      background: #0056b3;
     }
     
-    @media print {
-      body { background: white; padding: 0; }
-      .invoice-container { box-shadow: none; border-radius: 0; }
-      .print-button { display: none; }
-    }
-    
-    @media (max-width: 768px) {
-      .info-grid, .summary-grid { grid-template-columns: 1fr; }
-      .summary-card.total { grid-column: 1; }
+    @media screen {
+      body {
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        margin: 20px auto;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="invoice-container">
-    <div class="header">
-      <h1>📊 FACTURA CONSOLIDADA</h1>
-      <div class="invoice-number">${data.invoiceNumber}</div>
+  <div class="header">
+    <div class="business-name">THE BROTHERS</div>
+    <div class="business-name">BARBER SHOP</div>
+    <h1>REPORTE CONSOLIDADO</h1>
+    <h1>    POR BARBERO    </h1>
+    <div class="invoice-number">${data.invoiceNumber}</div>
+  </div>
+  
+  <div class="section">
+    <div class="info-row">
+      <strong>Barbero:</strong>
+      <span>${data.barber.name}</span>
     </div>
-    
-    <div class="content">
-      <!-- Información del Barbero -->
-      <div class="section">
-        <div class="section-title">👤 Información del Barbero</div>
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="info-label">Nombre</div>
-            <div class="info-value">${data.barber.name}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Email</div>
-            <div class="info-value">${data.barber.email}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Teléfono</div>
-            <div class="info-value">${data.barber.phone}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Período</div>
-            <div class="info-value">${data.period.startDate} - ${data.period.endDate}</div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Resumen -->
-      <div class="section">
-        <div class="section-title">📈 Resumen de Ingresos</div>
-        <div class="summary-grid">
-          <div class="summary-card">
-            <div class="summary-label">🛒 Ventas de Productos</div>
-            <div class="summary-value">${formatCurrency(data.summary.productSales.total)}</div>
-            <div class="summary-count">${data.summary.productSales.count} ventas</div>
-          </div>
-          <div class="summary-card">
-            <div class="summary-label">✂️ Cortes Walk-In</div>
-            <div class="summary-value">${formatCurrency(data.summary.walkInSales.total)}</div>
-            <div class="summary-count">${data.summary.walkInSales.count} cortes</div>
-          </div>
-          <div class="summary-card">
-            <div class="summary-label">📅 Citas Completadas</div>
-            <div class="summary-value">${formatCurrency(data.summary.appointments.total)}</div>
-            <div class="summary-count">${data.summary.appointments.count} citas</div>
-          </div>
-          <div class="summary-card total">
-            <div class="summary-label">💰 TOTAL CONSOLIDADO</div>
-            <div class="summary-value">${formatCurrency(data.summary.grandTotal)}</div>
-          </div>
-        </div>
-      </div>
-      
-      ${data.details.productSales.length > 0 ? `
-      <div class="section">
-        <div class="section-title">🛒 Detalle de Ventas de Productos (${data.details.productSales.length})</div>
-        <table class="details-table">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Productos</th>
-              <th>Método de Pago</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.details.productSales.map(sale => `
-              <tr>
-                <td>${formatDate(sale.createdAt)}</td>
-                <td>${sale.items?.length || 0} items</td>
-                <td>${sale.paymentMethod || 'N/A'}</td>
-                <td><strong>${formatCurrency(sale.total)}</strong></td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-      ` : ''}
-      
-      ${data.details.walkInSales.length > 0 ? `
-      <div class="section">
-        <div class="section-title">✂️ Detalle de Cortes Walk-In (${data.details.walkInSales.length})</div>
-        <table class="details-table">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Servicio</th>
-              <th>Método de Pago</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.details.walkInSales.map(sale => `
-              <tr>
-                <td>${formatDate(sale.createdAt)}</td>
-                <td>${sale.serviceName || 'Corte'}</td>
-                <td>${sale.paymentMethod || 'N/A'}</td>
-                <td><strong>${formatCurrency(sale.servicePrice)}</strong></td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-      ` : ''}
-      
-      ${data.details.appointments.length > 0 ? `
-      <div class="section">
-        <div class="section-title">📅 Detalle de Citas Completadas (${data.details.appointments.length})</div>
-        <table class="details-table">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Servicio</th>
-              <th>Precio</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.details.appointments.map(apt => `
-              <tr>
-                <td>${formatDate(apt.date)}</td>
-                <td>${apt.service?.name || 'N/A'}</td>
-                <td><strong>${formatCurrency(apt.finalPrice || apt.service?.basePrice || 0)}</strong></td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-      ` : ''}
-      
-      <div class="footer">
-        <p><strong>The Brothers Barber Shop</strong></p>
-        <p>Factura generada el ${formatDate(data.generatedAt)}</p>
-        <p>Generada por: ${data.generatedBy}</p>
-      </div>
+    <div class="info-row">
+      <strong>${data.period.label}:</strong>
+      <span>${data.period.value}</span>
+    </div>
+    <div class="info-row">
+      <strong>Generado:</strong>
+      <span>${formatDate(data.generatedAt)}</span>
     </div>
   </div>
   
-  <button class="print-button" onclick="window.print()">
-    🖨️ Imprimir Factura
+  <div class="separator"></div>
+  
+  ${data.details.productSales.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Ventas de Productos (${data.details.productSales.length})</div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 30%;">Fecha</th>
+          <th style="width: 40%;">Producto</th>
+          <th class="text-right" style="width: 30%;">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.details.productSales.map(sale => {
+          const productName = sale.productName || 'Producto';
+          const shortName = productName.length > 15 ? productName.substring(0, 15) + '...' : productName;
+          const quantity = sale.quantity || 1;
+          const displayText = quantity > 1 ? `${shortName} (x${quantity})` : shortName;
+          return `
+          <tr>
+            <td>${formatDate(sale.saleDate || sale.createdAt)}</td>
+            <td title="${productName}">${displayText}</td>
+            <td class="text-right">${formatCurrency(sale.totalAmount || 0)}</td>
+          </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div class="separator"></div>
+  ` : ''}
+  
+  ${data.details.walkInSales.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Cortes (${data.details.walkInSales.length})</div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 30%;">Fecha</th>
+          <th style="width: 40%;">Servicio</th>
+          <th class="text-right" style="width: 30%;">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.details.walkInSales.map(sale => {
+          const serviceName = sale.serviceName || 'Corte';
+          const shortName = serviceName.length > 18 ? serviceName.substring(0, 18) + '...' : serviceName;
+          return `
+          <tr>
+            <td>${formatDate(sale.saleDate || sale.createdAt)}</td>
+            <td title="${serviceName}">${shortName}</td>
+            <td class="text-right">${formatCurrency(sale.totalAmount || 0)}</td>
+          </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div class="separator"></div>
+  ` : ''}
+  
+  ${data.details.appointments.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Citas Completadas (${data.summary.appointments.count})</div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 30%;">Fecha</th>
+          <th style="width: 40%;">Servicio</th>
+          <th class="text-right" style="width: 30%;">Precio</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.details.appointments.map(apt => {
+          const serviceName = apt.service?.name || 'N/A';
+          const shortName = serviceName.length > 15 ? serviceName.substring(0, 15) + '...' : serviceName;
+          return `
+          <tr>
+            <td>${formatDate(apt.date)}</td>
+            <td title="${serviceName}">${shortName}</td>
+            <td class="text-right">${formatCurrency(apt.price || apt.service?.basePrice || 0)}</td>
+          </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div class="separator"></div>
+  ` : ''}
+  
+  <div class="summary-box">
+    <div class="summary-title">RESUMEN GENERAL</div>
+    <div class="summary-row">
+      <span>Productos (${data.summary.productSales.count} unidades):</span>
+      <strong>${formatCurrency(data.summary.productSales.total)}</strong>
+    </div>
+    <div class="summary-row">
+      <span>Cortes (${data.summary.walkInSales.count}):</span>
+      <strong>${formatCurrency(data.summary.walkInSales.total)}</strong>
+    </div>
+    <div class="summary-row">
+      <span>Citas (${data.summary.appointments.count}):</span>
+      <strong>${formatCurrency(data.summary.appointments.total)}</strong>
+    </div>
+    <div class="summary-row total">
+      <span>TOTAL:</span>
+      <strong>${formatCurrency(data.summary.grandTotal)}</strong>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <p><strong>REPORTE GENERADO EL DIA ${formatDate(data.generatedAt)} </strong></p>
+    <p>www.thebrothersbarber.com</p>
+  </div>
+  
+  <button class="print-btn no-print" onclick="window.print()">
+    Imprimir Reporte
   </button>
+  
+  <script>
+    // Auto-focus en el botón de imprimir
+    window.addEventListener('load', function() {
+      document.querySelector('.print-btn').focus();
+    });
+    
+    // Atajo de teclado Ctrl+P
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+        window.print();
+      }
+    });
+  </script>
 </body>
 </html>
   `;
@@ -1162,5 +831,328 @@ export const disconnectPrinter = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Impresora desconectada exitosamente'
+  });
+});
+
+/**
+ * @desc    Generar y enviar factura de carrito
+ * @route   POST /api/invoices/cart
+ * @access  Private (Barber/Admin)
+ */
+export const generateCartInvoice = asyncHandler(async (req, res) => {
+  const { saleIds, clientData, sendEmail } = req.body;
+
+  logger.info('Generando factura de carrito', {
+    saleIdsCount: saleIds?.length,
+    hasClientData: !!clientData,
+    sendEmail,
+    userId: req.user.id
+  });
+
+  // Validar que hay IDs de ventas
+  if (!saleIds || !Array.isArray(saleIds) || saleIds.length === 0) {
+    throw new AppError('Se requieren los IDs de las ventas del carrito', 400);
+  }
+
+  // Validar datos del cliente si se solicita envío por email
+  if (sendEmail && (!clientData || !clientData.email)) {
+    throw new AppError('Se requiere el email del cliente para enviar la factura', 400);
+  }
+
+  // Obtener las ventas del carrito
+  const sales = await Sale.find({ _id: { $in: saleIds } })
+    .populate('barberId', 'name phone')
+    .populate('productId', 'name price');
+
+  if (sales.length === 0) {
+    throw new AppError('No se encontraron ventas para el carrito', 404);
+  }
+
+  // Generar factura para cada venta
+  const invoices = [];
+  for (const sale of sales) {
+    const invoice = await InvoiceUseCases.generateInvoiceFromSale(sale._id.toString(), {
+      source: 'cart',
+      notes: `Factura de carrito - Cliente: ${clientData?.firstName} ${clientData?.lastName}`,
+      ipAddress: req.ip,
+      location: req.headers['x-forwarded-for'] || req.connection.remoteAddress
+    });
+    invoices.push(invoice);
+  }
+
+  // Preparar datos para el email
+  const cartSummary = {
+    invoices,
+    sales,
+    clientData,
+    total: sales.reduce((sum, sale) => sum + sale.totalAmount, 0),
+    itemCount: sales.reduce((sum, sale) => sum + sale.quantity, 0)
+  };
+
+  // Enviar email si se solicitó
+  if (sendEmail && clientData?.email) {
+    try {
+      await emailService.sendCartInvoice(cartSummary, clientData);
+      logger.info('Factura de carrito enviada por email', {
+        email: clientData.email,
+        invoiceCount: invoices.length
+      });
+    } catch (emailError) {
+      logger.error('Error enviando email de factura de carrito:', emailError);
+      // No fallar la request si el email falla
+    }
+  }
+
+  res.status(201).json({
+    success: true,
+    message: sendEmail ? 'Factura generada y enviada por email' : 'Factura generada exitosamente',
+    data: {
+      invoices,
+      cartSummary
+    }
+  });
+});
+
+/**
+ * @desc    Obtener facturas de carrito con datos de cliente
+ * @route   GET /api/invoices/cart
+ * @access  Private (Barber/Admin)
+ */
+export const getCartInvoices = asyncHandler(async (req, res) => {
+  const { startDate, endDate, barberId, includeUnregistered = 'true' } = req.query;
+
+  logger.info('Obteniendo facturas de carrito', {
+    startDate,
+    endDate,
+    barberId,
+    includeUnregistered,
+    userId: req.user.id
+  });
+
+  const invoicesList = [];
+
+  // === PARTE 1: CARRITOS CON DATOS DE CLIENTE (FACTURAS FORMALES) ===
+  const formalCartQuery = {
+    clientData: { $exists: true, $ne: null },
+    status: { $in: ['completed', 'refunded'] }
+  };
+
+  if (startDate || endDate) {
+    formalCartQuery.saleDate = {};
+    if (startDate) formalCartQuery.saleDate.$gte = new Date(startDate);
+    if (endDate) formalCartQuery.saleDate.$lte = new Date(endDate);
+  }
+
+  if (barberId) {
+    formalCartQuery.barberId = barberId;
+  }
+
+  // Obtener ventas con datos de cliente
+  const formalSales = await Sale.find(formalCartQuery)
+    .populate('barberId', 'name phone')
+    .populate('productId', 'name price category')
+    .sort({ saleDate: -1 })
+    .limit(100);
+
+  // Agrupar carritos formales por cliente y fecha
+  const formalCartInvoices = formalSales.reduce((acc, sale) => {
+    if (!sale.clientData?.email) return acc;
+
+    const key = `${sale.clientData.email}-${sale.saleDate.toISOString().split('T')[0]}`;
+    
+    if (!acc[key]) {
+      acc[key] = {
+        type: 'formal', // Carrito con datos de cliente
+        clientData: sale.clientData,
+        barberId: sale.barberId,
+        barberName: sale.barberName,
+        saleDate: sale.saleDate,
+        items: [],
+        total: 0,
+        saleIds: [],
+        hasRefunds: false
+      };
+    }
+
+    // Determinar si el item está reembolsado
+    const isRefunded = sale.status === 'refunded';
+    const displayQuantity = isRefunded ? 0 : sale.quantity;
+    const displayTotal = isRefunded ? 0 : sale.totalAmount;
+
+    acc[key].items.push({
+      productName: sale.productName,
+      quantity: displayQuantity,
+      originalQuantity: sale.quantity, // Cantidad original para referencia
+      unitPrice: sale.unitPrice,
+      totalAmount: displayTotal,
+      originalTotal: sale.totalAmount, // Total original para referencia
+      paymentMethod: sale.paymentMethod,
+      status: sale.status,
+      isRefunded: isRefunded,
+      refundedAt: sale.refundedAt,
+      refundReason: sale.refundReason
+    });
+    
+    // Solo agregar al total si no está reembolsado
+    acc[key].total += displayTotal;
+    acc[key].saleIds.push(sale._id);
+    
+    // Marcar el carrito si tiene reembolsos
+    if (isRefunded) {
+      acc[key].hasRefunds = true;
+    }
+
+    return acc;
+  }, {});
+
+  invoicesList.push(...Object.values(formalCartInvoices));
+
+  // === PARTE 2: CARRITOS SIN DATOS DE CLIENTE (VENTAS AGRUPADAS) ===
+  if (includeUnregistered === 'true') {
+    const informalCartQuery = {
+      clientData: { $exists: false },
+      status: { $in: ['completed', 'refunded'] }
+    };
+
+    if (startDate || endDate) {
+      informalCartQuery.saleDate = {};
+      if (startDate) informalCartQuery.saleDate.$gte = new Date(startDate);
+      if (endDate) informalCartQuery.saleDate.$lte = new Date(endDate);
+    }
+
+    if (barberId) {
+      informalCartQuery.barberId = barberId;
+    }
+
+    // Obtener ventas sin datos de cliente
+    const informalSales = await Sale.find(informalCartQuery)
+      .populate('barberId', 'name phone')
+      .populate('productId', 'name price category')
+      .sort({ saleDate: -1 })
+      .limit(200);
+
+    // Agrupar por barbero y fecha para detectar carritos
+    const informalCartInvoices = informalSales.reduce((acc, sale) => {
+      const dateKey = sale.saleDate.toISOString().split('T')[0];
+      const key = `${sale.barberId._id}-${dateKey}`;
+      
+      if (!acc[key]) {
+        acc[key] = {
+          type: 'informal', // Carrito sin datos de cliente
+          clientData: null,
+          barberId: sale.barberId,
+          barberName: sale.barberId?.name || sale.barberName,
+          saleDate: sale.saleDate,
+          items: [],
+          total: 0,
+          saleIds: [],
+          hasRefunds: false
+        };
+      }
+
+      // Determinar si el item está reembolsado
+      const isRefunded = sale.status === 'refunded';
+      const displayQuantity = isRefunded ? 0 : sale.quantity;
+      const displayTotal = isRefunded ? 0 : sale.totalAmount;
+
+      acc[key].items.push({
+        productName: sale.productName,
+        quantity: displayQuantity,
+        originalQuantity: sale.quantity,
+        unitPrice: sale.unitPrice,
+        totalAmount: displayTotal,
+        originalTotal: sale.totalAmount,
+        paymentMethod: sale.paymentMethod,
+        status: sale.status,
+        isRefunded: isRefunded,
+        refundedAt: sale.refundedAt,
+        refundReason: sale.refundReason
+      });
+      
+      acc[key].total += displayTotal;
+      acc[key].saleIds.push(sale._id);
+      
+      if (isRefunded) {
+        acc[key].hasRefunds = true;
+      }
+
+      return acc;
+    }, {});
+
+    // Solo incluir carritos con múltiples items (2 o más)
+    const multiItemCarts = Object.values(informalCartInvoices).filter(cart => cart.items.length >= 2);
+    invoicesList.push(...multiItemCarts);
+
+    logger.info('Carritos sin datos de cliente detectados', {
+      totalInformalSales: informalSales.length,
+      groupedCarts: Object.keys(informalCartInvoices).length,
+      multiItemCarts: multiItemCarts.length
+    });
+  }
+
+  // Ordenar por fecha descendente
+  invoicesList.sort((a, b) => new Date(b.saleDate) - new Date(a.saleDate));
+
+  logger.info('Facturas de carrito obtenidas', {
+    formalCarts: Object.keys(formalCartInvoices).length,
+    informalCarts: includeUnregistered === 'true' ? invoicesList.length - Object.keys(formalCartInvoices).length : 0,
+    totalInvoices: invoicesList.length
+  });
+
+  res.status(200).json({
+    success: true,
+    data: invoicesList,
+    count: invoicesList.length,
+    breakdown: {
+      formal: Object.keys(formalCartInvoices).length,
+      informal: includeUnregistered === 'true' ? invoicesList.length - Object.keys(formalCartInvoices).length : 0
+    }
+  });
+});
+
+/**
+ * @desc    Obtener información de reembolsos de un carrito
+ * @route   GET /api/invoices/cart/:cartId/refunds
+ * @access  Private (Barber/Admin)
+ */
+export const getCartRefundInfo = asyncHandler(async (req, res) => {
+  const { cartId } = req.params;
+
+  logger.info('Obteniendo información de reembolsos del carrito', {
+    cartId,
+    userId: req.user.id
+  });
+
+  // Obtener todas las ventas del carrito (incluyendo reembolsadas)
+  const sales = await Sale.find({
+    _id: { $in: cartId.split(',') }
+  }).populate('refundedBy', 'email name');
+
+  if (!sales.length) {
+    throw new AppError('Carrito no encontrado', 404);
+  }
+
+  // Analizar reembolsos
+  const refundInfo = {
+    totalItems: sales.length,
+    refundedItems: sales.filter(s => s.status === 'refunded').length,
+    completedItems: sales.filter(s => s.status === 'completed').length,
+    cancelledItems: sales.filter(s => s.status === 'cancelled').length,
+    originalTotal: sales.reduce((sum, s) => sum + s.totalAmount, 0),
+    refundedAmount: sales.filter(s => s.status === 'refunded').reduce((sum, s) => sum + s.totalAmount, 0),
+    currentTotal: sales.filter(s => s.status === 'completed').reduce((sum, s) => sum + s.totalAmount, 0),
+    refunds: sales.filter(s => s.status === 'refunded').map(s => ({
+      saleId: s._id,
+      productName: s.productName || s.serviceName,
+      amount: s.totalAmount,
+      refundedAt: s.refundedAt,
+      refundReason: s.refundReason,
+      refundedBy: s.refundedBy
+    }))
+  };
+
+  res.status(200).json({
+    success: true,
+    data: refundInfo
   });
 });

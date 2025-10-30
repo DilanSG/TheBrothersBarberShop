@@ -1,7 +1,5 @@
 /**
  * BarberUseCases - Casos de uso para gestión de barberos
- * ✅ MIGRACIÓN COMPLETA A REPOSITORY PATTERN
- *
  * Gestión integral de barberos con Repository Pattern
  */
 
@@ -13,7 +11,6 @@ class BarberUseCases {
     // Obtener repositorios del contenedor DI
     this.barberRepository = DIContainer.get('BarberRepository');
     this.userRepository = DIContainer.get('UserRepository');
-    logger.debug('BarberUseCases: Repositorios inyectados correctamente');
   }
 
   // Método estático para obtener instancia con DI
@@ -22,7 +19,7 @@ class BarberUseCases {
   }
 
   /**
-   * Obtener todos los barberos (✅ MIGRADO)
+   * Obtener todos los barberos
    * @param {Object} filters - Filtros de búsqueda
    * @param {Object} pagination - Paginación
    * @returns {Promise<Object>}
@@ -37,13 +34,13 @@ class BarberUseCases {
       const query = this._buildBarbersQuery(filters);
 
       const result = await this.barberRepository.findAll({
-        filters: query,  // Changed from 'filter' to 'filters'
+        filters: query,  // Cambio de 'filter' a 'filters'
         limit,
         page,
         sort: { createdAt: -1 }
       });
 
-      // The repository returns { barbers, total, page, ... }
+      // El repositorio devuelve { barbers, total, page, ... }
       if (result && result.barbers) {
         logger.debug(`BarberUseCases: Recuperados ${result.barbers.length} barberos`);
         return {
@@ -71,7 +68,7 @@ class BarberUseCases {
   }
 
   /**
-   * Obtener barbero por ID (✅ MIGRADO)
+   * Obtener barbero por ID
    * @param {string} id - ID del barbero
    * @returns {Promise<Object>}
    */
@@ -94,7 +91,7 @@ class BarberUseCases {
   }
 
   /**
-   * Crear nuevo barbero (✅ MIGRADO)
+   * Crear nuevo barbero
    * @param {Object} barberData - Datos del barbero
    * @param {Object} user - Usuario que crea el barbero
    * @returns {Promise<Object>}
@@ -126,7 +123,7 @@ class BarberUseCases {
   }
 
   /**
-   * Actualizar barbero (✅ MIGRADO)
+   * Actualizar barbero
    * @param {string} id - ID del barbero
    * @param {Object} updateData - Datos a actualizar
    * @param {Object} user - Usuario que actualiza
@@ -148,7 +145,7 @@ class BarberUseCases {
   }
 
   /**
-   * Eliminar barbero (✅ MIGRADO)
+   * Eliminar barbero
    * @param {string} id - ID del barbero
    * @param {Object} user - Usuario que elimina
    * @returns {Promise<boolean>}
@@ -169,7 +166,7 @@ class BarberUseCases {
   }
 
   /**
-   * Obtener barberos activos (✅ MIGRADO)
+   * Obtener barberos activos
    * @returns {Promise<Array>}
    */
   async getActiveBarbers() {
@@ -249,11 +246,9 @@ class BarberUseCases {
     return await instance.getActiveBarbers();
   }
 
-  // ========================================================================
-  // MÉTODOS COMPLEJOS SIN MIGRAR (⏳)
+  // ** MÉTODOS COMPLEJOS SIN MIGRAR 
   // Mantenidos por complejidad específica
-  // ========================================================================
-
+  //
   /**
    * Obtener estadísticas de barbero
    * @param {string} barberId - ID del barbero

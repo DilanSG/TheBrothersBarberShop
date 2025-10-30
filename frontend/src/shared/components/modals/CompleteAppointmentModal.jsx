@@ -28,10 +28,9 @@ const CompleteAppointmentModal = ({ isOpen, onClose, appointment, onComplete }) 
       const response = await api.get('/payment-methods');
       if (response.data && response.data.success) {
         setPaymentMethodsFromAPI(response.data.data);
-        console.log('✅ Métodos de pago obtenidos desde API:', response.data.data);
       }
     } catch (error) {
-      console.error('❌ Error al obtener métodos de pago desde API:', error);
+      console.error('Error al obtener métodos de pago desde API:', error);
       // En caso de error, mantener los métodos del contexto como fallback
     } finally {
       setLoadingMethods(false);
@@ -57,27 +56,7 @@ const CompleteAppointmentModal = ({ isOpen, onClose, appointment, onComplete }) 
     ? paymentMethodsFromAPI 
     : (mappedContextMethods.length > 0 ? mappedContextMethods : defaultPaymentMethods);
 
-  // Debug: Log para verificar métodos de pago
-  console.log('🔍 CompleteAppointmentModal - Debug completo:', {
-    fromAPI: paymentMethodsFromAPI,
-    fromAPILength: paymentMethodsFromAPI.length,
-    fromContext: allPaymentMethods,
-    mappedContext: mappedContextMethods,
-    finalAvailable: availableMethods,
-    finalAvailableLength: availableMethods.length,
-    source: paymentMethodsFromAPI.length > 0 ? 'API' : (mappedContextMethods.length > 0 ? 'Context' : 'Default')
-  });
-
-  // Debug adicional para cada método
-  availableMethods.forEach((method, index) => {
-    console.log(`📋 Método ${index + 1}:`, {
-      id: method._id,
-      backendId: method.backendId,
-      name: method.name,
-      color: method.color
-    });
-  });
-
+    
   const handleComplete = async () => {
     if (!selectedPaymentMethod) {
       showWarning('Por favor selecciona un método de pago');
@@ -97,7 +76,7 @@ const CompleteAppointmentModal = ({ isOpen, onClose, appointment, onComplete }) 
   };
 
   // Bloquear scroll del body
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
       return () => { document.body.style.overflow = 'unset'; };

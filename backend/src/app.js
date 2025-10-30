@@ -37,23 +37,22 @@ const __dirname = path.dirname(__filename);
 try {
   validateEnv();
 } catch (error) {
-  logger.error('❌ ERROR AL VALIDAR VARIABLES DE ENTORNO:', { error: error.message });
+  logger.error('ERROR AL VALIDAR VARIABLES DE ENTORNO:', { error: error.message });
   process.exit(1);
 }
 
 // Inicializar Express
 const app = express();
 
-// 🐛 Inicializar Sentry (error tracking en Render)
+// Inicializar Sentry (error tracking en Render)
 // DESHABILITADO: Sentry v10.19.0 tiene problemas que bloquean el servidor
 initSentry(app);
 
-// 🐛 Sentry request handler (DEBE ir antes de todas las rutas)
+// Sentry request handler (DEBE ir antes de todas las rutas)
 // DESHABILITADO: Los middlewares de Sentry bloquean el event loop en Render
 // app.use(sentryRequestHandler());
 
 // Configuración de seguridad
-logger.info('🔒 Configurando seguridad (helmet)...');
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -65,7 +64,7 @@ app.use(helmet({
   },
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: { policy: "cross-origin" },
-  // 🔒 HSTS - Forzar HTTPS en producción (1 año)
+  // HSTS - Forzar HTTPS en producción (1 año)
   strictTransportSecurity: {
     maxAge: 31536000, // 1 año en segundos
     includeSubDomains: true,
@@ -112,7 +111,7 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // TEMPORARY: Log ALL invoice requests to debug routing
 app.use('/api/v1/invoices*', (req, res, next) => {
-  logger.info('📨 INVOICE REQUEST RECEIVED', {
+  logger.info('INVOICE REQUEST RECEIVED', {
     method: req.method,
     originalUrl: req.originalUrl,
     path: req.path,
@@ -129,7 +128,7 @@ app.use(`/api/${config.app.apiVersion}`, routes);
 // Ruta raíz - Bienvenida de la API  
 app.get('/', (req, res) => {
   try {
-    logger.info('🎯 Root route accessed successfully');
+    logger.info('Root route accessed successfully');
     res.status(200).json({
       success: true,
       service: 'The Brothers Barber Shop API',
@@ -163,7 +162,7 @@ app.get('/health', (req, res) => {
 // Manejo de rutas no encontradas
 app.use(notFound);
 
-// 🐛 Sentry error handler (DEBE ir DESPUÉS de rutas, ANTES de error handler)
+// Sentry error handler (DEBE ir DESPUÉS de rutas, ANTES de error handler)
 // DESHABILITADO: Los middlewares de Sentry bloquean el event loop en Render
 // app.use(sentryErrorHandler());
 
@@ -186,8 +185,6 @@ process.on('uncaughtException', (err) => {
   });
   process.exit(1);
 });
-
-logger.info('✅ App.js completamente configurado - Exportando app');
 
 // Exportar la app
 export default app;

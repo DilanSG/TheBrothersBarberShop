@@ -152,7 +152,7 @@ export const getBarber = asyncHandler(async (req, res) => {
   })
   .populate({
     path: 'user',
-    select: 'name email phone photo role isActive',
+    select: 'name email phone profilePicture role isActive',
     match: { isActive: true }
   })
   .populate('services', 'name price duration category');

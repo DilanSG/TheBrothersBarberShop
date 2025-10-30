@@ -26,6 +26,7 @@ import Register from './features/auth/Register';
 import Barbers from './features/barbers/Barbers';
 import BarberProfile from './features/barbers/BarberProfile';
 import BarberSales from './features/barbers/BarberSales';
+import CartInvoices from './pages/CartInvoices';
 
 // Admin Pages
 import UserRoleManager from './features/admin/UserRoleManager';
@@ -97,6 +98,12 @@ function App() {
           <Route 
             path="sales" 
             element={<BarberSales />} 
+          />
+          
+          {/* Ruta de facturas de carrito - accesible para admin y barber */}
+          <Route 
+            path="cart-invoices" 
+            element={<CartInvoices />} 
           />
           
           {/* Rutas exclusivas para admin */}

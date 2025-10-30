@@ -22,16 +22,34 @@ import GradientText from '@components/ui/GradientText';
 import GradientButton from '@components/ui/GradientButton';
 
 import logger from '@utils/logger';
+
+// Formatear precio
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(price || 0);
+};
+
 export default function BarberProfile() {
   const { id } = useParams();
   const [barber, setBarber] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
+  const [imageError, setImageError] = useState(false);
   const { user } = useAuth();
+
+  // Función para manejar errores de imagen
+  const handleImageError = () => {
+    setImageError(true);
+  };
 
   useEffect(() => {
     fetchBarberData();
+    setImageError(false); // Reset image error state cuando cambie el barbero
   }, [id]);
 
   const fetchBarberData = async () => {
@@ -174,11 +192,23 @@ export default function BarberProfile() {
                     ? user.profilePicture 
                     : (barber?.user?.profilePicture || barber?.photo?.url);
                   
-                  return profilePicture ? (
+                  // Debug temporal - remover después
+                  console.log('🖼️ [BarberProfile] Datos de imagen:', {
+                    isCurrentUser,
+                    userProfilePicture: user?.profilePicture,
+                    barberUserProfilePicture: barber?.user?.profilePicture,
+                    barberPhotoUrl: barber?.photo?.url,
+                    finalProfilePicture: profilePicture,
+                    imageError
+                  });
+                  
+                  return (profilePicture && !imageError) ? (
                     <img
                       src={profilePicture}
                       alt={barber?.user?.name || barber?.name}
                       className="w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 rounded-full object-cover shadow-xl shadow-blue-500/20 border-2 border-blue-500/20"
+                      onError={handleImageError}
+                      onLoad={() => setImageError(false)}
                     />
                   ) : (
                     <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-600/20 flex items-center justify-center shadow-xl shadow-blue-500/20 border-2 border-blue-500/20">
@@ -374,7 +404,7 @@ export default function BarberProfile() {
                             {service.name}
                           </h4>
                           <div className="flex-shrink-0 px-2 py-1 bg-white/10 text-white border border-white/20 rounded-md text-xs font-medium">
-                            ${service.price}
+                            {formatPrice(service.price)}
                           </div>
                         </div>
                         
@@ -477,7 +507,7 @@ export default function BarberProfile() {
                           <span className="text-xs sm:text-sm text-gray-400">Ingresos</span>
                         </div>
                         <div className="text-xl sm:text-2xl font-bold text-green-400">
-                          ${stats.totalRevenue || 0}
+                          {formatPrice(stats.totalRevenue || 0)}
                         </div>
                       </div>
                     </div>
@@ -529,7 +559,7 @@ export default function BarberProfile() {
                                     {s.service}
                                   </div>
                                   <div className="text-green-400 text-sm font-medium">
-                                    ${s.revenue}
+                                    {formatPrice(s.revenue)}
                                   </div>
                                 </div>
                                 <span className="text-blue-400 bg-blue-500/20 px-3 py-1 rounded-full text-sm border border-blue-500/40">

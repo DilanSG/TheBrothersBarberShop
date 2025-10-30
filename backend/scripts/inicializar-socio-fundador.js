@@ -45,10 +45,7 @@ class SocioFounderInitializer {
   // Conectar a la base de datos
   async connectDB() {
     try {
-      await mongoose.connect(process.env.MONGODB_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      });
+      await mongoose.connect(process.env.MONGODB_URI);
       console.log(`${colors.green}✅ Conectado a MongoDB${colors.reset}`);
     } catch (error) {
       console.error(`${colors.red}❌ Error conectando a MongoDB:${colors.reset}`, error.message);
@@ -69,6 +66,7 @@ class SocioFounderInitializer {
       console.log(`   Email: ${colors.cyan}${fundadorExistente.email}${colors.reset}`);
       console.log(`   Porcentaje: ${colors.cyan}${fundadorExistente.porcentaje}%${colors.reset}`);
       
+      console.log(`\n${colors.yellow}⚠️  NOTA: El fundador actual será convertido a socio regular sin porcentaje.${colors.reset}`);
       const continuar = await this.pregunta(`\n¿Desea reemplazar el fundador existente? (${colors.red}s/N${colors.reset}): `);
       
       if (continuar.toLowerCase() !== 's' && continuar.toLowerCase() !== 'si') {
@@ -76,10 +74,11 @@ class SocioFounderInitializer {
         return false;
       }
 
-      // Desactivar fundador existente
-      fundadorExistente.isActive = false;
+      // Convertir fundador existente a socio regular sin porcentaje
+      fundadorExistente.tipoSocio = 'socio';
+      fundadorExistente.porcentaje = 0;
       await fundadorExistente.save();
-      console.log(`${colors.green}✅ Fundador anterior desactivado${colors.reset}`);
+      console.log(`${colors.green}✅ Fundador anterior convertido a socio regular sin porcentaje${colors.reset}`);
     }
 
     return true;

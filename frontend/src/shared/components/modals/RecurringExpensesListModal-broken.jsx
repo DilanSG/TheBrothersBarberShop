@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, Repeat, TrendingDown, DollarSign, Tag, CreditCard, Calendar, Clock } from 'lucide-react';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import DailyRecurringExpenseModal from './DailyRecurringExpenseModal';

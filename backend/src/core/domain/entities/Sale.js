@@ -90,6 +90,30 @@ const saleSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  // Datos del cliente (opcional, para facturas de carrito)
+  clientData: {
+    firstName: {
+      type: String,
+      trim: true
+    },
+    lastName: {
+      type: String,
+      trim: true
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true
+    },
+    phone: {
+      type: String,
+      trim: true
+    },
+    address: {
+      type: String,
+      trim: true
+    }
+  },
   saleDate: {
     type: Date,
     default: Date.now
@@ -98,6 +122,18 @@ const saleSchema = new mongoose.Schema({
     type: String,
     enum: ["completed", "cancelled", "refunded"],
     default: "completed"
+  },
+  // Campos de reembolso
+  refundedAt: {
+    type: Date
+  },
+  refundReason: {
+    type: String,
+    trim: true
+  },
+  refundedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
   },
   invoiceId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -108,11 +144,19 @@ const saleSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Índices para mejorar performance de queries
 saleSchema.index({ barberId: 1, saleDate: -1 });
 saleSchema.index({ productId: 1, saleDate: -1 });
 saleSchema.index({ serviceId: 1, saleDate: -1 });
 saleSchema.index({ saleDate: -1 });
 saleSchema.index({ type: 1, barberId: 1 });
+
+// NUEVO: Índice compuesto crítico para getBarberSalesStats (barberId + status + saleDate)
+// Este índice optimiza la query más frecuente: filtrar ventas completadas de un barbero por fecha
+saleSchema.index({ barberId: 1, status: 1, saleDate: -1 });
+
+// NUEVO: Índice para queries de tipo + status (ej: obtener solo productos completados)
+saleSchema.index({ type: 1, status: 1, saleDate: -1 });
 
 const Sale = mongoose.model("Sale", saleSchema);
 

@@ -906,6 +906,7 @@ export const salesService = {
   getBarberSalesStats: (barberId, params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     const url = `/sales/barber/${barberId}/stats${queryString ? `?${queryString}` : ''}`;
+    console.log('🔍 [salesService] getBarberSalesStats:', { barberId, params, queryString, url });
     return api.get(url, true, 300000);
   },
   // Si se pasa barberId, usa el endpoint por barbero; si no, usa el global
@@ -965,6 +966,17 @@ export const salesService = {
       }
     });
     return api.get(`/sales?${params.toString()}`, false);
+  },
+  
+  // Obtener facturas de carrito (ventas con clientData)
+  getCartInvoices: (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
+        params.append(key, filters[key]);
+      }
+    });
+    return api.get(`/sales/cart-invoices?${params.toString()}`, false);
   },
   
   // Cancelar/eliminar venta
