@@ -54,7 +54,7 @@ jobs:
 
       - name: 📤 Upload Coverage Artifact
         if: matrix.node-version == '18.x'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-report
           path: backend/coverage
