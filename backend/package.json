@@ -53,7 +53,7 @@
     "hpp": "^0.2.3",
     "jsonwebtoken": "^9.0.2",
     "moment-timezone": "0.6.0",
-    "mongoose": "^8.5.0",
+    "mongoose": "^8.19.2",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
